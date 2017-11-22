@@ -14,18 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation.controllers
+package uk.gov.hmrc.personaldetailsvalidation
 
-import uk.gov.hmrc.play.microservice.controller.BaseController
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import play.api.mvc._
+import uk.gov.hmrc.play.microservice.controller.BaseController
+
 import scala.concurrent.Future
 
-object MicroserviceHelloWorld extends MicroserviceHelloWorld
+class MicroserviceHelloWorld() extends BaseController {
 
-trait MicroserviceHelloWorld extends BaseController {
-
-	def hello() = Action.async { implicit request =>
-		Future.successful(Ok("Hello world"))
-	}
+  def hello() = Action.async { implicit request =>
+    Future.successful(Ok("Hello world"))
+  }
 }

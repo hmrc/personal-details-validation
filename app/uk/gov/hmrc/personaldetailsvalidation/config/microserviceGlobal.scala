@@ -16,45 +16,53 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.config
 
+import com.typesafe.config.Config
+import play.api.mvc.EssentialFilter
 import play.api.{Application, Configuration, Play}
 import uk.gov.hmrc.play.audit.http.config.AuditingConfig
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.auth.controllers.AuthParamsControllerConfig
 import uk.gov.hmrc.play.config.{AppName, ControllerConfig, RunMode}
 import uk.gov.hmrc.play.microservice.bootstrap.DefaultMicroserviceGlobal
 import uk.gov.hmrc.play.microservice.config.LoadAuditingConfig
 import uk.gov.hmrc.play.microservice.filters.{AuditFilter, LoggingFilter, MicroserviceFilterSupport}
 
-object ControllerConfiguration extends ControllerConfig {
-  lazy val controllerConfigs = Play.current.configuration.underlying.getConfig("controllers")
-}
-
-object AuthParamsControllerConfiguration extends AuthParamsControllerConfig {
-  lazy val controllerConfigs = ControllerConfiguration.controllerConfigs
+private object ControllerConfiguration extends ControllerConfig {
+  lazy val controllerConfigs: Config = Play.current.configuration.underlying.getConfig("controllers")
 }
 
 object MicroserviceAuditConnector extends AuditConnector {
   lazy val auditingConfig: AuditingConfig = LoadAuditingConfig(s"auditing")
 }
 
-object MicroserviceAuditFilter extends AuditFilter with AppName with MicroserviceFilterSupport {
-  override val auditConnector = MicroserviceAuditConnector
+object MicroserviceAuditFilter
+  extends AuditFilter
+    with AppName
+    with MicroserviceFilterSupport {
 
-  override def controllerNeedsAuditing(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsAuditing
+  override val auditConnector: AuditConnector = MicroserviceAuditConnector
+
+  override def controllerNeedsAuditing(controllerName: String): Boolean =
+    ControllerConfiguration.paramsForController(controllerName).needsAuditing
 }
 
-object MicroserviceLoggingFilter extends LoggingFilter with MicroserviceFilterSupport {
-  override def controllerNeedsLogging(controllerName: String) = ControllerConfiguration.paramsForController(controllerName).needsLogging
+object MicroserviceLoggingFilter
+  extends LoggingFilter
+    with MicroserviceFilterSupport {
+
+  override def controllerNeedsLogging(controllerName: String): Boolean =
+    ControllerConfiguration.paramsForController(controllerName).needsLogging
 }
 
-object MicroserviceGlobal extends DefaultMicroserviceGlobal with RunMode with MicroserviceFilterSupport {
-  override val auditConnector = MicroserviceAuditConnector
+object MicroserviceGlobal
+  extends DefaultMicroserviceGlobal
+    with RunMode
+    with MicroserviceFilterSupport {
 
-  override def microserviceMetricsConfig(implicit app: Application): Option[Configuration] = app.configuration.getConfig(s"microservice.metrics")
+  override val auditConnector: AuditConnector = MicroserviceAuditConnector
+  override val loggingFilter: LoggingFilter = MicroserviceLoggingFilter
+  override val microserviceAuditFilter: AuditFilter = MicroserviceAuditFilter
+  override val authFilter: Option[EssentialFilter] = None
 
-  override val loggingFilter = MicroserviceLoggingFilter
-
-  override val microserviceAuditFilter = MicroserviceAuditFilter
-
-  override val authFilter = None
+  override def microserviceMetricsConfig(implicit app: Application): Option[Configuration] =
+    app.configuration.getConfig(s"microservice.metrics")
 }
