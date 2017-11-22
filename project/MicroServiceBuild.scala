@@ -1,15 +1,12 @@
-import sbt._
-import play.sbt.PlayImport._
 import play.core.PlayVersion
-import uk.gov.hmrc.SbtAutoBuildPlugin
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin
-import uk.gov.hmrc.versioning.SbtGitVersioning
+import play.sbt.PlayImport._
+import sbt._
 
 object MicroServiceBuild extends Build with MicroService {
 
-  val appName = "personal-details-validation"
+  protected val appName = "personal-details-validation"
 
-  override lazy val appDependencies: Seq[ModuleID] = compile ++ test()
+  protected override lazy val appDependencies: Seq[ModuleID] = compile ++ test()
 
   val compile = Seq(
     "uk.gov.hmrc" %% "play-reactivemongo" % "6.1.0",
@@ -23,5 +20,4 @@ object MicroServiceBuild extends Build with MicroService {
     "org.pegdown" % "pegdown" % "1.6.0" % scope,
     "com.typesafe.play" %% "play-test" % PlayVersion.current % scope
   )
-
 }
