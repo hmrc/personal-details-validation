@@ -16,21 +16,30 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.http
 
+import javax.inject.{Inject, Singleton}
+
+import play.api.Configuration
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.hooks.HttpHooks
-import uk.gov.hmrc.personaldetailsvalidation.config.MicroserviceAuditConnector
 import uk.gov.hmrc.play.audit.http.HttpAuditing
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.play.config.AppName
+import uk.gov.hmrc.play.bootstrap.config.AppName
 import uk.gov.hmrc.play.http.ws._
 
-trait Hooks extends HttpHooks with HttpAuditing {
+@Singleton
+class HttpClient @Inject()(val auditConnector: AuditConnector,
+                           playConfiguration: Configuration)
+  extends WSHttp
+    with HttpGet
+    with HttpPut
+    with HttpPost
+    with HttpDelete
+    with HttpPatch
+    with HttpHooks
+    with HttpAuditing {
   override val hooks = Seq(AuditingHook)
-  override lazy val auditConnector: AuditConnector = MicroserviceAuditConnector
+  override lazy val configuration = Some(playConfiguration.underlying)
+  override lazy val appName: String = new AppName {
+    override def configuration: Configuration = playConfiguration
+  }.appName
 }
-
-trait HttpClient extends HttpGet with HttpPut with HttpPost with HttpDelete with HttpPatch
-
-trait WSHttpClient extends HttpClient with WSHttp with Hooks with AppName
-
-object WSHttpClient extends WSHttpClient
