@@ -16,14 +16,24 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import play.api.mvc._
-import uk.gov.hmrc.play.microservice.controller.BaseController
+import org.scalatest.concurrent.ScalaFutures
+import play.api.libs.json.JsString
+import play.api.test.FakeRequest
+import play.api.test.Helpers._
+import uk.gov.hmrc.play.test.UnitSpec
 
-import scala.concurrent.Future
+class HelloWorldEndpointSpec
+  extends UnitSpec
+    with ScalaFutures {
 
-class MicroserviceHelloWorld() extends BaseController {
+  private val request = FakeRequest("GET", "/")
 
-  def hello() = Action.async { implicit request =>
-    Future.successful(Ok("Hello world"))
+  "helloWorld" should {
+    "return OK with Json body" in {
+      val result = new HelloWorldEndpoint().helloWorld()(request)
+
+      status(result) shouldBe OK
+      contentAsJson(result) shouldBe JsString("Hello world")
+    }
   }
 }
