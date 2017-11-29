@@ -28,7 +28,7 @@ class PersonalDetailsValidationResourceController extends BaseController {
   }
 
   def get = Action {
-    Ok
+    Ok("""{"validationStatus":"success"}""")
   }
 
 }

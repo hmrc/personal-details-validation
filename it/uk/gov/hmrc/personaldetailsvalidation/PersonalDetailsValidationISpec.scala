@@ -11,8 +11,10 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       val createResponse = wsUrl("/personal-details-validation").post("").futureValue
       createResponse.status mustBe CREATED
       val Some(resourceUrl) = createResponse.header(LOCATION)
+
       val getResponse = wsUrl(resourceUrl).get().futureValue
       getResponse.status mustBe OK
+      (getResponse.json \ "validationStatus").as[String] mustBe "success"
     }
   }
 
