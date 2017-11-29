@@ -16,15 +16,13 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import play.api.libs.json.JsString
-import play.api.mvc._
+import com.google.inject.Singleton
+import play.api.mvc.Action
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
-import scala.concurrent.Future
+@Singleton
+class PersonalDetailsValidationResourceController extends BaseController {
 
-class HelloWorldEndpoint() extends BaseController {
+  def create = Action {  Created }
 
-  val helloWorld = Action.async { implicit request =>
-    Future.successful(Ok(JsString("Hello world")))
-  }
 }

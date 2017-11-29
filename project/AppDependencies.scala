@@ -14,6 +14,8 @@ private object AppDependencies {
 
   private def test(scope: String = "test,it") = Seq(
     "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
-    "uk.gov.hmrc" %% "hmrctest" % "3.0.0" % scope
+    "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
+    "uk.gov.hmrc" %% "hmrctest" % "3.0.0" % scope,
+    "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.1" % "it"
   )
 }
