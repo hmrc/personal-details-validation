@@ -23,6 +23,12 @@ import uk.gov.hmrc.play.bootstrap.controller.BaseController
 @Singleton
 class PersonalDetailsValidationResourceController extends BaseController {
 
-  def create = Action {  Created }
+  def create = Action {
+    Created.withHeaders(LOCATION -> routes.PersonalDetailsValidationResourceController.get().url)
+  }
+
+  def get = Action {
+    Ok
+  }
 
 }
