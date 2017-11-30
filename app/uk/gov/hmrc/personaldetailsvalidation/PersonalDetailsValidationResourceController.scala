@@ -30,12 +30,19 @@ import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 @Singleton
 class PersonalDetailsValidationResourceController @Inject()(personalDetailsValidationRepository: PersonalDetailsValidationRepository) extends BaseController with JsonValidation {
 
-  private implicit val reads: Reads[PersonalDetails] = (
+  private implicit val personalDetailsReads: Reads[PersonalDetails] = (
     (__ \ "firstName").readOrError[String]("firstName is missing") and
       (__ \ "lastName").readOrError[String]("lastName is missing") and
       (__ \ "dateOfBirth").readOrError[LocalDate]("dateOfBirth is missing") and
       (__ \ "nino").readOrError[Nino]("nino is missing")
     ) (PersonalDetails.apply _)
+
+  private implicit val validationStatusWrites = new Writes[ValidationStatus] {
+    override def writes(o: ValidationStatus) = JsString(o.getClass.getSimpleName.dropRight(1).toLowerCase)
+  }
+  private implicit val personalDetailsValidationIdWrites = Json.writes[PersonalDetailsValidationId]
+  private implicit val personalDetailsWrites = Json.writes[PersonalDetails]
+  private implicit val personalDetailsValidationWrites = Json.writes[PersonalDetailsValidation]
 
   def create = Action.async(parse.json) { implicit request =>
     withJsonBody[PersonalDetails] { personalDetails =>
@@ -45,8 +52,7 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
     }
   }
 
-  def get(validationId: PersonalDetailsValidationId) = Action {
-    Ok("""{"validationStatus":"success"}""")
+  def get(id: PersonalDetailsValidationId) = Action.async { implicit request =>
+    personalDetailsValidationRepository.get(id).map { validation => Ok(Json.toJson(validation)) }
   }
-
 }

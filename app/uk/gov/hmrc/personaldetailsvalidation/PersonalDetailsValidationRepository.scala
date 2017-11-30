@@ -20,4 +20,5 @@ import scala.concurrent.Future
 
 trait PersonalDetailsValidationRepository {
   def create(personalDetails: PersonalDetails): Future[PersonalDetailsValidation]
+  def get(personalDetailsValidationId: PersonalDetailsValidationId): Future[PersonalDetailsValidation]
 }

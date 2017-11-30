@@ -27,8 +27,17 @@ object PersonalDetailsValidationId {
   def apply(): PersonalDetailsValidationId = PersonalDetailsValidationId(randomUUID())
 }
 
-case class PersonalDetailsValidation(id: PersonalDetailsValidationId, personalDetails: PersonalDetails)
+sealed trait ValidationStatus
+private case object Success extends ValidationStatus
+private case object Failure extends ValidationStatus
+
+case class PersonalDetailsValidation(id: PersonalDetailsValidationId, validationStatus: ValidationStatus, personalDetails: PersonalDetails)
 
 object PersonalDetailsValidation {
-  def apply(personalDetails: PersonalDetails): PersonalDetailsValidation = PersonalDetailsValidation(PersonalDetailsValidationId(), personalDetails)
+
+  def apply(validationStatus: ValidationStatus, personalDetails: PersonalDetails): PersonalDetailsValidation = PersonalDetailsValidation(PersonalDetailsValidationId(), validationStatus, personalDetails)
+
+  def successfulPersonalDetailsValidation(personalDetails: PersonalDetails) = PersonalDetailsValidation(Success, personalDetails)
+
+  def failedPersonalDetailsValidation(personalDetails: PersonalDetails) = PersonalDetailsValidation(Failure, personalDetails)
 }
