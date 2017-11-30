@@ -4,9 +4,17 @@ import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
 
 val appName = "personal-details-validation"
 
+lazy val playSettings: Seq[Setting[_]] = Seq(
+  routesImport ++= Seq(
+    "uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidationId",
+    "uk.gov.hmrc.pathbinders.PathBinders._"
+  )
+)
+
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin): _*)
   .settings(scalaSettings: _*)
+  .settings(playSettings: _*)
   .settings(publishingSettings: _*)
   .settings(defaultSettings(): _*)
   .settings(

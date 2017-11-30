@@ -18,29 +18,47 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
+import org.joda.time.LocalDate
+import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
 import play.api.http.Status._
-import play.api.libs.json.{JsNull, JsObject, JsString}
+import play.api.libs.json.Json.toJson
+import play.api.libs.json.{JsNull, Json}
 import play.api.test.FakeRequest
 import play.mvc.Http.HeaderNames.LOCATION
+import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.play.test.UnitSpec
 
-class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with ScalaFutures {
+import scala.concurrent.Future
+
+class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with ScalaFutures with MockFactory {
 
   "Create in PersonalDetailsValidationResourceController" should {
     "return CREATED http status code" in new Setup {
-      val response = controller.create()(request.withBody(JsObject(personalDetails)))
+      (mockRepository.create _).expects(personalDetails).returning(Future.successful(PersonalDetailsValidation(personalDetails)))
+
+      val response = controller.create()(request.withBody(toJson(personalDetails)))
+
       status(response) shouldBe CREATED
     }
 
     "return uri of the new resource in response Location header" in new Setup {
-      val response = controller.create()(request.withBody(JsObject(personalDetails))).futureValue
-      response.header.headers(LOCATION) shouldBe routes.PersonalDetailsValidationResourceController.get().url
+      val personalDetailsValidation = PersonalDetailsValidation(personalDetails)
+      (mockRepository.create _).expects(personalDetails).returning(Future.successful(personalDetailsValidation))
+
+      val response = controller.create()(request.withBody(toJson(personalDetails))).futureValue
+
+      response.header.headers(LOCATION) shouldBe routes.PersonalDetailsValidationResourceController.get(personalDetailsValidation.id).url
     }
 
     "return bad request if mandatory fields are missing" in new Setup {
-      val response = controller.create()(request.withBody(JsNull)).futureValue
+      val response = controller.create()(request.withBody(JsNull))
+
       status(response) shouldBe BAD_REQUEST
+    }
+
+    "return errors if mandatory fields are missing" in new Setup {
+      val response = controller.create()(request.withBody(JsNull)).futureValue
 
       val errors = (jsonBodyOf(response) \ "errors").as[List[String]]
       errors should contain ("firstName is missing")
@@ -52,11 +70,11 @@ class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with Scal
 
   "Get in PersonalDetailsValidationResourceController" should {
     "return OK http status code" in new Setup {
-      val response = controller.get()(request).futureValue
+      val response = controller.get(PersonalDetailsValidationId())(request).futureValue
       status(response) shouldBe OK
     }
     "return validationStatus as Success" in new Setup {
-      val response = controller.get()(request).futureValue
+      val response = controller.get(PersonalDetailsValidationId())(request).futureValue
       (jsonBodyOf(response) \ "validationStatus").as[String] shouldBe "success"
     }
   }
@@ -64,16 +82,12 @@ class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with Scal
   trait Setup  {
     implicit val system = ActorSystem()
     implicit val materializer = ActorMaterializer()
+    implicit val personalDetailsWrites = Json.writes[PersonalDetails]
+
+    val personalDetails = PersonalDetails("some first name", "some last name", LocalDate.now(), Nino("AA000003D"))
     val request = FakeRequest()
-    val controller = new PersonalDetailsValidationResourceController
-
-    val personalDetails = Map(
-      "firstName" -> JsString("some first name"),
-      "lastName" -> JsString("some last name"),
-      "dateOfBirth" -> JsString("2017-12-31"),
-      "nino" -> JsString("AA000003D")
-    )
-
+    val mockRepository = mock[PersonalDetailsValidationRepository]
+    val controller = new PersonalDetailsValidationResourceController(mockRepository)
   }
 
 }

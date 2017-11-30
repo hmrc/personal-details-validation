@@ -10,6 +10,7 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "bootstrap-play-25" % "1.0.0",
     "uk.gov.hmrc" %% "play-reactivemongo" % "6.1.0",
     "uk.gov.hmrc" %% "domain" % "5.0.0",
+    "uk.gov.hmrc" %% "valuetype" % "1.1.0",
     ws
   )
 
@@ -17,6 +18,7 @@ private object AppDependencies {
     "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
     "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
     "uk.gov.hmrc" %% "hmrctest" % "3.0.0" % scope,
-    "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.1" % "it"
+    "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.1" % "it",
+    "org.scalamock" %% "scalamock" % "4.0.0" % "test"
   )
 }

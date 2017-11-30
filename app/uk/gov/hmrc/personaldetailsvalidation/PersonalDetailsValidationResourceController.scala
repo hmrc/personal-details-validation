@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import com.google.inject.Singleton
+import com.google.inject.{Inject, Singleton}
 import org.joda.time.LocalDate
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Reads, _}
@@ -25,11 +25,10 @@ import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.json.JsonValidation
 import uk.gov.hmrc.json.ReadOps._
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
-
-import scala.concurrent.Future
+import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 
 @Singleton
-class PersonalDetailsValidationResourceController extends BaseController with JsonValidation {
+class PersonalDetailsValidationResourceController @Inject()(personalDetailsValidationRepository: PersonalDetailsValidationRepository) extends BaseController with JsonValidation {
 
   private implicit val reads: Reads[PersonalDetails] = (
     (__ \ "firstName").readOrError[String]("firstName is missing") and
@@ -40,11 +39,13 @@ class PersonalDetailsValidationResourceController extends BaseController with Js
 
   def create = Action.async(parse.json) { implicit request =>
     withJsonBody[PersonalDetails] { personalDetails =>
-      Future.successful(Created.withHeaders(LOCATION -> routes.PersonalDetailsValidationResourceController.get().url))
+      personalDetailsValidationRepository.create(personalDetails).map { validation =>
+        Created.withHeaders(LOCATION -> routes.PersonalDetailsValidationResourceController.get(validation.id).url)
+      }
     }
   }
 
-  def get = Action {
+  def get(validationId: PersonalDetailsValidationId) = Action {
     Ok("""{"validationStatus":"success"}""")
   }
 
