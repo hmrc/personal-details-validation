@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.errorhandler
+package uk.gov.hmrc.play.errorhandler
 
 import com.google.inject.Inject
 import play.api.Configuration
+import play.api.http.Status._
 import play.api.mvc.RequestHeader
 import play.api.mvc.Results.NotFound
-import uk.gov.hmrc.pathbinders.PathBinders.Errors.NOT_A_VALID_UUID
+import uk.gov.hmrc.play.pathbinders.PathBinders.Errors.NOT_A_VALID_UUID
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.http.JsonErrorHandler
 
@@ -28,7 +29,7 @@ import scala.concurrent.Future
 
 class ErrorHandler @Inject()(configuration: Configuration, auditConnector: AuditConnector) extends JsonErrorHandler(configuration, auditConnector) {
   override def onClientError(request: RequestHeader, statusCode: Int, message: String) = {
-    if (statusCode == 400 && message.endsWith(NOT_A_VALID_UUID)) {
+    if (statusCode == BAD_REQUEST && message.endsWith(NOT_A_VALID_UUID)) {
       Future.successful(NotFound)
     } else {
       super.onClientError(request, statusCode, message)

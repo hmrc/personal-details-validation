@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pathbinders
+package uk.gov.hmrc.play.pathbinders
 
 import java.util.UUID
 

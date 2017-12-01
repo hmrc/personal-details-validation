@@ -22,8 +22,8 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json.{Reads, _}
 import play.api.mvc.Action
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.json.JsonValidation
-import uk.gov.hmrc.json.ReadOps._
+import uk.gov.hmrc.play.json.JsonValidation
+import uk.gov.hmrc.play.json.ReadOps._
 import uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidation.successfulPersonalDetailsValidation
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
