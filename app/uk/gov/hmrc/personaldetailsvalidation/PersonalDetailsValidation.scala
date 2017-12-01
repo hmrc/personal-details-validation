@@ -19,6 +19,7 @@ package uk.gov.hmrc.personaldetailsvalidation
 import java.util.UUID
 
 import play.api.libs.json._
+import uk.gov.hmrc.personaldetailsvalidation.ValidationStatus.{Failure, Success}
 import uk.gov.hmrc.uuid.UUIDProvider
 import uk.gov.voa.valuetype.play.formats.OptionsFormat
 import uk.gov.voa.valuetype.play.formats.ValueTypeFormat.format
@@ -37,15 +38,14 @@ object PersonalDetailsValidationId {
 
 }
 
-sealed trait ValidationStatus extends StringValue
-private case object Success extends ValidationStatus {
-  override val value = "success"
-}
-private case object Failure extends ValidationStatus {
-  override val value = "failure"
+sealed trait ValidationStatus extends StringValue {
+  override val value = typeName.toLowerCase
 }
 
 object ValidationStatus extends StringOptions[ValidationStatus] with OptionsFormat {
+  private [personaldetailsvalidation] case object Success extends ValidationStatus
+  private [personaldetailsvalidation] case object Failure extends ValidationStatus
+
   override val all = Seq(Success, Failure)
 
   implicit val formats: Format[ValidationStatus] = stringOptionsFormat(this)
