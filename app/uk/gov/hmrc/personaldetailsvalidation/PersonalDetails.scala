@@ -17,6 +17,11 @@
 package uk.gov.hmrc.personaldetailsvalidation
 
 import org.joda.time.LocalDate
+import play.api.libs.json.Json
 import uk.gov.hmrc.domain.Nino
 
 case class PersonalDetails(firstName: String, lastName: String, dateOfBirth: LocalDate, nino: Nino)
+
+object PersonalDetails {
+  implicit val formats = Json.format[PersonalDetails]
+}

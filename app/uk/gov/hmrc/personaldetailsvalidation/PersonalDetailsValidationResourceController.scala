@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import java.util.UUID
-
 import com.google.inject.{Inject, Singleton}
 import org.joda.time.LocalDate
 import play.api.libs.functional.syntax._
@@ -26,12 +24,14 @@ import play.api.mvc.Action
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.json.JsonValidation
 import uk.gov.hmrc.json.ReadOps._
+import uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidation.successfulPersonalDetailsValidation
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.uuid.UUIDProvider
 import uk.gov.voa.valuetype.play.formats.ValueTypeFormat
 
 @Singleton
-class PersonalDetailsValidationResourceController @Inject()(personalDetailsValidationRepository: PersonalDetailsValidationRepository) extends BaseController with JsonValidation with ValueTypeFormat {
+class PersonalDetailsValidationResourceController @Inject()(personalDetailsValidationRepository: PersonalDetailsValidationRepository)(implicit uuidProvider: UUIDProvider) extends BaseController with JsonValidation with ValueTypeFormat {
 
   private implicit val personalDetailsReads: Reads[PersonalDetails] = (
     (__ \ "firstName").readOrError[String]("firstName is missing") and
@@ -40,22 +40,16 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
       (__ \ "nino").readOrError[Nino]("nino is missing")
     ) (PersonalDetails.apply _)
 
-  private implicit val validationStatusWrites = new Writes[ValidationStatus] {
-    override def writes(o: ValidationStatus) = JsString(o.getClass.getSimpleName.dropRight(1).toLowerCase)
-  }
-  private implicit val personalDetailsValidationIdWrites = valueTypeWritesFor[UUID, PersonalDetailsValidationId](uuid => JsString(uuid.toString))
-  private implicit val personalDetailsWrites = Json.writes[PersonalDetails]
-  private implicit val personalDetailsValidationWrites = Json.writes[PersonalDetailsValidation]
-
   def create = Action.async(parse.json) { implicit request =>
     withJsonBody[PersonalDetails] { personalDetails =>
-      personalDetailsValidationRepository.create(personalDetails).map { validation =>
-        Created.withHeaders(LOCATION -> routes.PersonalDetailsValidationResourceController.get(validation.id).url)
+      val personalDetailsValidation = successfulPersonalDetailsValidation(personalDetails)
+      personalDetailsValidationRepository.create(personalDetailsValidation).map { _ =>
+        Created.withHeaders(LOCATION -> routes.PersonalDetailsValidationResourceController.get(personalDetailsValidation.id).url)
       }
     }
   }
 
   def get(id: PersonalDetailsValidationId) = Action.async { implicit request =>
-    personalDetailsValidationRepository.get(id).map { validation => Ok(Json.toJson(validation)) }
+    personalDetailsValidationRepository.get(id).map { validation => Ok(Json.toJson(validation.get)) }
   }
 }
