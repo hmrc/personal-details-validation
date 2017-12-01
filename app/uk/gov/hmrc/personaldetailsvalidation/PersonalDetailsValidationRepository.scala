@@ -17,29 +17,31 @@
 package uk.gov.hmrc.personaldetailsvalidation
 
 import akka.Done
-import com.google.inject.Inject
-import reactivemongo.api.DB
+import com.google.inject.{ImplementedBy, Inject, Singleton}
+import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.mongo.ReactiveRepository
+import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.mongoEntity
 import uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidation.personalDetailsValidationFormats
 import uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidationId.personalDetailsValidationIdFormats
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-
+@ImplementedBy(classOf[PersonalDetailsValidationMongoRepository])
 trait PersonalDetailsValidationRepository {
-  def create(personalDetails: PersonalDetailsValidation): Future[Done]
-  def get(personalDetailsValidationId: PersonalDetailsValidationId): Future[Option[PersonalDetailsValidation]]
+  def create(personalDetails: PersonalDetailsValidation)(implicit ec: ExecutionContext): Future[Done]
+  def get(personalDetailsValidationId: PersonalDetailsValidationId)(implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]]
 }
 
-class PersonalDetailsValidationMongoRepository @Inject()(mongo: () => DB) extends
+@Singleton
+class PersonalDetailsValidationMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent) extends
   ReactiveRepository[PersonalDetailsValidation, PersonalDetailsValidationId](
     "personal-details-validation",
-    mongo,
-    personalDetailsValidationFormats,
+    mongoComponent.mongoConnector.db,
+    mongoEntity(personalDetailsValidationFormats),
     personalDetailsValidationIdFormats) with PersonalDetailsValidationRepository {
 
 
-  def create(personalDetails: PersonalDetailsValidation): Future[Done] = ???
-  def get(personalDetailsValidationId: PersonalDetailsValidationId): Future[Option[PersonalDetailsValidation]] = ???
+  def create(personalDetailsValidation: PersonalDetailsValidation)(implicit ec: ExecutionContext) = insert(personalDetailsValidation).map(_ => Done)
+  def get(personalDetailsValidationId: PersonalDetailsValidationId)(implicit ec: ExecutionContext) = findById(personalDetailsValidationId)
 
 }

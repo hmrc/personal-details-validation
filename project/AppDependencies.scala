@@ -19,6 +19,7 @@ private object AppDependencies {
     "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
     "uk.gov.hmrc" %% "hmrctest" % "3.0.0" % scope,
     "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.1" % "it",
-    "org.scalamock" %% "scalamock" % "4.0.0" % "test"
+    "org.scalamock" %% "scalamock" % "4.0.0" % "test",
+    "uk.gov.hmrc" %% "reactivemongo-test" % "3.0.0" % "test"
   )
 }
