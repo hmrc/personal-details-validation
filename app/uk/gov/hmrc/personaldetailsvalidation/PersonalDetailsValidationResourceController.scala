@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
+import java.util.UUID
+
 import com.google.inject.{Inject, Singleton}
 import org.joda.time.LocalDate
 import play.api.libs.functional.syntax._
@@ -26,9 +28,10 @@ import uk.gov.hmrc.json.JsonValidation
 import uk.gov.hmrc.json.ReadOps._
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.voa.valuetype.play.formats.ValueTypeFormat
 
 @Singleton
-class PersonalDetailsValidationResourceController @Inject()(personalDetailsValidationRepository: PersonalDetailsValidationRepository) extends BaseController with JsonValidation {
+class PersonalDetailsValidationResourceController @Inject()(personalDetailsValidationRepository: PersonalDetailsValidationRepository) extends BaseController with JsonValidation with ValueTypeFormat {
 
   private implicit val personalDetailsReads: Reads[PersonalDetails] = (
     (__ \ "firstName").readOrError[String]("firstName is missing") and
@@ -40,7 +43,7 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
   private implicit val validationStatusWrites = new Writes[ValidationStatus] {
     override def writes(o: ValidationStatus) = JsString(o.getClass.getSimpleName.dropRight(1).toLowerCase)
   }
-  private implicit val personalDetailsValidationIdWrites = Json.writes[PersonalDetailsValidationId]
+  private implicit val personalDetailsValidationIdWrites = valueTypeWritesFor[UUID, PersonalDetailsValidationId](uuid => JsString(uuid.toString))
   private implicit val personalDetailsWrites = Json.writes[PersonalDetails]
   private implicit val personalDetailsValidationWrites = Json.writes[PersonalDetailsValidation]
 

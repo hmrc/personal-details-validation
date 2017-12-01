@@ -24,6 +24,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
 
       val getResponse = wsUrl(resourceUrl).get().futureValue
       getResponse.status mustBe OK
+      resourceUrl must endWith ((getResponse.json \ "id").as[String])
       (getResponse.json \ "validationStatus").as[String] mustBe "success"
       (getResponse.json \ "personalDetails").toOption must contain(Json.parse(personalDetails))
     }
