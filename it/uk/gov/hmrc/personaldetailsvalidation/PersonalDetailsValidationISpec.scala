@@ -1,5 +1,7 @@
 package uk.gov.hmrc.personaldetailsvalidation
 
+import java.util.UUID.randomUUID
+
 import play.api.http.Status._
 import play.api.libs.json.Json
 import play.mvc.Http.HeaderNames.LOCATION
@@ -8,7 +10,7 @@ import uk.gov.hmrc.support.BaseIntegrationSpec
 class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
 
   "POST /personal-details-validations" should {
-    "should create a personal-details-validation resource" in new Setup {
+    "create a personal-details-validation resource" in new Setup {
       val personalDetails =
         """
           |{
@@ -37,6 +39,13 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       errors must contain ("lastName is missing")
       errors must contain ("dateOfBirth is missing")
       errors must contain ("nino is missing")
+    }
+  }
+
+  "GET /personal-details-validations/id" should {
+    "return NOT FOUND if id is not valid" in {
+      val getResponse = wsUrl(s"/personal-details-validation/${randomUUID().toString}").get().futureValue
+      getResponse.status mustBe NOT_FOUND
     }
   }
 

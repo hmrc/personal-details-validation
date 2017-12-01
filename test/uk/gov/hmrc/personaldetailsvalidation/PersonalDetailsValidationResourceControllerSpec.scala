@@ -73,7 +73,15 @@ class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with Scal
   }
 
   "Get in PersonalDetailsValidationResourceController" should {
-    "return OK http status code" in new Setup {
+    "return Not Found http status code if repository does not return personal details validation" in new Setup {
+      (mockRepository.get(_: PersonalDetailsValidationId)(_: ExecutionContext)) expects(personalDetailsValidationId, *) returns Future.successful(None)
+
+      val response = controller.get(personalDetailsValidationId)(request).futureValue
+
+      status(response) shouldBe NOT_FOUND
+    }
+
+    "return OK http status code if repository returns personal details validation" in new Setup {
       (mockRepository.get(_: PersonalDetailsValidationId)(_ : ExecutionContext)) expects(personalDetailsValidationId, *) returns Future.successful(Some(successfulValidation))
 
       val response = controller.get(personalDetailsValidationId)(request).futureValue
