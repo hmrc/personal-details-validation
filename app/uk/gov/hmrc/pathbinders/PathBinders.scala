@@ -26,6 +26,16 @@ import scala.util.Try
 
 object PathBinders extends ValueTypePathBinder {
 
+  object Errors {
+    val NOT_A_VALID_UUID = "NOT A VALID UUID"
+  }
+
+  import Errors.NOT_A_VALID_UUID
+
+  private val stringToPersonalDetailsValidationId: String => Try[PersonalDetailsValidationId] = str => Try(UUID.fromString(str)).map(PersonalDetailsValidationId(_)).recover {
+    case _ => throw new IllegalArgumentException(NOT_A_VALID_UUID)
+  }
+
   implicit val personalDetailsValidationIdBinder: PathBindable[PersonalDetailsValidationId] =
-    valueTypeBinder[PersonalDetailsValidationId](str => Try(UUID.fromString(str)).map(PersonalDetailsValidationId(_)))
+    valueTypeBinder[PersonalDetailsValidationId](stringToPersonalDetailsValidationId)
 }

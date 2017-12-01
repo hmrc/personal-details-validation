@@ -43,8 +43,13 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
   }
 
   "GET /personal-details-validations/id" should {
-    "return NOT FOUND if id is not valid" in {
+    "return NOT FOUND if id is UUID but invalid id" in {
       val getResponse = wsUrl(s"/personal-details-validation/${randomUUID().toString}").get().futureValue
+      getResponse.status mustBe NOT_FOUND
+    }
+
+    "return NOT FOUND if id is not a valid UUID" in {
+      val getResponse = wsUrl(s"/personal-details-validation/foo-bar").get().futureValue
       getResponse.status mustBe NOT_FOUND
     }
   }
