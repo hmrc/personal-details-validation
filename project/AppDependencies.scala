@@ -20,6 +20,7 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "hmrctest" % "3.0.0" % scope,
     "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.1" % "it",
     "org.scalamock" %% "scalamock" % "4.0.0" % "test",
-    "uk.gov.hmrc" %% "reactivemongo-test" % "3.0.0" % "test"
+    "uk.gov.hmrc" %% "reactivemongo-test" % "3.0.0" % "test",
+    "org.scalacheck" %% "scalacheck" % "1.13.4" % "test"
   )
 }

@@ -14,15 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation
+package factory
 
-import java.time.LocalDate
+import generators.Generators.Implicits._
+import generators.ObjectGenerators._
+import uk.gov.hmrc.personaldetailsvalidation.{PersonalDetails, PersonalDetailsValidation}
 
-import play.api.libs.json.Json
-import uk.gov.hmrc.domain.Nino
+object ObjectFactory  {
 
-case class PersonalDetails(firstName: String, lastName: String, dateOfBirth: LocalDate, nino: Nino)
+  val randomPersonalDetails = personalDetails.generateOne
 
-object PersonalDetails {
-  implicit val formats = Json.format[PersonalDetails]
+  val randomPersonalDetailsValidation = personalDetailsValidation.generateOne
+
+  def randomPersonalDetailsValidation(personalDetails: PersonalDetails): PersonalDetailsValidation = randomPersonalDetailsValidation.copy(personalDetails = personalDetails)
 }

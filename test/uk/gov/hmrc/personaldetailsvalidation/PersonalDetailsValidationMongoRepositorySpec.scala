@@ -16,12 +16,10 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import org.joda.time.LocalDate
+import factory.ObjectFactory.randomPersonalDetailsValidation
 import org.scalatest.concurrent.ScalaFutures
 import play.modules.reactivemongo.ReactiveMongoComponent
-import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.mongo.MongoSpecSupport
-import uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidation.successfulPersonalDetailsValidation
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.uuid.UUIDProvider
 
@@ -31,8 +29,7 @@ class PersonalDetailsValidationMongoRepositorySpec extends UnitSpec with MongoSp
 
   "create" should {
     "create the personal details validation document" in new Setup {
-      val personalDetails = PersonalDetails("some first name", "some last name", LocalDate.now(), Nino("AA000003D"))
-      val personalDetailsValidation = successfulPersonalDetailsValidation(personalDetails)
+      val personalDetailsValidation = randomPersonalDetailsValidation
       await(repository.create(personalDetailsValidation))
 
       repository.get(personalDetailsValidation.id).futureValue should contain(personalDetailsValidation)
