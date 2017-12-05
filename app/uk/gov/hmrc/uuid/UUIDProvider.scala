@@ -17,8 +17,7 @@
 package uk.gov.hmrc.uuid
 
 import java.util.UUID
-
-import com.google.inject.Singleton
+import javax.inject.Singleton
 
 @Singleton
 class UUIDProvider extends (() => UUID) {

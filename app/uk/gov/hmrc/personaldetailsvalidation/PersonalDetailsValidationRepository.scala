@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
+import javax.inject.{Inject, Singleton}
+
 import akka.Done
-import com.google.inject.{ImplementedBy, Inject, Singleton}
+import com.google.inject.ImplementedBy
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.mongoEntity

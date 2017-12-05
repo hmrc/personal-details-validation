@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.play.errorhandler
 
-import com.google.inject.Inject
+import javax.inject.{Inject, Singleton}
+
 import play.api.Configuration
 import play.api.http.Status._
 import play.api.mvc.RequestHeader
@@ -27,6 +28,7 @@ import uk.gov.hmrc.play.bootstrap.http.JsonErrorHandler
 
 import scala.concurrent.Future
 
+@Singleton
 class ErrorHandler @Inject()(configuration: Configuration, auditConnector: AuditConnector) extends JsonErrorHandler(configuration, auditConnector) {
   override def onClientError(request: RequestHeader, statusCode: Int, message: String) = {
     if (statusCode == BAD_REQUEST && message.endsWith(NOT_A_VALID_UUID)) {

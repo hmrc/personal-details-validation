@@ -17,8 +17,8 @@
 package uk.gov.hmrc.personaldetailsvalidation
 
 import java.time.LocalDate
+import javax.inject.{Inject, Singleton}
 
-import com.google.inject.{Inject, Singleton}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Reads, _}
 import play.api.mvc.Action
