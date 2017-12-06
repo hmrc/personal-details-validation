@@ -24,10 +24,10 @@ import akka.stream.ActorMaterializer
 import factory.ObjectFactory._
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
-import org.scalacheck.Gen
+import org.scalacheck.Arbitrary
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.prop.GeneratorDrivenPropertyChecks
+import org.scalatest.prop.PropertyChecks
 import play.api.http.Status._
 import play.api.libs.json.Json.toJson
 import play.api.libs.json.{JsNull, Json}
@@ -42,11 +42,11 @@ import uk.gov.hmrc.uuid.UUIDProvider
 import scala.concurrent.{ExecutionContext, Future}
 import scalamock.MockArgumentMatchers
 
-class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with GeneratorDrivenPropertyChecks with ScalaFutures with MockFactory with MockArgumentMatchers {
+class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with PropertyChecks with ScalaFutures with MockFactory with MockArgumentMatchers {
 
   "Create in PersonalDetailsValidationResourceController" should {
 
-    implicit val generator: Gen[PersonalDetails] = personalDetails
+    implicit val generator: Arbitrary[PersonalDetails] = asArbitrary(personalDetails)
 
     "return CREATED http status code" in new Setup {
       forAll { personalDetails: PersonalDetails =>
@@ -121,22 +121,21 @@ class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with Gene
       (jsonBodyOf(response) \ "personalDetails").as[PersonalDetails] shouldBe personalDetails
     }
 
-    "return validationStatus as success if repository returned successful personalDetailsValidation" in new Setup {
-      override val personalDetailsValidation = randomPersonalDetailsValidation(personalDetails).copy(validationStatus = Success)
-      (mockRepository.get(_: ValidationId)(_: ExecutionContext)) expects(personalDetailsValidationId, instanceOf[MdcLoggingExecutionContext]) returns Future.successful(Some(personalDetailsValidation))
+    val validationStatusScenarios = Table(
+      ("validationStatus", "result"),
+      (Success, "success"),
+      (Failure, "failure")
+    )
 
-      val response = controller.get(personalDetailsValidationId)(request).futureValue
+    forAll(validationStatusScenarios) { (validationStatus, output) =>
+      s"return validationStatus as $output if repository returned $validationStatus personalDetailsValidation" in new Setup {
+        override val personalDetailsValidation = randomPersonalDetailsValidation(personalDetails).copy(validationStatus = validationStatus)
+        (mockRepository.get(_: ValidationId)(_: ExecutionContext)) expects(personalDetailsValidationId, instanceOf[MdcLoggingExecutionContext]) returns Future.successful(Some(personalDetailsValidation))
 
-      (jsonBodyOf(response) \ "validationStatus").as[String] shouldBe "success"
-    }
+        val response = controller.get(personalDetailsValidationId)(request).futureValue
 
-    "return validationStatus as failure if repository returned failed personalDetailsValidation" in new Setup {
-      override val personalDetailsValidation = randomPersonalDetailsValidation(personalDetails).copy(validationStatus = Failure)
-      (mockRepository.get(_: ValidationId)(_: ExecutionContext)) expects(personalDetailsValidationId, instanceOf[MdcLoggingExecutionContext]) returns Future.successful(Some(personalDetailsValidation))
-
-      val response = controller.get(personalDetailsValidationId)(request).futureValue
-
-      (jsonBodyOf(response) \ "validationStatus").as[String] shouldBe "failure"
+        (jsonBodyOf(response) \ "validationStatus").as[String] shouldBe output
+      }
     }
   }
 
