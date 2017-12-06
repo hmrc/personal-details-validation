@@ -21,16 +21,14 @@ import play.api.mvc.{Request, Result}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
 import scala.concurrent.Future
-import scala.util.{Failure, Success, Try}
 
 trait JsonValidation {
   self: BaseController =>
   override protected def withJsonBody[T](f: (T) => Future[Result])(implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]) =
-    Try(request.body.validate[T]) match {
-      case Success(JsSuccess(payload, _)) => f(payload)
-      case Success(JsError(errs)) =>
+    request.body.validate[T] match {
+      case JsSuccess(payload, _) => f(payload)
+      case JsError(errs) =>
         val errors = JsArray(errs.flatMap(_._2.map(error => JsString(error.message))))
         Future.successful(BadRequest(JsObject(Map("errors" -> errors))))
-      case Failure(e) => Future.successful(BadRequest(s"could not parse body due to ${e.getMessage}"))
     }
 }
