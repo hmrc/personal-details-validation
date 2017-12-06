@@ -118,7 +118,7 @@ class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with Gene
 
       val response = controller.get(personalDetailsValidationId)(request).futureValue
 
-      (jsonBodyOf(response) \ "personalDetails").toOption should contain(toJson(personalDetails))
+      (jsonBodyOf(response) \ "personalDetails").as[PersonalDetails] shouldBe personalDetails
     }
 
     "return validationStatus as success if repository returned successful personalDetailsValidation" in new Setup {
