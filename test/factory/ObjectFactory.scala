@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation
+package factory
 
-import play.api.libs.json.JsString
-import play.api.mvc._
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import generators.Generators.Implicits._
+import generators.ObjectGenerators._
+import uk.gov.hmrc.personaldetailsvalidation.{PersonalDetails, PersonalDetailsValidation}
 
-import scala.concurrent.Future
+object ObjectFactory  {
 
-class HelloWorldEndpoint() extends BaseController {
+  val randomPersonalDetails = personalDetails.generateOne
 
-  val helloWorld = Action.async { implicit request =>
-    Future.successful(Ok(JsString("Hello world")))
-  }
+  val randomPersonalDetailsValidation = personalDetailsValidation.generateOne
+
+  def randomPersonalDetailsValidation(personalDetails: PersonalDetails): PersonalDetailsValidation = randomPersonalDetailsValidation.copy(personalDetails = personalDetails)
 }

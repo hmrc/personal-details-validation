@@ -14,26 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation
+package uk.gov.hmrc.uuid
 
-import org.scalatest.concurrent.ScalaFutures
-import play.api.libs.json.JsString
-import play.api.test.FakeRequest
-import play.api.test.Helpers._
-import uk.gov.hmrc.play.test.UnitSpec
+import java.util.UUID
+import javax.inject.Singleton
 
-class HelloWorldEndpointSpec
-  extends UnitSpec
-    with ScalaFutures {
-
-  private val request = FakeRequest("GET", "/")
-
-  "helloWorld" should {
-    "return OK with Json body" in {
-      val result = new HelloWorldEndpoint().helloWorld()(request)
-
-      status(result) shouldBe OK
-      contentAsJson(result) shouldBe JsString("Hello world")
-    }
-  }
+@Singleton
+class UUIDProvider extends (() => UUID) {
+  def apply(): UUID = UUID.randomUUID()
 }

@@ -1,3 +1,4 @@
 # microservice specific routes
 
-GET        /hello-world             uk.gov.hmrc.personaldetailsvalidation.HelloWorldEndpoint.helloWorld
+POST        /           uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidationResourceController.create
+GET         /:id        uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidationResourceController.get(id: ValidationId)

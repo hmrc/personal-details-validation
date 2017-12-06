@@ -9,11 +9,18 @@ private object AppDependencies {
   private val compile = Seq(
     "uk.gov.hmrc" %% "bootstrap-play-25" % "1.0.0",
     "uk.gov.hmrc" %% "play-reactivemongo" % "6.1.0",
+    "uk.gov.hmrc" %% "domain" % "5.0.0",
+    "uk.gov.hmrc" %% "valuetype" % "1.1.0",
     ws
   )
 
   private def test(scope: String = "test,it") = Seq(
     "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
-    "uk.gov.hmrc" %% "hmrctest" % "3.0.0" % scope
+    "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
+    "uk.gov.hmrc" %% "hmrctest" % "3.0.0" % scope,
+    "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.1" % "it",
+    "org.scalamock" %% "scalamock" % "4.0.0" % "test",
+    "uk.gov.hmrc" %% "reactivemongo-test" % "3.0.0" % "test",
+    "org.scalacheck" %% "scalacheck" % "1.13.4" % "test"
   )
 }
