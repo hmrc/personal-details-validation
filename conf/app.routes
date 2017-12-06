@@ -1,4 +1,4 @@
 # microservice specific routes
 
 POST        /           uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidationResourceController.create
-GET         /:id        uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidationResourceController.get(id: PersonalDetailsValidationId)
+GET         /:id        uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidationResourceController.get(id: ValidationId)

@@ -19,7 +19,7 @@ package generators
 import org.scalacheck.Gen
 import org.scalacheck.Gen.{listOfN, numChar, oneOf}
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.personaldetailsvalidation.{PersonalDetailsValidationId, ValidationStatus}
+import uk.gov.hmrc.personaldetailsvalidation.{ValidationId, ValidationStatus}
 
 trait ValueGenerators extends Generators {
 
@@ -31,6 +31,6 @@ trait ValueGenerators extends Generators {
 
   implicit val validationStatuses: Gen[ValidationStatus] = oneOf(ValidationStatus.all)
 
-  implicit val personalDetailsValidationIds: Gen[PersonalDetailsValidationId] = Gen.uuid.map(PersonalDetailsValidationId(_))
+  implicit val validationIds: Gen[ValidationId] = Gen.uuid.map(ValidationId(_))
 
 }

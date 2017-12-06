@@ -24,19 +24,19 @@ import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.mongoEntity
 import uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidation.personalDetailsValidationFormats
-import uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidationId.personalDetailsValidationIdFormats
+import uk.gov.hmrc.personaldetailsvalidation.ValidationId.personalDetailsValidationIdFormats
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[PersonalDetailsValidationMongoRepository])
 trait PersonalDetailsValidationRepository {
   def create(personalDetails: PersonalDetailsValidation)(implicit ec: ExecutionContext): Future[Done]
-  def get(personalDetailsValidationId: PersonalDetailsValidationId)(implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]]
+  def get(personalDetailsValidationId: ValidationId)(implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]]
 }
 
 @Singleton
 class PersonalDetailsValidationMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent) extends
-  ReactiveRepository[PersonalDetailsValidation, PersonalDetailsValidationId](
+  ReactiveRepository[PersonalDetailsValidation, ValidationId](
     "personal-details-validation",
     mongoComponent.mongoConnector.db,
     mongoEntity(personalDetailsValidationFormats),
@@ -44,6 +44,6 @@ class PersonalDetailsValidationMongoRepository @Inject()(mongoComponent: Reactiv
 
 
   def create(personalDetailsValidation: PersonalDetailsValidation)(implicit ec: ExecutionContext) = insert(personalDetailsValidation).map(_ => Done)
-  def get(personalDetailsValidationId: PersonalDetailsValidationId)(implicit ec: ExecutionContext) = findById(personalDetailsValidationId)
+  def get(personalDetailsValidationId: ValidationId)(implicit ec: ExecutionContext) = findById(personalDetailsValidationId)
 
 }

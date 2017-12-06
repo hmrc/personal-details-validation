@@ -25,13 +25,13 @@ import uk.gov.voa.valuetype.play.formats.OptionsFormat
 import uk.gov.voa.valuetype.play.formats.ValueTypeFormat.format
 import uk.gov.voa.valuetype.{StringOptions, StringValue, ValueType}
 
-case class PersonalDetailsValidationId(value: UUID) extends ValueType[UUID]
+case class ValidationId(value: UUID) extends ValueType[UUID]
 
-object PersonalDetailsValidationId {
+object ValidationId {
 
-  def apply()(implicit uuidProvider: UUIDProvider): PersonalDetailsValidationId = PersonalDetailsValidationId(uuidProvider())
+  def apply()(implicit uuidProvider: UUIDProvider): ValidationId = ValidationId(uuidProvider())
 
-  implicit val personalDetailsValidationIdFormats = format[UUID, PersonalDetailsValidationId](uuid => PersonalDetailsValidationId(uuid))({
+  implicit val personalDetailsValidationIdFormats = format[UUID, ValidationId](uuid => ValidationId(uuid))({
     case JsString(value) => UUID.fromString(value)
     case x => throw new IllegalArgumentException(s"Expected a JsString, received $x")
   }, uuid => JsString(uuid.toString))
@@ -51,12 +51,12 @@ object ValidationStatus extends StringOptions[ValidationStatus] with OptionsForm
   implicit val formats: Format[ValidationStatus] = stringOptionsFormat(this)
 }
 
-case class PersonalDetailsValidation(id: PersonalDetailsValidationId, validationStatus: ValidationStatus, personalDetails: PersonalDetails)
+case class PersonalDetailsValidation(id: ValidationId, validationStatus: ValidationStatus, personalDetails: PersonalDetails)
 
 object PersonalDetailsValidation  {
 
   def apply(validationStatus: ValidationStatus, personalDetails: PersonalDetails)(implicit uuidProvider: UUIDProvider): PersonalDetailsValidation =
-    PersonalDetailsValidation(PersonalDetailsValidationId(), validationStatus, personalDetails)
+    PersonalDetailsValidation(ValidationId(), validationStatus, personalDetails)
 
   def successfulPersonalDetailsValidation(personalDetails: PersonalDetails)(implicit uuidProvider: UUIDProvider) = PersonalDetailsValidation(Success, personalDetails)
 

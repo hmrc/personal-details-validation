@@ -29,7 +29,7 @@ object ObjectGenerators extends ValueGenerators {
   } yield PersonalDetails(firstName, lastName, dateOfBirth, nino)
 
   implicit val personalDetailsValidation: Gen[PersonalDetailsValidation] = for {
-    id <- personalDetailsValidationIds
+    id <- validationIds
     validationStatus <- validationStatuses
     personalDetails <- personalDetails
   } yield PersonalDetailsValidation(id, validationStatus, personalDetails)

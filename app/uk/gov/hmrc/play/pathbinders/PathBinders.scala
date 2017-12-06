@@ -19,7 +19,7 @@ package uk.gov.hmrc.play.pathbinders
 import java.util.UUID
 
 import play.api.mvc.PathBindable
-import uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidationId
+import uk.gov.hmrc.personaldetailsvalidation.ValidationId
 import uk.gov.voa.valuetype.play.binders.ValueTypePathBinder
 
 import scala.util.Try
@@ -32,10 +32,10 @@ object PathBinders extends ValueTypePathBinder {
 
   import Errors.NOT_A_VALID_UUID
 
-  private val stringToPersonalDetailsValidationId: String => Try[PersonalDetailsValidationId] = str => Try(UUID.fromString(str)).map(PersonalDetailsValidationId(_)).recover {
+  private val stringToPersonalDetailsValidationId: String => Try[ValidationId] = str => Try(UUID.fromString(str)).map(ValidationId(_)).recover {
     case _ => throw new IllegalArgumentException(NOT_A_VALID_UUID)
   }
 
-  implicit val personalDetailsValidationIdBinder: PathBindable[PersonalDetailsValidationId] =
-    valueTypeBinder[PersonalDetailsValidationId](stringToPersonalDetailsValidationId)
+  implicit val personalDetailsValidationIdBinder: PathBindable[ValidationId] =
+    valueTypeBinder[ValidationId](stringToPersonalDetailsValidationId)
 }

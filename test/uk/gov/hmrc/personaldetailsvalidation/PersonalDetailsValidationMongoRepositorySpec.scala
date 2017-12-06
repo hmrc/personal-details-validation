@@ -38,7 +38,7 @@ class PersonalDetailsValidationMongoRepositorySpec extends UnitSpec with MongoSp
 
   "get" should {
     "return None if document not found" in new Setup {
-      repository.get(PersonalDetailsValidationId()).futureValue shouldBe None
+      repository.get(ValidationId()).futureValue shouldBe None
     }
   }
 

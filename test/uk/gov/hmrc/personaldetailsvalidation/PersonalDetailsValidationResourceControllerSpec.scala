@@ -88,7 +88,7 @@ class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with Gene
   "Get in PersonalDetailsValidationResourceController" should {
 
     "return Not Found http status code if repository does not return personal details validation" in new Setup {
-      (mockRepository.get(_: PersonalDetailsValidationId)(_: ExecutionContext)) expects(personalDetailsValidationId, *) returns Future.successful(None)
+      (mockRepository.get(_: ValidationId)(_: ExecutionContext)) expects(personalDetailsValidationId, *) returns Future.successful(None)
 
       val response = controller.get(personalDetailsValidationId)(request).futureValue
 
@@ -96,7 +96,7 @@ class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with Gene
     }
 
     "return OK http status code if repository returns personal details validation" in new Setup {
-      (mockRepository.get(_: PersonalDetailsValidationId)(_: ExecutionContext)) expects(personalDetailsValidationId, *) returns Future.successful(Some(personalDetailsValidation))
+      (mockRepository.get(_: ValidationId)(_: ExecutionContext)) expects(personalDetailsValidationId, *) returns Future.successful(Some(personalDetailsValidation))
 
       val response = controller.get(personalDetailsValidationId)(request).futureValue
 
@@ -104,7 +104,7 @@ class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with Gene
     }
 
     "return personalDetailsValidation id in response body" in new Setup {
-      (mockRepository.get(_: PersonalDetailsValidationId)(_: ExecutionContext)) expects(personalDetailsValidationId, *) returns Future.successful(Some(personalDetailsValidation))
+      (mockRepository.get(_: ValidationId)(_: ExecutionContext)) expects(personalDetailsValidationId, *) returns Future.successful(Some(personalDetailsValidation))
 
       val response = controller.get(personalDetailsValidationId)(request).futureValue
 
@@ -112,7 +112,7 @@ class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with Gene
     }
 
     "return personal details in response body" in new Setup {
-      (mockRepository.get(_: PersonalDetailsValidationId)(_: ExecutionContext)) expects(personalDetailsValidationId, *) returns Future.successful(Some(personalDetailsValidation))
+      (mockRepository.get(_: ValidationId)(_: ExecutionContext)) expects(personalDetailsValidationId, *) returns Future.successful(Some(personalDetailsValidation))
 
       val response = controller.get(personalDetailsValidationId)(request).futureValue
 
@@ -121,7 +121,7 @@ class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with Gene
 
     "return validationStatus as success if repository returned successful personalDetailsValidation" in new Setup {
       override val personalDetailsValidation = randomPersonalDetailsValidation(personalDetails).copy(validationStatus = Success)
-      (mockRepository.get(_: PersonalDetailsValidationId)(_: ExecutionContext)) expects(personalDetailsValidationId, *) returns Future.successful(Some(personalDetailsValidation))
+      (mockRepository.get(_: ValidationId)(_: ExecutionContext)) expects(personalDetailsValidationId, *) returns Future.successful(Some(personalDetailsValidation))
 
       val response = controller.get(personalDetailsValidationId)(request).futureValue
 
@@ -130,7 +130,7 @@ class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with Gene
 
     "return validationStatus as failure if repository returned failed personalDetailsValidation" in new Setup {
       override val personalDetailsValidation = randomPersonalDetailsValidation(personalDetails).copy(validationStatus = Failure)
-      (mockRepository.get(_: PersonalDetailsValidationId)(_: ExecutionContext)) expects(personalDetailsValidationId, *) returns Future.successful(Some(personalDetailsValidation))
+      (mockRepository.get(_: ValidationId)(_: ExecutionContext)) expects(personalDetailsValidationId, *) returns Future.successful(Some(personalDetailsValidation))
 
       val response = controller.get(personalDetailsValidationId)(request).futureValue
 
@@ -151,7 +151,7 @@ class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with Gene
     val request = FakeRequest()
     val mockRepository = mock[PersonalDetailsValidationRepository]
     val controller = new PersonalDetailsValidationResourceController(mockRepository)(uuidProvider)
-    val personalDetailsValidationId = PersonalDetailsValidationId()
+    val personalDetailsValidationId = ValidationId()
   }
 
 }

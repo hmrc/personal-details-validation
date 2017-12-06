@@ -6,7 +6,7 @@ val appName = "personal-details-validation"
 
 lazy val playSettings: Seq[Setting[_]] = Seq(
   routesImport ++= Seq(
-    "uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidationId",
+    "uk.gov.hmrc.personaldetailsvalidation.ValidationId",
     "uk.gov.hmrc.play.pathbinders.PathBinders._"
   )
 )
