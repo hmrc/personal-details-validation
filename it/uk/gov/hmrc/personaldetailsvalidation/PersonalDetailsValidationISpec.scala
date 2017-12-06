@@ -3,7 +3,7 @@ package uk.gov.hmrc.personaldetailsvalidation
 import java.util.UUID.randomUUID
 
 import play.api.http.Status._
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.mvc.Http.HeaderNames.LOCATION
 import uk.gov.hmrc.support.BaseIntegrationSpec
 
@@ -28,7 +28,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       getResponse.status mustBe OK
       resourceUrl must endWith ((getResponse.json \ "id").as[String])
       (getResponse.json \ "validationStatus").as[String] mustBe "success"
-      (getResponse.json \ "personalDetails").toOption must contain(Json.parse(personalDetails))
+      (getResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetails)
     }
 
     "return BAD Request if mandatory fields are missing" in new Setup {
