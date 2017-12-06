@@ -32,7 +32,10 @@ import uk.gov.hmrc.uuid.UUIDProvider
 import uk.gov.voa.valuetype.play.formats.ValueTypeFormat
 
 @Singleton
-class PersonalDetailsValidationResourceController @Inject()(personalDetailsValidationRepository: PersonalDetailsValidationRepository)(implicit uuidProvider: UUIDProvider) extends BaseController with JsonValidation with ValueTypeFormat {
+class PersonalDetailsValidationResourceController @Inject()
+(personalDetailsValidationRepository: PersonalDetailsValidationRepository)
+(implicit uuidProvider: UUIDProvider)
+  extends BaseController with JsonValidation with ValueTypeFormat {
 
   private implicit val personalDetailsReads: Reads[PersonalDetails] = (
     (__ \ "firstName").readOrError[String]("firstName is missing") and
