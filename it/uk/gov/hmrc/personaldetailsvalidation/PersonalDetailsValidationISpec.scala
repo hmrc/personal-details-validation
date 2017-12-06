@@ -2,9 +2,10 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import java.util.UUID.randomUUID
 
+import play.api.http.ContentTypes.JSON
 import play.api.http.Status._
 import play.api.libs.json.{JsValue, Json}
-import play.mvc.Http.HeaderNames.LOCATION
+import play.mvc.Http.HeaderNames.{CONTENT_TYPE, LOCATION}
 import uk.gov.hmrc.support.BaseIntegrationSpec
 
 class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
@@ -55,7 +56,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
   }
 
   trait Setup {
-    def sendCreateValidationResourceRequest(body: String) = wsUrl("/personal-details-validation").withHeaders("Content-Type" -> "application/json").post(body)
+    def sendCreateValidationResourceRequest(body: String) = wsUrl("/personal-details-validation").withHeaders(CONTENT_TYPE -> JSON).post(body)
   }
 
 }
