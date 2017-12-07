@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import factory.ObjectFactory.randomPersonalDetailsValidation
+import generators.Generators.Implicits._
+import generators.ObjectGenerators._
 import org.scalatest.concurrent.ScalaFutures
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.mongo.MongoSpecSupport
@@ -25,15 +26,26 @@ import uk.gov.hmrc.uuid.UUIDProvider
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class PersonalDetailsValidationMongoRepositorySpec extends UnitSpec with MongoSpecSupport with ScalaFutures {
+class PersonalDetailsValidationMongoRepositorySpec
+  extends UnitSpec
+    with MongoSpecSupport
+    with ScalaFutures {
 
   "create" should {
-    "create the personal details validation document" in new Setup {
-      val personalDetailsValidation = randomPersonalDetailsValidation
+    "be able to insert SuccessfulPersonalDetailsValidation" in new Setup {
+      val personalDetailsValidation = successfulPersonalDetailsValidationObjects.generateOne
 
       await(repository.create(personalDetailsValidation))
 
-      repository.get(personalDetailsValidation.id).futureValue should contain(personalDetailsValidation)
+      repository.get(personalDetailsValidation.id).futureValue shouldBe Some(personalDetailsValidation)
+    }
+
+    "be able to insert FailedPersonalDetailsValidation" in new Setup {
+      val personalDetailsValidation = failedPersonalDetailsValidationObjects.generateOne
+
+      await(repository.create(personalDetailsValidation))
+
+      repository.get(personalDetailsValidation.id).futureValue shouldBe Some(personalDetailsValidation)
     }
   }
 
@@ -43,7 +55,7 @@ class PersonalDetailsValidationMongoRepositorySpec extends UnitSpec with MongoSp
     }
   }
 
-  trait Setup {
+  private trait Setup {
     implicit val uuidProvider: UUIDProvider = new UUIDProvider()
     val repository = new PersonalDetailsValidationMongoRepository(new ReactiveMongoComponent {
       override val mongoConnector = mongoConnectorForTest

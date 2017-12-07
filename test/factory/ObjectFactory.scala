@@ -23,8 +23,8 @@ import uk.gov.hmrc.personaldetailsvalidation.{PersonalDetails, PersonalDetailsVa
 object ObjectFactory  {
 
   val randomPersonalDetails: PersonalDetails =
-    personalDetails.generateOne
+    personalDetailsObjects.generateOne
 
   val randomPersonalDetailsValidation: PersonalDetailsValidation =
-    personalDetailsValidation.generateOne
+    personalDetailsValidationObjects.generateOne
 }

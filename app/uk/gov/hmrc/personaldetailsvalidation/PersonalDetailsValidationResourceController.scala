@@ -28,11 +28,10 @@ import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.json.JsonValidation
 import uk.gov.hmrc.play.json.ReadOps._
-import uk.gov.hmrc.uuid.UUIDProvider
 
 @Singleton
-class PersonalDetailsValidationResourceController @Inject()(personalDetailsValidationRepository: PersonalDetailsValidationRepository)
-                                                           (implicit uuidProvider: UUIDProvider)
+class PersonalDetailsValidationResourceController @Inject()(personalDetailsValidationRepository: PersonalDetailsValidationRepository,
+                                                            personalDetailsValidator: PersonalDetailsValidator)
   extends BaseController
     with JsonValidation {
 
@@ -47,9 +46,10 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
 
   def create = Action.async(parse.json) { implicit request =>
     withJsonBody[PersonalDetails] { personalDetails =>
-      val personalDetailsValidation = PersonalDetailsValidation.successful(personalDetails)
-      personalDetailsValidationRepository.create(personalDetailsValidation).map { _ =>
-        Created.withHeaders(LOCATION -> routes.PersonalDetailsValidationResourceController.get(personalDetailsValidation.id).url)
+      personalDetailsValidator.validate(personalDetails) map { validationId =>
+        Created.withHeaders(
+          LOCATION -> routes.PersonalDetailsValidationResourceController.get(validationId).url
+        )
       }
     }
   }
