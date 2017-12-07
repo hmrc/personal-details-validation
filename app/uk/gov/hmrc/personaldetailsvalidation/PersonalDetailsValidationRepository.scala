@@ -30,20 +30,28 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[PersonalDetailsValidationMongoRepository])
 trait PersonalDetailsValidationRepository {
-  def create(personalDetails: PersonalDetailsValidation)(implicit ec: ExecutionContext): Future[Done]
-  def get(personalDetailsValidationId: ValidationId)(implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]]
+
+  def create(personalDetails: PersonalDetailsValidation)
+            (implicit ec: ExecutionContext): Future[Done]
+
+  def get(personalDetailsValidationId: ValidationId)
+         (implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]]
 }
 
 @Singleton
-class PersonalDetailsValidationMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent) extends
-  ReactiveRepository[PersonalDetailsValidation, ValidationId](
-    "personal-details-validation",
-    mongoComponent.mongoConnector.db,
-    mongoEntity(personalDetailsValidationFormats),
-    personalDetailsValidationIdFormats) with PersonalDetailsValidationRepository {
+class PersonalDetailsValidationMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent)
+  extends ReactiveRepository[PersonalDetailsValidation, ValidationId](
+    collectionName = "personal-details-validation",
+    mongo = mongoComponent.mongoConnector.db,
+    domainFormat = mongoEntity(personalDetailsValidationFormats),
+    idFormat = personalDetailsValidationIdFormats
+  ) with PersonalDetailsValidationRepository {
 
+  def create(personalDetailsValidation: PersonalDetailsValidation)
+            (implicit ec: ExecutionContext): Future[Done] =
+    insert(personalDetailsValidation).map(_ => Done)
 
-  def create(personalDetailsValidation: PersonalDetailsValidation)(implicit ec: ExecutionContext) = insert(personalDetailsValidation).map(_ => Done)
-  def get(personalDetailsValidationId: ValidationId)(implicit ec: ExecutionContext) = findById(personalDetailsValidationId)
-
+  def get(personalDetailsValidationId: ValidationId)
+         (implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]] =
+    findById(personalDetailsValidationId)
 }

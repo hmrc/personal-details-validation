@@ -18,11 +18,14 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import java.time.LocalDate
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Format, Json}
 import uk.gov.hmrc.domain.Nino
 
-case class PersonalDetails(firstName: String, lastName: String, dateOfBirth: LocalDate, nino: Nino)
+case class PersonalDetails(firstName: String,
+                           lastName: String,
+                           dateOfBirth: LocalDate,
+                           nino: Nino)
 
 object PersonalDetails {
-  implicit val formats = Json.format[PersonalDetails]
+  implicit val formats: Format[PersonalDetails] = Json.format[PersonalDetails]
 }

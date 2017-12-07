@@ -31,36 +31,48 @@ object ValidationId {
 
   def apply()(implicit uuidProvider: UUIDProvider): ValidationId = ValidationId(uuidProvider())
 
-  implicit val personalDetailsValidationIdFormats = format[UUID, ValidationId](uuid => ValidationId(uuid))({
-    case JsString(value) => UUID.fromString(value)
-    case x => throw new IllegalArgumentException(s"Expected a JsString, received $x")
-  }, uuid => JsString(uuid.toString))
+  implicit val personalDetailsValidationIdFormats: Format[ValidationId] = format[UUID, ValidationId](
+    uuid => ValidationId(uuid))(
+    parse = {
+      case JsString(value) => UUID.fromString(value)
+      case x => throw new IllegalArgumentException(s"Expected a JsString, received $x")
+    },
+    toJson = uuid => JsString(uuid.toString))
 
 }
 
 sealed trait ValidationStatus extends StringValue {
-  override val value = typeName.toLowerCase
+  override val value: String = typeName.toLowerCase
 }
 
 object ValidationStatus extends StringOptions[ValidationStatus] with OptionsFormat {
-  private [personaldetailsvalidation] case object Success extends ValidationStatus
-  private [personaldetailsvalidation] case object Failure extends ValidationStatus
+  private[personaldetailsvalidation] case object Success extends ValidationStatus
+  private[personaldetailsvalidation] case object Failure extends ValidationStatus
 
-  override val all = Seq(Success, Failure)
+  override val all: Seq[ValidationStatus] = Seq(Success, Failure)
 
   implicit val formats: Format[ValidationStatus] = stringOptionsFormat(this)
 }
 
-case class PersonalDetailsValidation(id: ValidationId, validationStatus: ValidationStatus, personalDetails: PersonalDetails)
+case class PersonalDetailsValidation(id: ValidationId,
+                                     validationStatus: ValidationStatus,
+                                     personalDetails: PersonalDetails)
 
-object PersonalDetailsValidation  {
+object PersonalDetailsValidation {
 
-  def apply(validationStatus: ValidationStatus, personalDetails: PersonalDetails)(implicit uuidProvider: UUIDProvider): PersonalDetailsValidation =
+  def apply(validationStatus: ValidationStatus,
+            personalDetails: PersonalDetails)
+           (implicit uuidProvider: UUIDProvider): PersonalDetailsValidation =
     PersonalDetailsValidation(ValidationId(), validationStatus, personalDetails)
 
-  def successfulPersonalDetailsValidation(personalDetails: PersonalDetails)(implicit uuidProvider: UUIDProvider) = PersonalDetailsValidation(Success, personalDetails)
+  def successfulPersonalDetailsValidation(personalDetails: PersonalDetails)
+                                         (implicit uuidProvider: UUIDProvider) =
+    PersonalDetailsValidation(Success, personalDetails)
 
-  def failedPersonalDetailsValidation(personalDetails: PersonalDetails)(implicit uuidProvider: UUIDProvider) = PersonalDetailsValidation(Failure, personalDetails)
+  def failedPersonalDetailsValidation(personalDetails: PersonalDetails)
+                                     (implicit uuidProvider: UUIDProvider) =
+    PersonalDetailsValidation(Failure, personalDetails)
 
-  implicit val personalDetailsValidationFormats = Json.format[PersonalDetailsValidation]
+  implicit val personalDetailsValidationFormats: Format[PersonalDetailsValidation] =
+    Json.format[PersonalDetailsValidation]
 }

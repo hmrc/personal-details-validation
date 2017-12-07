@@ -55,8 +55,9 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
     }
   }
 
-  trait Setup {
-    def sendCreateValidationResourceRequest(body: String) = wsUrl("/personal-details-validation").withHeaders(CONTENT_TYPE -> JSON).post(body)
+  private trait Setup {
+    def sendCreateValidationResourceRequest(body: String) =
+      wsUrl("/personal-details-validation")
+        .withHeaders(CONTENT_TYPE -> JSON).post(body)
   }
-
 }

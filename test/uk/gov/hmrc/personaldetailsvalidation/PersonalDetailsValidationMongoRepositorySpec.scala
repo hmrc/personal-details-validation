@@ -23,13 +23,14 @@ import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.uuid.UUIDProvider
 
-import scala.concurrent.{ExecutionContext, ExecutionContextExecutor}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class PersonalDetailsValidationMongoRepositorySpec extends UnitSpec with MongoSpecSupport with ScalaFutures {
 
   "create" should {
     "create the personal details validation document" in new Setup {
       val personalDetailsValidation = randomPersonalDetailsValidation
+
       await(repository.create(personalDetailsValidation))
 
       repository.get(personalDetailsValidation.id).futureValue should contain(personalDetailsValidation)
@@ -44,7 +45,6 @@ class PersonalDetailsValidationMongoRepositorySpec extends UnitSpec with MongoSp
 
   trait Setup {
     implicit val uuidProvider: UUIDProvider = new UUIDProvider()
-    implicit val ec: ExecutionContextExecutor = ExecutionContext.Implicits.global
     val repository = new PersonalDetailsValidationMongoRepository(new ReactiveMongoComponent {
       override val mongoConnector = mongoConnectorForTest
     })
