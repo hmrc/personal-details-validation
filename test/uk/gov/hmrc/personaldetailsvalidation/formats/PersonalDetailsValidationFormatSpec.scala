@@ -14,26 +14,32 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation
+package uk.gov.hmrc.personaldetailsvalidation.formats
+
+import java.util.UUID.randomUUID
 
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
-import org.scalacheck.Gen
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import play.api.libs.json.Json
+import play.api.libs.json.Json.toJson
+import uk.gov.hmrc.personaldetailsvalidation.{PersonalDetails, PersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.uuid.UUIDProvider
 
-class PersonalDetailsValidationSpec
+class PersonalDetailsValidationFormatSpec
   extends UnitSpec
     with GeneratorDrivenPropertyChecks {
 
+  import PersonalDetailsValidationFormat._
+  import TinyTypesFormats._
+
   "format" should {
 
-    "allow to serialise successful PersonalDetailsValidation to JSON" in new Setup {
+    "allow to serialise SuccessfulPersonalDetailsValidation to JSON" in new Setup {
       forAll { personalDetails: PersonalDetails =>
-        Json.toJson(PersonalDetailsValidation.successfulPersonalDetailsValidation(personalDetails)) shouldBe Json.obj(
+        toJson(PersonalDetailsValidation.successful(personalDetails)) shouldBe Json.obj(
           "id" -> ValidationId(uuidProvider()),
           "validationStatus" -> "success",
           "personalDetails" -> Json.obj(
@@ -46,22 +52,16 @@ class PersonalDetailsValidationSpec
       }
     }
 
-    "allow to serialise unsuccessful PersonalDetailsValidation to JSON" in new Setup {
+    "allow to serialise FailedPersonalDetailsValidation to JSON" in new Setup {
       forAll { personalDetails: PersonalDetails =>
-        Json.toJson(PersonalDetailsValidation.failedPersonalDetailsValidation(personalDetails)) shouldBe Json.obj(
+        toJson(PersonalDetailsValidation.failed()) shouldBe Json.obj(
           "id" -> ValidationId(uuidProvider()),
-          "validationStatus" -> "failure",
-          "personalDetails" -> Json.obj(
-            "firstName" -> personalDetails.firstName,
-            "lastName" -> personalDetails.lastName,
-            "dateOfBirth" -> personalDetails.dateOfBirth,
-            "nino" -> personalDetails.nino
-          )
+          "validationStatus" -> "failure"
         )
       }
     }
 
-    "allow to deserialise successful PersonalDetailsValidation to JSON" in new Setup {
+    "allow to deserialise SuccessfulPersonalDetailsValidation to JSON" in new Setup {
       forAll { personalDetails: PersonalDetails =>
         Json.obj(
           "id" -> ValidationId(uuidProvider()),
@@ -72,29 +72,23 @@ class PersonalDetailsValidationSpec
             "dateOfBirth" -> personalDetails.dateOfBirth,
             "nino" -> personalDetails.nino
           )
-        ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.successfulPersonalDetailsValidation(personalDetails)
+        ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.successful(personalDetails)
       }
     }
 
-    "allow to deserialise unsuccessful PersonalDetailsValidation to JSON" in new Setup {
+    "allow to deserialise FailedPersonalDetailsValidation to JSON" in new Setup {
       forAll { personalDetails: PersonalDetails =>
         Json.obj(
-          "id" -> ValidationId(uuidProvider()),
-          "validationStatus" -> "failure",
-          "personalDetails" -> Json.obj(
-            "firstName" -> personalDetails.firstName,
-            "lastName" -> personalDetails.lastName,
-            "dateOfBirth" -> personalDetails.dateOfBirth,
-            "nino" -> personalDetails.nino
-          )
-        ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.failedPersonalDetailsValidation(personalDetails)
+          "id" -> ValidationId(),
+          "validationStatus" -> "failure"
+        ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.failed()
       }
     }
   }
 
   private trait Setup extends MockFactory {
     implicit val uuidProvider: UUIDProvider = new UUIDProvider {
-      override lazy val apply = Gen.uuid.generateOne
+      override lazy val apply = randomUUID()
     }
   }
 }

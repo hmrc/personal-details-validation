@@ -33,8 +33,6 @@ import play.api.libs.json.Json.toJson
 import play.api.libs.json.{JsNull, Json}
 import play.api.test.FakeRequest
 import play.mvc.Http.HeaderNames.LOCATION
-import uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidation.successfulPersonalDetailsValidation
-import uk.gov.hmrc.personaldetailsvalidation.ValidationStatus.{Failure, Success}
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.uuid.UUIDProvider
@@ -42,7 +40,12 @@ import uk.gov.hmrc.uuid.UUIDProvider
 import scala.concurrent.{ExecutionContext, Future}
 import scalamock.MockArgumentMatchers
 
-class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with PropertyChecks with ScalaFutures with MockFactory with MockArgumentMatchers {
+class PersonalDetailsValidationResourceControllerSpec
+  extends UnitSpec
+    with PropertyChecks
+    with ScalaFutures
+    with MockFactory
+    with MockArgumentMatchers {
 
   "Create in PersonalDetailsValidationResourceController" should {
 
@@ -50,8 +53,10 @@ class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with Prop
 
     "return CREATED http status code" in new Setup {
       forAll { personalDetails: PersonalDetails =>
-        val personalDetailsValidation = successfulPersonalDetailsValidation(personalDetails)
-        (mockRepository.create(_: PersonalDetailsValidation)(_: ExecutionContext)) expects(personalDetailsValidation, instanceOf[MdcLoggingExecutionContext]) returns Future.successful(Done)
+        val personalDetailsValidation = successfulPersonalDetailsValidation.generateOne.copy(id = ValidationId(), personalDetails = personalDetails)
+        (mockRepository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
+          .expects(personalDetailsValidation, instanceOf[MdcLoggingExecutionContext])
+          .returns(Future.successful(Done))
 
         val response = controller.create()(request.withBody(toJson(personalDetails)))
 
@@ -61,7 +66,7 @@ class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with Prop
 
     "return uri of the new resource in response Location header" in new Setup {
       forAll { personalDetails: PersonalDetails =>
-        val personalDetailsValidation = successfulPersonalDetailsValidation(personalDetails)
+        val personalDetailsValidation = successfulPersonalDetailsValidation.generateOne.copy(id = ValidationId(), personalDetails = personalDetails)
         (mockRepository.create(_: PersonalDetailsValidation)(_: ExecutionContext)) expects(personalDetailsValidation, instanceOf[MdcLoggingExecutionContext]) returns Future.successful(Done)
 
         val response = controller.create()(request.withBody(toJson(personalDetails))).futureValue
@@ -90,7 +95,9 @@ class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with Prop
   "Get in PersonalDetailsValidationResourceController" should {
 
     "return Not Found http status code if repository does not return personal details validation" in new Setup {
-      (mockRepository.get(_: ValidationId)(_: ExecutionContext)) expects(personalDetailsValidationId, instanceOf[MdcLoggingExecutionContext]) returns Future.successful(None)
+      (mockRepository.get(_: ValidationId)(_: ExecutionContext))
+        .expects(personalDetailsValidationId, instanceOf[MdcLoggingExecutionContext])
+        .returns(Future.successful(None))
 
       val response = controller.get(personalDetailsValidationId)(request).futureValue
 
@@ -98,7 +105,9 @@ class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with Prop
     }
 
     "return OK http status code if repository returns personal details validation" in new Setup {
-      (mockRepository.get(_: ValidationId)(_: ExecutionContext)) expects(personalDetailsValidationId, instanceOf[MdcLoggingExecutionContext]) returns Future.successful(Some(personalDetailsValidation))
+      (mockRepository.get(_: ValidationId)(_: ExecutionContext))
+        .expects(personalDetailsValidationId, instanceOf[MdcLoggingExecutionContext])
+        .returns(Future.successful(Some(personalDetailsValidation)))
 
       val response = controller.get(personalDetailsValidationId)(request).futureValue
 
@@ -114,6 +123,9 @@ class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with Prop
     }
 
     "return personal details in response body" in new Setup {
+
+      import formats.PersonalDetailsFormat._
+
       (mockRepository.get(_: ValidationId)(_: ExecutionContext)) expects(personalDetailsValidationId, instanceOf[MdcLoggingExecutionContext]) returns Future.successful(Some(personalDetailsValidation))
 
       val response = controller.get(personalDetailsValidationId)(request).futureValue
@@ -122,15 +134,16 @@ class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with Prop
     }
 
     val validationStatusScenarios = Table(
-      ("validationStatus", "result"),
-      (Success, "success"),
-      (Failure, "failure")
+      ("personalDetailsValidation", "result"),
+      (successfulPersonalDetailsValidation.generateOne, "success"),
+      (failedPersonalDetailsValidation.generateOne, "failure")
     )
 
-    forAll(validationStatusScenarios) { (validationStatus, output) =>
-      s"return validationStatus as $output if repository returned $validationStatus personalDetailsValidation" in new Setup {
-        override val personalDetailsValidation = randomPersonalDetailsValidation(personalDetails).copy(validationStatus = validationStatus)
-        (mockRepository.get(_: ValidationId)(_: ExecutionContext)) expects(personalDetailsValidationId, instanceOf[MdcLoggingExecutionContext]) returns Future.successful(Some(personalDetailsValidation))
+    forAll(validationStatusScenarios) { (validation, output) =>
+      s"return validationStatus as $output if repository returned ${validation.getClass.getSimpleName}" in new Setup {
+        (mockRepository.get(_: ValidationId)(_: ExecutionContext))
+          .expects(personalDetailsValidationId, instanceOf[MdcLoggingExecutionContext])
+          .returns(Future.successful(Some(validation)))
 
         val response = controller.get(personalDetailsValidationId)(request).futureValue
 
@@ -139,7 +152,7 @@ class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with Prop
     }
   }
 
-  trait Setup {
+  private trait Setup {
     implicit val system = ActorSystem()
     implicit val materializer = ActorMaterializer()
     implicit val personalDetailsWrites = Json.writes[PersonalDetails]
@@ -147,12 +160,11 @@ class PersonalDetailsValidationResourceControllerSpec extends UnitSpec with Prop
     uuidProvider.apply _ when() returns randomUUID()
 
     val personalDetails = randomPersonalDetails
-    val personalDetailsValidation = randomPersonalDetailsValidation(personalDetails)
+    val personalDetailsValidation = successfulPersonalDetailsValidation.generateOne.copy(id = ValidationId(), personalDetails = personalDetails)
+    val personalDetailsValidationId = personalDetailsValidation.id
 
     val request = FakeRequest()
     val mockRepository = mock[PersonalDetailsValidationRepository]
     val controller = new PersonalDetailsValidationResourceController(mockRepository)(uuidProvider)
-    val personalDetailsValidationId = ValidationId()
   }
-
 }

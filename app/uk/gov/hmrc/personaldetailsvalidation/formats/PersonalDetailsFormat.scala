@@ -14,17 +14,11 @@
  * limitations under the License.
  */
 
-package factory
+package uk.gov.hmrc.personaldetailsvalidation.formats
 
-import generators.Generators.Implicits._
-import generators.ObjectGenerators._
-import uk.gov.hmrc.personaldetailsvalidation.{PersonalDetails, PersonalDetailsValidation}
+import play.api.libs.json.{Format, Json}
+import uk.gov.hmrc.personaldetailsvalidation.PersonalDetails
 
-object ObjectFactory  {
-
-  val randomPersonalDetails: PersonalDetails =
-    personalDetails.generateOne
-
-  val randomPersonalDetailsValidation: PersonalDetailsValidation =
-    personalDetailsValidation.generateOne
+object PersonalDetailsFormat {
+  implicit val formats: Format[PersonalDetails] = Json.format[PersonalDetails]
 }

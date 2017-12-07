@@ -23,8 +23,8 @@ import com.google.inject.ImplementedBy
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.mongoEntity
-import uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidation.personalDetailsValidationFormats
-import uk.gov.hmrc.personaldetailsvalidation.ValidationId.personalDetailsValidationIdFormats
+import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat._
+import uk.gov.hmrc.personaldetailsvalidation.formats.TinyTypesFormats._
 
 import scala.concurrent.{ExecutionContext, Future}
 

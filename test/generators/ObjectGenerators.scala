@@ -17,7 +17,7 @@
 package generators
 
 import org.scalacheck.Gen
-import uk.gov.hmrc.personaldetailsvalidation.{PersonalDetails, PersonalDetailsValidation}
+import uk.gov.hmrc.personaldetailsvalidation.{PersonalDetails, PersonalDetailsValidation, SuccessfulPersonalDetailsValidation, FailedPersonalDetailsValidation}
 
 object ObjectGenerators extends ValueGenerators {
 
@@ -28,9 +28,16 @@ object ObjectGenerators extends ValueGenerators {
     nino <- ninos
   } yield PersonalDetails(firstName, lastName, dateOfBirth, nino)
 
-  implicit val personalDetailsValidation: Gen[PersonalDetailsValidation] = for {
+  implicit val successfulPersonalDetailsValidation: Gen[SuccessfulPersonalDetailsValidation] = for {
     id <- validationIds
-    validationStatus <- validationStatuses
     personalDetails <- personalDetails
-  } yield PersonalDetailsValidation(id, validationStatus, personalDetails)
+  } yield SuccessfulPersonalDetailsValidation(id, personalDetails)
+
+  implicit val failedPersonalDetailsValidation: Gen[FailedPersonalDetailsValidation] =
+    validationIds map FailedPersonalDetailsValidation
+
+  implicit val personalDetailsValidation: Gen[PersonalDetailsValidation] = booleans flatMap {
+    case true => successfulPersonalDetailsValidation
+    case false => failedPersonalDetailsValidation
+  }
 }
