@@ -18,21 +18,32 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import javax.inject.{Inject, Singleton}
 
+import akka.Done
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.personaldetailsvalidation.connectors.MatchingConnector
+import uk.gov.hmrc.personaldetailsvalidation.connectors.MatchingConnector.MatchResult
+import uk.gov.hmrc.personaldetailsvalidation.connectors.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class PersonalDetailsValidator @Inject()(personalDetailsValidationRepository: PersonalDetailsValidationRepository)
+class PersonalDetailsValidator @Inject()(matchingConnector: MatchingConnector,
+                                         personalDetailsValidationRepository: PersonalDetailsValidationRepository)
                                         (implicit uuidProvider: UUIDProvider) {
 
   def validate(personalDetails: PersonalDetails)
               (implicit headerCarrier: HeaderCarrier,
-               executionContext: ExecutionContext): Future[ValidationId] = {
-    val personalDetailsValidation = PersonalDetailsValidation.successful(personalDetails)
-    personalDetailsValidationRepository.create(personalDetailsValidation).map { _ =>
-      personalDetailsValidation.id
+               executionContext: ExecutionContext): Future[ValidationId] = for {
+    matchResult <- matchingConnector.doMatch(personalDetails)
+    personalDetailsValidation = matchResult.toPersonalDetailsValidation(eventuallyHaving = personalDetails)
+    Done <- personalDetailsValidationRepository.create(personalDetailsValidation)
+  } yield personalDetailsValidation.id
+
+  private implicit class MatchResultOps(matchResult: MatchResult) {
+    def toPersonalDetailsValidation(eventuallyHaving: PersonalDetails) = matchResult match {
+      case MatchSuccessful => PersonalDetailsValidation.successful(eventuallyHaving)
+      case MatchFailed => PersonalDetailsValidation.failed()
     }
   }
 }
