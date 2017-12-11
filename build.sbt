@@ -15,6 +15,8 @@ lazy val playSettings: Seq[Setting[_]] = Seq(
 
 lazy val externalServices = List(
   ExternalService("AUTHENTICATOR"),
+  ExternalService("CITIZEN_DETAILS"),
+  ExternalService("DATASTREAM"),
   ExternalService("MATCH"),
   ExternalService("MATCHING_STUB")
 )

@@ -4,7 +4,7 @@ import java.util.UUID.randomUUID
 
 import play.api.http.ContentTypes.JSON
 import play.api.http.Status._
-import play.api.libs.json.{JsNull, JsValue, Json}
+import play.api.libs.json.{JsUndefined, JsValue, Json}
 import play.mvc.Http.HeaderNames.{CONTENT_TYPE, LOCATION}
 import uk.gov.hmrc.support.BaseIntegrationSpec
 
@@ -28,7 +28,9 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
 
       val getResponse = wsUrl(resourceUrl).get().futureValue
       getResponse.status mustBe OK
-      resourceUrl must endWith ((getResponse.json \ "id").as[String])
+
+      val validationId = resourceUrl.substring(resourceUrl.lastIndexOf("/"))
+      (getResponse.json \ "id").as[String] mustBe validationId
       (getResponse.json \ "validationStatus").as[String] mustBe "success"
       (getResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetails)
     }
@@ -39,7 +41,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
           |{
           |   "firstName": "John",
           |   "lastName": "Kowalski",
-          |   "nino": "AA000003D",
+          |   "nino": "AA999999D",
           |   "dateOfBirth": "1948-04-23"
           |}
         """.stripMargin
@@ -49,19 +51,24 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
 
       val getResponse = wsUrl(resourceUrl).get().futureValue
       getResponse.status mustBe OK
-      resourceUrl must endWith ((getResponse.json \ "id").as[String])
+
+      val validationId = resourceUrl.substring(resourceUrl.lastIndexOf("/"))
+      (getResponse.json \ "id").as[String] mustBe validationId
       (getResponse.json \ "validationStatus").as[String] mustBe "failure"
-      (getResponse.json \ "personalDetails").validate[JsValue] mustBe JsNull
+      (getResponse.json \ "personalDetails") mustBe a[JsUndefined]
     }
 
     "return BAD Request if mandatory fields are missing" in new Setup {
       val createResponse = sendCreateValidationResourceRequest("{}").futureValue
+
       createResponse.status mustBe BAD_REQUEST
-      val errors = (createResponse.json \ "errors").as[List[String]]
-      errors must contain ("firstName is missing")
-      errors must contain ("lastName is missing")
-      errors must contain ("dateOfBirth is missing")
-      errors must contain ("nino is missing")
+
+      (createResponse.json \ "errors").as[List[String]] must contain only(
+        "firstName is missing",
+        "lastName is missing",
+        "dateOfBirth is missing",
+        "nino is missing"
+      )
     }
   }
 
@@ -81,6 +88,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
   private trait Setup {
     def sendCreateValidationResourceRequest(body: String) =
       wsUrl("/personal-details-validation")
-        .withHeaders(CONTENT_TYPE -> JSON).post(body)
+        .withHeaders(CONTENT_TYPE -> JSON)
+        .post(body)
   }
 }

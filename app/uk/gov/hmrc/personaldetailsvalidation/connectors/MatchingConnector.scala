@@ -16,18 +16,48 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.connectors
 
-import uk.gov.hmrc.http.HeaderCarrier
+import javax.inject.{Inject, Singleton}
+
+import play.api.http.Status._
+import play.api.libs.json.{JsObject, Json}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpException, HttpReads, HttpResponse}
 import uk.gov.hmrc.personaldetailsvalidation.PersonalDetails
 import uk.gov.hmrc.personaldetailsvalidation.connectors.MatchingConnector.MatchResult
+import uk.gov.hmrc.personaldetailsvalidation.connectors.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class MatchingConnector {
+@Singleton
+class MatchingConnector @Inject()(httpClient: HttpClient,
+                                  protected val connectorConfig: MatchingConnectorConfig) {
+
+  import connectorConfig.authenticatorBaseUrl
 
   def doMatch(personalDetails: PersonalDetails)
              (implicit headerCarrier: HeaderCarrier,
-              executionContext: ExecutionContext): Future[MatchResult] = ???
+              executionContext: ExecutionContext): Future[MatchResult] =
+    httpClient.POST[JsObject, MatchResult](
+      url = s"$authenticatorBaseUrl/match",
+      body = personalDetails.toJson
+    )
 
+  private implicit val matchingResultHttpReads: HttpReads[MatchResult] = new HttpReads[MatchResult] {
+    override def read(method: String, url: String, response: HttpResponse): MatchResult = response.status match {
+      case OK => MatchSuccessful
+      case UNAUTHORIZED => MatchFailed
+      case other => throw new HttpException(s"Unexpected response from $method $url with '$other' status", other)
+    }
+  }
+
+  private implicit class PersonalDetailsSerializer(personalDetails: PersonalDetails) {
+    lazy val toJson: JsObject = Json.obj(
+      "firstName" -> personalDetails.firstName,
+      "lastName" -> personalDetails.lastName,
+      "dateOfBirth" -> personalDetails.dateOfBirth,
+      "nino" -> personalDetails.nino
+    )
+  }
 }
 
 object MatchingConnector {

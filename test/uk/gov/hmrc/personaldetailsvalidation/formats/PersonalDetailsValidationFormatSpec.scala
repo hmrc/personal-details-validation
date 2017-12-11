@@ -53,12 +53,10 @@ class PersonalDetailsValidationFormatSpec
     }
 
     "allow to serialise FailedPersonalDetailsValidation to JSON" in new Setup {
-      forAll { personalDetails: PersonalDetails =>
-        toJson(PersonalDetailsValidation.failed()) shouldBe Json.obj(
-          "id" -> ValidationId(uuidProvider()),
-          "validationStatus" -> "failure"
-        )
-      }
+      toJson(PersonalDetailsValidation.failed()) shouldBe Json.obj(
+        "id" -> ValidationId(uuidProvider()),
+        "validationStatus" -> "failure"
+      )
     }
 
     "allow to deserialise SuccessfulPersonalDetailsValidation to JSON" in new Setup {
@@ -77,12 +75,10 @@ class PersonalDetailsValidationFormatSpec
     }
 
     "allow to deserialise FailedPersonalDetailsValidation to JSON" in new Setup {
-      forAll { personalDetails: PersonalDetails =>
-        Json.obj(
-          "id" -> ValidationId(),
-          "validationStatus" -> "failure"
-        ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.failed()
-      }
+      Json.obj(
+        "id" -> ValidationId(),
+        "validationStatus" -> "failure"
+      ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.failed()
     }
   }
 
