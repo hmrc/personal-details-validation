@@ -21,6 +21,7 @@ import generators.ObjectGenerators._
 import org.scalatest.concurrent.ScalaFutures
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.mongo.MongoSpecSupport
+import uk.gov.hmrc.personaldetailsvalidation.model.ValidationId
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.uuid.UUIDProvider
 

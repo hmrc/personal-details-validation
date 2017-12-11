@@ -19,7 +19,7 @@ package uk.gov.hmrc.personaldetailsvalidation.formats
 import java.util.UUID
 
 import play.api.libs.json.{Format, JsString}
-import uk.gov.hmrc.personaldetailsvalidation.{ValidationId, ValidationStatus}
+import uk.gov.hmrc.personaldetailsvalidation.model.{ValidationId, ValidationStatus}
 import uk.gov.voa.valuetype.play.formats.OptionsFormat.stringOptionsFormat
 import uk.gov.voa.valuetype.play.formats.ValueTypeFormat.format
 

@@ -24,14 +24,15 @@ import play.api.libs.json.Json.toJson
 import play.api.libs.json._
 import play.api.mvc.Action
 import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, ValidationId}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.json.JsonValidation
 import uk.gov.hmrc.play.json.ReadOps._
 
 @Singleton
-class PersonalDetailsValidationResourceController @Inject()(personalDetailsValidationRepository: PersonalDetailsValidationRepository,
-                                                            personalDetailsValidator: PersonalDetailsValidator)
+class PersonalDetailsValidationResourceController @Inject()(private val personalDetailsValidationRepository: PersonalDetailsValidationRepository,
+                                                            private val personalDetailsValidator: PersonalDetailsValidator)
   extends BaseController
     with JsonValidation {
 

@@ -23,12 +23,13 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.connectors.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.connectors.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.connectors.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
+import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class PersonalDetailsValidator @Inject()(matchingConnector: MatchingConnector,
+private class PersonalDetailsValidator @Inject()(matchingConnector: MatchingConnector,
                                          personalDetailsValidationRepository: PersonalDetailsValidationRepository)
                                         (implicit uuidProvider: UUIDProvider) {
 

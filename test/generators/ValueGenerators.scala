@@ -19,7 +19,7 @@ package generators
 import org.scalacheck.Gen
 import org.scalacheck.Gen.{listOfN, numChar, oneOf}
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.personaldetailsvalidation.{ValidationId, ValidationStatus}
+import uk.gov.hmrc.personaldetailsvalidation.model.{ValidationId, ValidationStatus}
 
 trait ValueGenerators extends Generators {
 

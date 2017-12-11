@@ -18,7 +18,7 @@ package factory
 
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
-import uk.gov.hmrc.personaldetailsvalidation.{PersonalDetails, PersonalDetailsValidation}
+import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsValidation}
 
 object ObjectFactory  {
 

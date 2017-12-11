@@ -25,11 +25,12 @@ import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.mongoEntity
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat._
 import uk.gov.hmrc.personaldetailsvalidation.formats.TinyTypesFormats._
+import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, ValidationId}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[PersonalDetailsValidationMongoRepository])
-trait PersonalDetailsValidationRepository {
+private trait PersonalDetailsValidationRepository {
 
   def create(personalDetails: PersonalDetailsValidation)
             (implicit ec: ExecutionContext): Future[Done]
@@ -39,7 +40,7 @@ trait PersonalDetailsValidationRepository {
 }
 
 @Singleton
-class PersonalDetailsValidationMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent)
+private class PersonalDetailsValidationMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent)
   extends ReactiveRepository[PersonalDetailsValidation, ValidationId](
     collectionName = "personal-details-validation",
     mongo = mongoComponent.mongoConnector.db,

@@ -17,7 +17,7 @@
 package generators
 
 import org.scalacheck.Gen
-import uk.gov.hmrc.personaldetailsvalidation.{FailedPersonalDetailsValidation, PersonalDetails, PersonalDetailsValidation, SuccessfulPersonalDetailsValidation}
+import uk.gov.hmrc.personaldetailsvalidation.model.{FailedPersonalDetailsValidation, PersonalDetails, PersonalDetailsValidation, SuccessfulPersonalDetailsValidation}
 
 object ObjectGenerators extends ValueGenerators {
 

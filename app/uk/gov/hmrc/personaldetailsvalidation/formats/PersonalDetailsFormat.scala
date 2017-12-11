@@ -17,7 +17,7 @@
 package uk.gov.hmrc.personaldetailsvalidation.formats
 
 import play.api.libs.json.{Format, Json}
-import uk.gov.hmrc.personaldetailsvalidation.PersonalDetails
+import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
 
 object PersonalDetailsFormat {
   implicit val formats: Format[PersonalDetails] = Json.format[PersonalDetails]

@@ -19,12 +19,13 @@ package uk.gov.hmrc.personaldetailsvalidation.formats
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, _}
 import uk.gov.hmrc.personaldetailsvalidation._
+import uk.gov.hmrc.personaldetailsvalidation.model._
 
 object PersonalDetailsValidationFormat {
 
   import PersonalDetailsFormat._
   import TinyTypesFormats._
-  import ValidationStatus._
+  import model.ValidationStatus._
 
   implicit val personalDetailsValidationFormats: Format[PersonalDetailsValidation] = {
 
