@@ -40,7 +40,7 @@ private trait PersonalDetailsValidationRepository {
 }
 
 @Singleton
-private class PersonalDetailsValidationMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent)
+private class PersonalDetailsValidationMongoRepository @Inject()(private val mongoComponent: ReactiveMongoComponent)
   extends ReactiveRepository[PersonalDetailsValidation, ValidationId](
     collectionName = "personal-details-validation",
     mongo = mongoComponent.mongoConnector.db,

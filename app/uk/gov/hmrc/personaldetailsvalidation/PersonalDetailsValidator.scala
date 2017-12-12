@@ -31,7 +31,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 private class PersonalDetailsValidator @Inject()(private val matchingConnector: MatchingConnector,
                                                  private val personalDetailsValidationRepository: PersonalDetailsValidationRepository)
-                                                (implicit uuidProvider: UUIDProvider) {
+                                                (implicit private val uuidProvider: UUIDProvider) {
 
   def validate(personalDetails: PersonalDetails)
               (implicit headerCarrier: HeaderCarrier,
