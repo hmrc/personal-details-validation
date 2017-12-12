@@ -76,7 +76,7 @@ class PersonalDetailsValidatorSpec
       validator.validate(personalDetails).futureValue shouldBe personalDetailsValidation.id
     }
 
-    "return a failure when one is return from calling match" in new Setup {
+    "return a failure when the call to match fails" in new Setup {
       val personalDetails = personalDetailsObjects.generateOne
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
