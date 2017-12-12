@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation.connectors
+package uk.gov.hmrc.personaldetailsvalidation.matching
 
 import javax.inject.Inject
 

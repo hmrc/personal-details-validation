@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation.connectors
+package uk.gov.hmrc.personaldetailsvalidation.matching
 
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
@@ -25,7 +25,7 @@ import play.api.libs.json.Json
 import play.api.test.Helpers._
 import setups.HttpClientStubSetup
 import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
-import uk.gov.hmrc.personaldetailsvalidation.connectors.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}

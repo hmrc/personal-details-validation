@@ -20,9 +20,9 @@ import javax.inject.{Inject, Singleton}
 
 import akka.Done
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.personaldetailsvalidation.connectors.MatchingConnector
-import uk.gov.hmrc.personaldetailsvalidation.connectors.MatchingConnector.MatchResult
-import uk.gov.hmrc.personaldetailsvalidation.connectors.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.uuid.UUIDProvider
 

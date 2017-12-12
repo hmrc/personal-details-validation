@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation.connectors
+package uk.gov.hmrc.personaldetailsvalidation.matching
 
 import javax.inject.{Inject, Singleton}
 
 import play.api.http.Status._
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpException, HttpReads, HttpResponse}
-import uk.gov.hmrc.personaldetailsvalidation.connectors.MatchingConnector.MatchResult
-import uk.gov.hmrc.personaldetailsvalidation.connectors.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
