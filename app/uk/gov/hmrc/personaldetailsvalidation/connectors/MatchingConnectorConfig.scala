@@ -21,7 +21,7 @@ import javax.inject.Inject
 import play.api.Configuration
 import uk.gov.hmrc.config.{BaseConfig, Host}
 
-protected class MatchingConnectorConfig @Inject()(protected val configuration: Configuration)
+private class MatchingConnectorConfig @Inject()(protected val configuration: Configuration)
   extends BaseConfig {
 
   lazy val authenticatorBaseUrl: String =
