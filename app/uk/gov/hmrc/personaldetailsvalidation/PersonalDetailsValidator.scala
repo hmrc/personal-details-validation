@@ -29,21 +29,21 @@ import uk.gov.hmrc.uuid.UUIDProvider
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-private class PersonalDetailsValidator @Inject()(matchingConnector: MatchingConnector,
-                                                 personalDetailsValidationRepository: PersonalDetailsValidationRepository)
+private class PersonalDetailsValidator @Inject()(private val matchingConnector: MatchingConnector,
+                                                 private val personalDetailsValidationRepository: PersonalDetailsValidationRepository)
                                                 (implicit uuidProvider: UUIDProvider) {
 
   def validate(personalDetails: PersonalDetails)
               (implicit headerCarrier: HeaderCarrier,
                executionContext: ExecutionContext): Future[ValidationId] = for {
     matchResult <- matchingConnector.doMatch(personalDetails)
-    personalDetailsValidation = matchResult.toPersonalDetailsValidation(eventuallyHaving = personalDetails)
+    personalDetailsValidation = matchResult.toPersonalDetailsValidation(optionallyHaving = personalDetails)
     Done <- personalDetailsValidationRepository.create(personalDetailsValidation)
   } yield personalDetailsValidation.id
 
   private implicit class MatchResultOps(matchResult: MatchResult) {
-    def toPersonalDetailsValidation(eventuallyHaving: PersonalDetails) = matchResult match {
-      case MatchSuccessful => PersonalDetailsValidation.successful(eventuallyHaving)
+    def toPersonalDetailsValidation(optionallyHaving: PersonalDetails): PersonalDetailsValidation = matchResult match {
+      case MatchSuccessful => PersonalDetailsValidation.successful(optionallyHaving)
       case MatchFailed => PersonalDetailsValidation.failed()
     }
   }
