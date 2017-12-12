@@ -33,20 +33,17 @@ class PersonalDetailsValidationMongoRepositorySpec
     with ScalaFutures {
 
   "create" should {
-    "be able to insert SuccessfulPersonalDetailsValidation" in new Setup {
-      val personalDetailsValidation = successfulPersonalDetailsValidationObjects.generateOne
 
-      await(repository.create(personalDetailsValidation))
+    Set(
+      successfulPersonalDetailsValidationObjects.generateOne,
+      failedPersonalDetailsValidationObjects.generateOne
+    ) foreach { personalDetailsValidation =>
 
-      repository.get(personalDetailsValidation.id).futureValue shouldBe Some(personalDetailsValidation)
-    }
+      s"be able to insert ${personalDetailsValidation.getClass.getSimpleName}" in new Setup {
+        await(repository.create(personalDetailsValidation))
 
-    "be able to insert FailedPersonalDetailsValidation" in new Setup {
-      val personalDetailsValidation = failedPersonalDetailsValidationObjects.generateOne
-
-      await(repository.create(personalDetailsValidation))
-
-      repository.get(personalDetailsValidation.id).futureValue shouldBe Some(personalDetailsValidation)
+        repository.get(personalDetailsValidation.id).futureValue shouldBe Some(personalDetailsValidation)
+      }
     }
   }
 
