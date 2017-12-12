@@ -19,7 +19,7 @@ package uk.gov.hmrc.personaldetailsvalidation.connectors
 import javax.inject.Inject
 
 import play.api.Configuration
-import uk.gov.hmrc.personaldetailsvalidation.config.{BaseConfig, Host}
+import uk.gov.hmrc.config.{BaseConfig, Host}
 
 protected class MatchingConnectorConfig @Inject()(protected val configuration: Configuration)
   extends BaseConfig {

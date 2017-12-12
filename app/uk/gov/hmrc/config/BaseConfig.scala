@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation.config
+package uk.gov.hmrc.config
 
 import play.api.Configuration
 import uk.gov.voa.valuetype.StringValue
