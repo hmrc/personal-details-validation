@@ -14,17 +14,15 @@
  * limitations under the License.
  */
 
-package scalamock
+package setups
 
+import play.api.Configuration
 
-import org.scalamock.matchers.{MatcherBase, Matchers => ScalamockMatchers}
-import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers => ScalatestMatchers}
+trait ConfigSetup[T] {
 
-import scala.reflect.ClassTag
+  val newConfigObject: Configuration => T
 
-trait MockArgumentMatchers extends ScalamockMatchers with ScalatestMatchers {
-  self: MockFactory =>
-
-  def instanceOf[T](implicit classTag: ClassTag[T]): MatcherBase = argAssert{x: T => x.getClass shouldBe classTag.runtimeClass}
+  def whenConfigEntriesExists(entries: (String, Any)*)
+                             (testBody: T => Unit): Unit =
+    testBody(newConfigObject(Configuration.from(entries.toMap)))
 }

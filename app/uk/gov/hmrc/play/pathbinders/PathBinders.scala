@@ -19,7 +19,7 @@ package uk.gov.hmrc.play.pathbinders
 import java.util.UUID
 
 import play.api.mvc.PathBindable
-import uk.gov.hmrc.personaldetailsvalidation.ValidationId
+import uk.gov.hmrc.personaldetailsvalidation.model.ValidationId
 import uk.gov.voa.valuetype.play.binders.ValueTypePathBinder
 
 import scala.util.Try

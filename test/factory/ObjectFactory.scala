@@ -18,13 +18,13 @@ package factory
 
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
-import uk.gov.hmrc.personaldetailsvalidation.{PersonalDetails, PersonalDetailsValidation}
+import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsValidation}
 
 object ObjectFactory  {
 
-  val randomPersonalDetails = personalDetails.generateOne
+  val randomPersonalDetails: PersonalDetails =
+    personalDetailsObjects.generateOne
 
-  val randomPersonalDetailsValidation = personalDetailsValidation.generateOne
-
-  def randomPersonalDetailsValidation(personalDetails: PersonalDetails): PersonalDetailsValidation = randomPersonalDetailsValidation.copy(personalDetails = personalDetails)
+  val randomPersonalDetailsValidation: PersonalDetailsValidation =
+    personalDetailsValidationObjects.generateOne
 }

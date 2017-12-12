@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-package scalamock
+package uk.gov.hmrc.personaldetailsvalidation.matching
 
+import javax.inject.Inject
 
-import org.scalamock.matchers.{MatcherBase, Matchers => ScalamockMatchers}
-import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers => ScalatestMatchers}
+import play.api.Configuration
+import uk.gov.hmrc.config.{BaseConfig, Host}
 
-import scala.reflect.ClassTag
+private class MatchingConnectorConfig @Inject()(protected val configuration: Configuration)
+  extends BaseConfig {
 
-trait MockArgumentMatchers extends ScalamockMatchers with ScalatestMatchers {
-  self: MockFactory =>
-
-  def instanceOf[T](implicit classTag: ClassTag[T]): MatcherBase = argAssert{x: T => x.getClass shouldBe classTag.runtimeClass}
+  lazy val authenticatorBaseUrl: String =
+    configuration.loadMandatory[Host]("authenticator") + "/authenticator"
 }

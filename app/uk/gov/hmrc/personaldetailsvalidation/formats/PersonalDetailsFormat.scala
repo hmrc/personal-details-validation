@@ -14,15 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation
+package uk.gov.hmrc.personaldetailsvalidation.formats
 
-import java.time.LocalDate
+import play.api.libs.json.{Format, Json}
+import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
 
-import play.api.libs.json.Json
-import uk.gov.hmrc.domain.Nino
-
-case class PersonalDetails(firstName: String, lastName: String, dateOfBirth: LocalDate, nino: Nino)
-
-object PersonalDetails {
-  implicit val formats = Json.format[PersonalDetails]
+object PersonalDetailsFormat {
+  implicit val formats: Format[PersonalDetails] = Json.format[PersonalDetails]
 }

@@ -23,27 +23,36 @@ import com.google.inject.ImplementedBy
 import play.modules.reactivemongo.ReactiveMongoComponent
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.mongoEntity
-import uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidation.personalDetailsValidationFormats
-import uk.gov.hmrc.personaldetailsvalidation.ValidationId.personalDetailsValidationIdFormats
+import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat._
+import uk.gov.hmrc.personaldetailsvalidation.formats.TinyTypesFormats._
+import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, ValidationId}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[PersonalDetailsValidationMongoRepository])
-trait PersonalDetailsValidationRepository {
-  def create(personalDetails: PersonalDetailsValidation)(implicit ec: ExecutionContext): Future[Done]
-  def get(personalDetailsValidationId: ValidationId)(implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]]
+private trait PersonalDetailsValidationRepository {
+
+  def create(personalDetails: PersonalDetailsValidation)
+            (implicit ec: ExecutionContext): Future[Done]
+
+  def get(personalDetailsValidationId: ValidationId)
+         (implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]]
 }
 
 @Singleton
-class PersonalDetailsValidationMongoRepository @Inject()(mongoComponent: ReactiveMongoComponent) extends
-  ReactiveRepository[PersonalDetailsValidation, ValidationId](
-    "personal-details-validation",
-    mongoComponent.mongoConnector.db,
-    mongoEntity(personalDetailsValidationFormats),
-    personalDetailsValidationIdFormats) with PersonalDetailsValidationRepository {
+private class PersonalDetailsValidationMongoRepository @Inject()(private val mongoComponent: ReactiveMongoComponent)
+  extends ReactiveRepository[PersonalDetailsValidation, ValidationId](
+    collectionName = "personal-details-validation",
+    mongo = mongoComponent.mongoConnector.db,
+    domainFormat = mongoEntity(personalDetailsValidationFormats),
+    idFormat = personalDetailsValidationIdFormats
+  ) with PersonalDetailsValidationRepository {
 
+  def create(personalDetailsValidation: PersonalDetailsValidation)
+            (implicit ec: ExecutionContext): Future[Done] =
+    insert(personalDetailsValidation).map(_ => Done)
 
-  def create(personalDetailsValidation: PersonalDetailsValidation)(implicit ec: ExecutionContext) = insert(personalDetailsValidation).map(_ => Done)
-  def get(personalDetailsValidationId: ValidationId)(implicit ec: ExecutionContext) = findById(personalDetailsValidationId)
-
+  def get(personalDetailsValidationId: ValidationId)
+         (implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]] =
+    findById(personalDetailsValidationId)
 }

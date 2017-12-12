@@ -22,9 +22,9 @@ import play.api.Configuration
 import play.api.http.Status._
 import play.api.mvc.RequestHeader
 import play.api.mvc.Results.NotFound
-import uk.gov.hmrc.play.pathbinders.PathBinders.Errors.NOT_A_VALID_UUID
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.http.JsonErrorHandler
+import uk.gov.hmrc.play.pathbinders.PathBinders.Errors.NOT_A_VALID_UUID
 
 import scala.concurrent.Future
 

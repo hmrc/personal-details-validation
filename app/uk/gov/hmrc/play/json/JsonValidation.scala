@@ -24,7 +24,9 @@ import scala.concurrent.Future
 
 trait JsonValidation {
   self: BaseController =>
-  override protected def withJsonBody[T](f: (T) => Future[Result])(implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]) =
+
+  override protected def withJsonBody[T](f: (T) => Future[Result])
+                                        (implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]) =
     request.body.validate[T] match {
       case JsSuccess(payload, _) => f(payload)
       case JsError(errs) =>

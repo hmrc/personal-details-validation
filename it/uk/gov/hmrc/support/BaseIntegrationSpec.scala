@@ -7,11 +7,17 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.WSClient
 
-trait BaseIntegrationSpec extends PlaySpec with GuiceOneServerPerSuite with ScalaFutures with IntegrationPatience {
+trait BaseIntegrationSpec
+  extends PlaySpec
+    with GuiceOneServerPerSuite
+    with ScalaFutures
+    with IntegrationPatience {
 
   protected def additionalConfiguration = Map.empty[String, Any]
 
-  override def fakeApplication(): Application = new GuiceApplicationBuilder().configure(additionalConfiguration).build()
+  override def fakeApplication(): Application =
+    new GuiceApplicationBuilder().configure(additionalConfiguration).build()
 
-  protected implicit lazy val wsClient = app.injector.instanceOf[WSClient]
+  protected implicit lazy val wsClient: WSClient =
+    app.injector.instanceOf[WSClient]
 }

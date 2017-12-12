@@ -4,21 +4,22 @@ import java.util.UUID.randomUUID
 
 import play.api.http.ContentTypes.JSON
 import play.api.http.Status._
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsUndefined, JsValue, Json}
 import play.mvc.Http.HeaderNames.{CONTENT_TYPE, LOCATION}
 import uk.gov.hmrc.support.BaseIntegrationSpec
 
 class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
 
   "POST /personal-details-validations" should {
-    "create a personal-details-validation resource" in new Setup {
+
+    "successfully validate when provided personal details can be matched by MDTP services" in new Setup {
       val personalDetails =
         """
           |{
-          |   "firstName":"Joe",
-          |   "lastName":"Ferguson",
-          |   "nino":"AA000003D",
-          |   "dateOfBirth":"2017-12-31"
+          |   "firstName": "Jim",
+          |   "lastName": "Ferguson",
+          |   "nino": "AA000003D",
+          |   "dateOfBirth": "1948-04-23"
           |}
         """.stripMargin
       val createResponse = sendCreateValidationResourceRequest(personalDetails).futureValue
@@ -27,23 +28,52 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
 
       val getResponse = wsUrl(resourceUrl).get().futureValue
       getResponse.status mustBe OK
-      resourceUrl must endWith ((getResponse.json \ "id").as[String])
+
+      val validationId = resourceUrl.substring(resourceUrl.lastIndexOf("/") + 1)
+      (getResponse.json \ "id").as[String] mustBe validationId
       (getResponse.json \ "validationStatus").as[String] mustBe "success"
       (getResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetails)
     }
 
+    "return failure when provided personal details cannot be matched by MDTP services" in new Setup {
+      val personalDetails =
+        """
+          |{
+          |   "firstName": "John",
+          |   "lastName": "Kowalski",
+          |   "nino": "AA999999D",
+          |   "dateOfBirth": "1948-04-23"
+          |}
+        """.stripMargin
+      val createResponse = sendCreateValidationResourceRequest(personalDetails).futureValue
+      createResponse.status mustBe CREATED
+      val Some(resourceUrl) = createResponse.header(LOCATION)
+
+      val getResponse = wsUrl(resourceUrl).get().futureValue
+      getResponse.status mustBe OK
+
+      val validationId = resourceUrl.substring(resourceUrl.lastIndexOf("/") + 1)
+      (getResponse.json \ "id").as[String] mustBe validationId
+      (getResponse.json \ "validationStatus").as[String] mustBe "failure"
+      (getResponse.json \ "personalDetails") mustBe a[JsUndefined]
+    }
+
     "return BAD Request if mandatory fields are missing" in new Setup {
       val createResponse = sendCreateValidationResourceRequest("{}").futureValue
+
       createResponse.status mustBe BAD_REQUEST
-      val errors = (createResponse.json \ "errors").as[List[String]]
-      errors must contain ("firstName is missing")
-      errors must contain ("lastName is missing")
-      errors must contain ("dateOfBirth is missing")
-      errors must contain ("nino is missing")
+
+      (createResponse.json \ "errors").as[List[String]] must contain only(
+        "firstName is missing",
+        "lastName is missing",
+        "dateOfBirth is missing",
+        "nino is missing"
+      )
     }
   }
 
   "GET /personal-details-validations/id" should {
+
     "return NOT FOUND if id is UUID but invalid id" in {
       val getResponse = wsUrl(s"/personal-details-validation/${randomUUID().toString}").get().futureValue
       getResponse.status mustBe NOT_FOUND
@@ -55,8 +85,10 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
     }
   }
 
-  trait Setup {
-    def sendCreateValidationResourceRequest(body: String) = wsUrl("/personal-details-validation").withHeaders(CONTENT_TYPE -> JSON).post(body)
+  private trait Setup {
+    def sendCreateValidationResourceRequest(body: String) =
+      wsUrl("/personal-details-validation")
+        .withHeaders(CONTENT_TYPE -> JSON)
+        .post(body)
   }
-
 }
