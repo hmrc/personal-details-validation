@@ -27,11 +27,11 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.prop.PropertyChecks
 import play.api.libs.json.Json.toJson
-import play.api.libs.json.{JsNull, Json, Writes}
+import play.api.libs.json.{JsNull, JsUndefined, Json, Writes}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsValidation, SuccessfulPersonalDetailsValidation, ValidationId}
+import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.uuid.UUIDProvider
@@ -94,8 +94,12 @@ class PersonalDetailsValidationResourceControllerSpec
     "return errors if mandatory fields are missing" in new Setup {
       val response = controller.create(request.withBody(JsNull)).futureValue
 
-      val errors = (jsonBodyOf(response) \ "errors").as[List[String]]
-      errors should contain only("firstName is missing", "lastName is missing", "dateOfBirth is missing", "nino is missing")
+      (jsonBodyOf(response) \ "errors").as[List[String]] should contain only(
+        "firstName is missing",
+        "lastName is missing",
+        "dateOfBirth is missing",
+        "nino is missing"
+      )
     }
   }
 
@@ -151,6 +155,19 @@ class PersonalDetailsValidationResourceControllerSpec
         val response = controller.get(personalDetailsValidation.id)(request).futureValue
 
         (jsonBodyOf(response) \ "personalDetails").as[PersonalDetails] shouldBe personalDetailsValidation.personalDetails
+      }
+    }
+
+    "do not return personal details in response body for FailedPersonalDetailsValidation" in new Setup {
+
+      forAll { personalDetailsValidation: FailedPersonalDetailsValidation =>
+        (mockRepository.get(_: ValidationId)(_: ExecutionContext))
+          .expects(personalDetailsValidation.id, instanceOf[MdcLoggingExecutionContext])
+          .returns(Future.successful(Some(personalDetailsValidation)))
+
+        val response = controller.get(personalDetailsValidation.id)(request).futureValue
+
+        (jsonBodyOf(response) \ "personalDetails") shouldBe a[JsUndefined]
       }
     }
 
