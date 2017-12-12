@@ -46,7 +46,10 @@ class MatchingConnector @Inject()(private val httpClient: HttpClient,
     override def read(method: String, url: String, response: HttpResponse): MatchResult = response.status match {
       case OK => MatchSuccessful
       case UNAUTHORIZED => MatchFailed
-      case other => throw new HttpException(s"Unexpected response from $method $url with '$other' status", other)
+      case other => throw new HttpException(
+        message = s"Unexpected response from $method $url with status: '$other' and body: ${response.body}",
+        responseCode = other
+      )
     }
   }
 
