@@ -20,7 +20,7 @@ import javax.inject.{Inject, Singleton}
 
 import play.api.http.Status._
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpException, HttpReads, HttpResponse}
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
@@ -46,10 +46,7 @@ class MatchingConnector @Inject()(private val httpClient: HttpClient,
     override def read(method: String, url: String, response: HttpResponse): MatchResult = response.status match {
       case OK => MatchSuccessful
       case UNAUTHORIZED => MatchFailed
-      case other => throw new HttpException(
-        message = s"Unexpected response from $method $url with status: '$other' and body: ${response.body}",
-        responseCode = other
-      )
+      case other => throw new BadGatewayException(s"Unexpected response from $method $url with status: '$other' and body: ${response.body}")
     }
   }
 

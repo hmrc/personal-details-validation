@@ -65,7 +65,7 @@ class MatchingConnectorSpec
           await(connector.doMatch(personalDetails))
         }
         exception.message shouldBe s"Unexpected response from POST http://host/authenticator/match with status: '$unexpectedStatus' and body: some response body"
-        exception.responseCode shouldBe unexpectedStatus
+        exception.responseCode shouldBe BAD_GATEWAY
       }
     }
   }

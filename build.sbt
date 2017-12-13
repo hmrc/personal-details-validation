@@ -1,7 +1,5 @@
 import TestPhases.oneForkedJvmPerTest
 import uk.gov.hmrc.DefaultBuildSettings.{addTestReportOption, defaultSettings, scalaSettings}
-import uk.gov.hmrc.ExternalService
-import uk.gov.hmrc.ServiceManagerPlugin.Keys._
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
 
 val appName = "personal-details-validation"
@@ -11,14 +9,6 @@ lazy val playSettings: Seq[Setting[_]] = Seq(
     "uk.gov.hmrc.personaldetailsvalidation.model.ValidationId",
     "uk.gov.hmrc.play.pathbinders.PathBinders._"
   )
-)
-
-lazy val externalServices = List(
-  ExternalService("AUTHENTICATOR"),
-  ExternalService("CITIZEN_DETAILS"),
-  ExternalService("DATASTREAM"),
-  ExternalService("MATCH"),
-  ExternalService("MATCHING_STUB")
 )
 
 lazy val microservice = Project(appName, file("."))
@@ -35,8 +25,6 @@ lazy val microservice = Project(appName, file("."))
   )
   .configs(IntegrationTest)
   .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)
-  .settings(ServiceManagerPlugin.serviceManagerSettings)
-  .settings(itDependenciesList := externalServices)
   .settings(
     Keys.fork in IntegrationTest := false,
     unmanagedSourceDirectories in IntegrationTest := (baseDirectory in IntegrationTest)(base => Seq(base / "it")).value,
