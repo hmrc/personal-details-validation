@@ -20,6 +20,7 @@ private object AppDependencies {
     "org.scalamock" %% "scalamock" % "4.0.0" % "test",
     "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.1" % "it",
     "uk.gov.hmrc" %% "hmrctest" % "3.0.0" % scope,
-    "uk.gov.hmrc" %% "reactivemongo-test" % "3.0.0" % "test"
+    "uk.gov.hmrc" %% "reactivemongo-test" % "3.0.0" % "test",
+    "com.github.tomakehurst" % "wiremock" % "2.12.0" % "it"
   )
 }
