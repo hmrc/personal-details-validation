@@ -16,14 +16,19 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
+import java.time.ZoneOffset.UTC
 import javax.inject.{Inject, Singleton}
 
 import akka.Done
 import com.google.inject.ImplementedBy
+import play.api.libs.json.{JsNumber, JsObject}
 import play.modules.reactivemongo.ReactiveMongoComponent
+import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Descending
 import reactivemongo.bson.BSONDocument
+import reactivemongo.play.json.ImplicitBSONHandlers
+import uk.gov.hmrc.datetime.CurrentTimeProvider
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.mongoEntity
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat._
@@ -43,7 +48,7 @@ private trait PersonalDetailsValidationRepository {
 }
 
 @Singleton
-private class PersonalDetailsValidationMongoRepository @Inject()(ttlSeconds: Int)(private val mongoComponent: ReactiveMongoComponent)
+private class PersonalDetailsValidationMongoRepository @Inject()(ttlSeconds: Int, currentTimeProvider: CurrentTimeProvider)(private val mongoComponent: ReactiveMongoComponent)
   extends ReactiveRepository[PersonalDetailsValidation, ValidationId](
     collectionName = "personal-details-validation",
     mongo = mongoComponent.mongoConnector.db,
@@ -57,8 +62,18 @@ private class PersonalDetailsValidationMongoRepository @Inject()(ttlSeconds: Int
   )
 
   def create(personalDetailsValidation: PersonalDetailsValidation)
-            (implicit ec: ExecutionContext): Future[Done] =
-    insert(personalDetailsValidation).map(_ => Done)
+            (implicit ec: ExecutionContext): Future[Done] = {
+
+    import ImplicitBSONHandlers._
+
+    val writeResult = mongoEntity(personalDetailsValidationFormats).writes(personalDetailsValidation) match {
+      case d@JsObject(_) => collection.insert(d ++ JsObject(Seq("createdAt" -> JsNumber(currentTimeProvider().atZone(UTC).toInstant.toEpochMilli))))
+      case _ =>
+        Future.failed[WriteResult](new Exception("cannot write object"))
+    }
+
+    writeResult.map(_ => Done)
+  }
 
   def get(personalDetailsValidationId: ValidationId)
          (implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]] =

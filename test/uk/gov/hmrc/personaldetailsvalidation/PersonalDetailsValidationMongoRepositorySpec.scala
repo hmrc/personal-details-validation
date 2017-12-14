@@ -16,14 +16,18 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
+import java.time.LocalDateTime
+import java.time.ZoneOffset.UTC
+
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
-import org.scalatest.Inside
+import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Descending
 import reactivemongo.bson.BSONDocument
+import uk.gov.hmrc.datetime.CurrentTimeProvider
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.personaldetailsvalidation.model.ValidationId
 import uk.gov.hmrc.play.test.UnitSpec
@@ -34,10 +38,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class PersonalDetailsValidationMongoRepositorySpec
   extends UnitSpec
     with MongoSpecSupport
+  with MockFactory
     with ScalaFutures {
 
   "create" should {
-
     Set(
       successfulPersonalDetailsValidationObjects.generateOne,
       failedPersonalDetailsValidationObjects.generateOne
@@ -48,6 +52,15 @@ class PersonalDetailsValidationMongoRepositorySpec
 
         repository.get(personalDetailsValidation.id).futureValue shouldBe Some(personalDetailsValidation)
       }
+    }
+
+    "add 'createdAt' field with current time when persisting the document" in new Setup {
+      val personalDetailsValidation = successfulPersonalDetailsValidationObjects.generateOne
+      val validationId = personalDetailsValidation.id.value.toString
+
+      await(repository.create(personalDetailsValidation))
+
+      bsonCollection(repository.collection.name)().count(selector = Some(BSONDocument("_id" -> validationId, "createdAt" -> currentTime.atZone(UTC).toInstant.toEpochMilli))).futureValue shouldBe 1
     }
   }
 
@@ -62,13 +75,21 @@ class PersonalDetailsValidationMongoRepositorySpec
       val expectedIndex = Index(Seq("createdAt" -> Descending), name = Some("personal-details-validation-ttl-index"), options = BSONDocument("expireAfterSeconds" -> ttlSeconds))
       verifyIndex(expectedIndex)
     }
+
   }
 
   private trait Setup {
     implicit val uuidProvider: UUIDProvider = new UUIDProvider()
     implicit val ttlSeconds = 100
     await(mongo().drop())
-    val repository = new PersonalDetailsValidationMongoRepository(ttlSeconds: Int)(new ReactiveMongoComponent {
+
+    val mockCurrentTimeProvider = stub[CurrentTimeProvider]
+
+    val currentTime: LocalDateTime = LocalDateTime.now()
+
+    mockCurrentTimeProvider.apply _ when() returns currentTime
+
+    val repository = new PersonalDetailsValidationMongoRepository(ttlSeconds: Int, mockCurrentTimeProvider)(new ReactiveMongoComponent {
       override val mongoConnector = mongoConnectorForTest
     })
 
