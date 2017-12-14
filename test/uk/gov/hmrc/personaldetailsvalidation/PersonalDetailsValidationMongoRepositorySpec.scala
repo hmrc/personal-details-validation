@@ -18,8 +18,12 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
+import org.scalatest.Inside
 import org.scalatest.concurrent.ScalaFutures
 import play.modules.reactivemongo.ReactiveMongoComponent
+import reactivemongo.api.indexes.Index
+import reactivemongo.api.indexes.IndexType.Descending
+import reactivemongo.bson.BSONDocument
 import uk.gov.hmrc.mongo.MongoSpecSupport
 import uk.gov.hmrc.personaldetailsvalidation.model.ValidationId
 import uk.gov.hmrc.play.test.UnitSpec
@@ -53,11 +57,32 @@ class PersonalDetailsValidationMongoRepositorySpec
     }
   }
 
+  "repository" should {
+    "create ttl on collection" in new Setup {
+      val expectedIndex = Index(Seq("createdAt" -> Descending), name = Some("personal-details-validation-ttl-index"), options = BSONDocument("expireAfterSeconds" -> ttlSeconds))
+      verifyIndex(expectedIndex)
+    }
+  }
+
   private trait Setup {
     implicit val uuidProvider: UUIDProvider = new UUIDProvider()
-    val repository = new PersonalDetailsValidationMongoRepository(new ReactiveMongoComponent {
+    implicit val ttlSeconds = 100
+    await(mongo().drop())
+    val repository = new PersonalDetailsValidationMongoRepository(ttlSeconds: Int)(new ReactiveMongoComponent {
       override val mongoConnector = mongoConnectorForTest
     })
-    await(repository.removeAll())
+
+    def verifyIndex(expectedIndex: Index) = {
+      val expectedIndexName = expectedIndex.eventualName
+      val collectionIndexes = await(mongo().indexesManager.onCollection(repository.collection.name).list())
+
+      val index = collectionIndexes
+        .find(_.name.contains(expectedIndexName))
+        .getOrElse(throw new RuntimeException(s"Index with name $expectedIndexName not found in collection ${repository.collection.name}"))
+
+      //version of index is managed by mongodb. We don't want to assert on it.
+      index shouldBe expectedIndex.copy(version = index.version)
+    }
   }
+
 }

@@ -21,6 +21,9 @@ import javax.inject.{Inject, Singleton}
 import akka.Done
 import com.google.inject.ImplementedBy
 import play.modules.reactivemongo.ReactiveMongoComponent
+import reactivemongo.api.indexes.Index
+import reactivemongo.api.indexes.IndexType.Descending
+import reactivemongo.bson.BSONDocument
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.mongoEntity
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat._
@@ -40,13 +43,18 @@ private trait PersonalDetailsValidationRepository {
 }
 
 @Singleton
-private class PersonalDetailsValidationMongoRepository @Inject()(private val mongoComponent: ReactiveMongoComponent)
+private class PersonalDetailsValidationMongoRepository @Inject()(ttlSeconds: Int)(private val mongoComponent: ReactiveMongoComponent)
   extends ReactiveRepository[PersonalDetailsValidation, ValidationId](
     collectionName = "personal-details-validation",
     mongo = mongoComponent.mongoConnector.db,
     domainFormat = mongoEntity(personalDetailsValidationFormats),
     idFormat = personalDetailsValidationIdFormats
   ) with PersonalDetailsValidationRepository {
+
+
+  override def indexes: Seq[Index] = Seq(
+    Index(Seq("createdAt" -> Descending), name = Some("personal-details-validation-ttl-index"), options = BSONDocument("expireAfterSeconds" -> ttlSeconds))
+  )
 
   def create(personalDetailsValidation: PersonalDetailsValidation)
             (implicit ec: ExecutionContext): Future[Done] =
