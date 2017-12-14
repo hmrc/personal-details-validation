@@ -29,8 +29,7 @@ import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class MatchingConnector @Inject()(private val httpClient: HttpClient,
-                                  private val connectorConfig: MatchingConnectorConfig) {
+class MatchingConnector @Inject()(httpClient: HttpClient, connectorConfig: MatchingConnectorConfig) {
 
   import connectorConfig.authenticatorBaseUrl
 

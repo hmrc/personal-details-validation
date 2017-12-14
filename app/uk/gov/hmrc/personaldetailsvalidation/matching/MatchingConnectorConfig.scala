@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.matching
 
-import javax.inject.Inject
+import javax.inject.{Inject, Singleton}
 
 import play.api.Configuration
 import uk.gov.hmrc.config.{BaseConfig, Host}
 
+@Singleton
 private class MatchingConnectorConfig @Inject()(protected val configuration: Configuration)
   extends BaseConfig {
 

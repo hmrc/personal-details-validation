@@ -16,13 +16,14 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import java.time.LocalDateTime
+import java.time.{Duration, LocalDateTime}
 import java.time.ZoneOffset.UTC
 
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
+import play.api.Configuration
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Descending
@@ -38,7 +39,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class PersonalDetailsValidationMongoRepositorySpec
   extends UnitSpec
     with MongoSpecSupport
-  with MockFactory
+    with MockFactory
     with ScalaFutures {
 
   "create" should {
@@ -75,21 +76,24 @@ class PersonalDetailsValidationMongoRepositorySpec
       val expectedIndex = Index(Seq("createdAt" -> Descending), name = Some("personal-details-validation-ttl-index"), options = BSONDocument("expireAfterSeconds" -> ttlSeconds))
       verifyIndex(expectedIndex)
     }
-
   }
 
   private trait Setup {
     implicit val uuidProvider: UUIDProvider = new UUIDProvider()
-    implicit val ttlSeconds = 100
+    implicit val ttlSeconds: Long = 100
     await(mongo().drop())
 
-    val mockCurrentTimeProvider = stub[CurrentTimeProvider]
+    val currentTimeProvider = stub[CurrentTimeProvider]
+
+    val config = new PersonalDetailsValidationMongoRepositoryConfig(mock[Configuration]) {
+      override lazy val collectionTtl: Duration = Duration.ofSeconds(ttlSeconds)
+    }
 
     val currentTime: LocalDateTime = LocalDateTime.now()
 
-    mockCurrentTimeProvider.apply _ when() returns currentTime
+    currentTimeProvider.apply _ when() returns currentTime
 
-    val repository = new PersonalDetailsValidationMongoRepository(ttlSeconds: Int, mockCurrentTimeProvider)(new ReactiveMongoComponent {
+    val repository = new PersonalDetailsValidationMongoRepository(config, currentTimeProvider)(new ReactiveMongoComponent {
       override val mongoConnector = mongoConnectorForTest
     })
 

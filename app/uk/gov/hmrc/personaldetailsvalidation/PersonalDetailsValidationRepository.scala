@@ -48,7 +48,7 @@ private trait PersonalDetailsValidationRepository {
 }
 
 @Singleton
-private class PersonalDetailsValidationMongoRepository @Inject()(ttlSeconds: Int, currentTimeProvider: CurrentTimeProvider)(private val mongoComponent: ReactiveMongoComponent)
+private class PersonalDetailsValidationMongoRepository @Inject()(config: PersonalDetailsValidationMongoRepositoryConfig, currentTimeProvider: CurrentTimeProvider)(private val mongoComponent: ReactiveMongoComponent)
   extends ReactiveRepository[PersonalDetailsValidation, ValidationId](
     collectionName = "personal-details-validation",
     mongo = mongoComponent.mongoConnector.db,
@@ -58,7 +58,7 @@ private class PersonalDetailsValidationMongoRepository @Inject()(ttlSeconds: Int
 
 
   override def indexes: Seq[Index] = Seq(
-    Index(Seq("createdAt" -> Descending), name = Some("personal-details-validation-ttl-index"), options = BSONDocument("expireAfterSeconds" -> ttlSeconds))
+    Index(Seq("createdAt" -> Descending), name = Some("personal-details-validation-ttl-index"), options = BSONDocument("expireAfterSeconds" -> config.collectionTtl.getSeconds))
   )
 
   def create(personalDetailsValidation: PersonalDetailsValidation)
