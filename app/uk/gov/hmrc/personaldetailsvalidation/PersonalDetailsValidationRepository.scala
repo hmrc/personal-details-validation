@@ -23,7 +23,6 @@ import akka.Done
 import com.google.inject.ImplementedBy
 import play.api.libs.json.{JsNumber, JsObject}
 import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Descending
 import reactivemongo.bson.BSONDocument
@@ -48,7 +47,7 @@ private trait PersonalDetailsValidationRepository {
 }
 
 @Singleton
-private class PersonalDetailsValidationMongoRepository @Inject()(config: PersonalDetailsValidationMongoRepositoryConfig, currentTimeProvider: CurrentTimeProvider)(private val mongoComponent: ReactiveMongoComponent)
+private class PersonalDetailsValidationMongoRepository @Inject()(config: PersonalDetailsValidationMongoRepositoryConfig, mongoComponent: ReactiveMongoComponent)(implicit currentTimeProvider: CurrentTimeProvider)
   extends ReactiveRepository[PersonalDetailsValidation, ValidationId](
     collectionName = "personal-details-validation",
     mongo = mongoComponent.mongoConnector.db,
@@ -66,16 +65,16 @@ private class PersonalDetailsValidationMongoRepository @Inject()(config: Persona
 
     import ImplicitBSONHandlers._
 
-    val writeResult = mongoEntity(personalDetailsValidationFormats).writes(personalDetailsValidation) match {
-      case d@JsObject(_) => collection.insert(d ++ JsObject(Seq("createdAt" -> JsNumber(currentTimeProvider().atZone(UTC).toInstant.toEpochMilli))))
-      case _ =>
-        Future.failed[WriteResult](new Exception("cannot write object"))
-    }
+    val document = domainFormatImplicit.writes(personalDetailsValidation).as[JsObject].withCreatedTimeStamp()
 
-    writeResult.map(_ => Done)
+    collection.insert(document).map(_ => Done)
   }
 
   def get(personalDetailsValidationId: ValidationId)
          (implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]] =
     findById(personalDetailsValidationId)
+
+  private implicit class JsonObjectOps(target: JsObject) {
+    def withCreatedTimeStamp(fieldName: String = "createdAt")(implicit currentTimeProvider: CurrentTimeProvider) = target + (fieldName -> JsNumber(currentTimeProvider().atZone(UTC).toInstant.toEpochMilli))
+  }
 }

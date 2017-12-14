@@ -83,7 +83,7 @@ class PersonalDetailsValidationMongoRepositorySpec
     implicit val ttlSeconds: Long = 100
     await(mongo().drop())
 
-    val currentTimeProvider = stub[CurrentTimeProvider]
+    implicit val currentTimeProvider = stub[CurrentTimeProvider]
 
     val config = new PersonalDetailsValidationMongoRepositoryConfig(mock[Configuration]) {
       override lazy val collectionTtl: Duration = Duration.ofSeconds(ttlSeconds)
@@ -93,7 +93,7 @@ class PersonalDetailsValidationMongoRepositorySpec
 
     currentTimeProvider.apply _ when() returns currentTime
 
-    val repository = new PersonalDetailsValidationMongoRepository(config, currentTimeProvider)(new ReactiveMongoComponent {
+    val repository = new PersonalDetailsValidationMongoRepository(config, new ReactiveMongoComponent {
       override val mongoConnector = mongoConnectorForTest
     })
 
