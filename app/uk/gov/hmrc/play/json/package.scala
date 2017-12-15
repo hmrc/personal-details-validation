@@ -14,18 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.play.json
+package uk.gov.hmrc.play
 
-import play.api.libs.json._
+package object json {
 
-private [json] trait ReadOps {
-  implicit class JsPathOps(path: JsPath) extends JsPath {
-    def readOrError[T](error: => String)(implicit r: Reads[T]): Reads[T] = new Reads[T] {
-      override def reads(json: JsValue): JsResult[T] = path.readNullable.reads(json) match {
-        case JsSuccess(Some(value), _) => JsSuccess(value, path)
-        case JsSuccess(None, _) => JsError(error)
-        case err@JsError(_) => err
-      }
-    }
-  }
+  object ops extends JsonObjectOps with ReadOps
+
 }

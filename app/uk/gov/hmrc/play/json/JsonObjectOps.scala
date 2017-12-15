@@ -16,16 +16,15 @@
 
 package uk.gov.hmrc.play.json
 
-import play.api.libs.json._
+import java.time.ZoneOffset.UTC
 
-private [json] trait ReadOps {
-  implicit class JsPathOps(path: JsPath) extends JsPath {
-    def readOrError[T](error: => String)(implicit r: Reads[T]): Reads[T] = new Reads[T] {
-      override def reads(json: JsValue): JsResult[T] = path.readNullable.reads(json) match {
-        case JsSuccess(Some(value), _) => JsSuccess(value, path)
-        case JsSuccess(None, _) => JsError(error)
-        case err@JsError(_) => err
-      }
-    }
+import play.api.libs.json.{JsNumber, JsObject}
+import uk.gov.hmrc.datetime.CurrentTimeProvider
+
+private[json] trait JsonObjectOps {
+
+  implicit class JsonObjectOps(target: JsObject) {
+    def withCreatedTimeStamp(fieldName: String = "createdAt")(implicit currentTimeProvider: CurrentTimeProvider) = target + (fieldName -> JsNumber(currentTimeProvider().atZone(UTC).toInstant.toEpochMilli))
   }
+
 }

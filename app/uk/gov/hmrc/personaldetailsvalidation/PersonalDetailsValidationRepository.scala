@@ -16,23 +16,23 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import java.time.ZoneOffset.UTC
 import javax.inject.{Inject, Singleton}
 
 import akka.Done
 import com.google.inject.ImplementedBy
-import play.api.libs.json.{JsNumber, JsObject}
+import play.api.libs.json.JsObject
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Descending
 import reactivemongo.bson.BSONDocument
-import reactivemongo.play.json.ImplicitBSONHandlers
+import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.datetime.CurrentTimeProvider
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.mongoEntity
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat._
 import uk.gov.hmrc.personaldetailsvalidation.formats.TinyTypesFormats._
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, ValidationId}
+import uk.gov.hmrc.play.json.ops._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -63,8 +63,6 @@ private class PersonalDetailsValidationMongoRepository @Inject()(config: Persona
   def create(personalDetailsValidation: PersonalDetailsValidation)
             (implicit ec: ExecutionContext): Future[Done] = {
 
-    import ImplicitBSONHandlers._
-
     val document = domainFormatImplicit.writes(personalDetailsValidation).as[JsObject].withCreatedTimeStamp()
 
     collection.insert(document).map(_ => Done)
@@ -74,7 +72,4 @@ private class PersonalDetailsValidationMongoRepository @Inject()(config: Persona
          (implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]] =
     findById(personalDetailsValidationId)
 
-  private implicit class JsonObjectOps(target: JsObject) {
-    def withCreatedTimeStamp(fieldName: String = "createdAt")(implicit currentTimeProvider: CurrentTimeProvider) = target + (fieldName -> JsNumber(currentTimeProvider().atZone(UTC).toInstant.toEpochMilli))
-  }
 }
