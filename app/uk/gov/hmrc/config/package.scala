@@ -14,18 +14,11 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation
+package uk.gov.hmrc
 
-import java.time.Duration
-import javax.inject.{Inject, Singleton}
+package object config {
 
-import play.api.Configuration
-import uk.gov.hmrc.config.implicits._
-import uk.gov.hmrc.config.ops._
-
-@Singleton
-private class PersonalDetailsValidationMongoRepositoryConfig @Inject()(implicit configuration: Configuration)  {
-
-  lazy val collectionTtl: Duration = Duration.from(configuration.loadMandatory[Duration]("mongodb.collections.personal-details-validation.ttl"))
+  object ops extends ConfigurationOps
+  object implicits extends ImplicitConversions
 
 }

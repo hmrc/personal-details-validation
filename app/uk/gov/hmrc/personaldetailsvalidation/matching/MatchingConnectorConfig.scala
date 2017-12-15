@@ -19,11 +19,12 @@ package uk.gov.hmrc.personaldetailsvalidation.matching
 import javax.inject.{Inject, Singleton}
 
 import play.api.Configuration
-import uk.gov.hmrc.config.{BaseConfig, Host}
+import uk.gov.hmrc.config.implicits._
+import uk.gov.hmrc.config.ops._
+import uk.gov.hmrc.http.Host
 
 @Singleton
-private class MatchingConnectorConfig @Inject()(protected val configuration: Configuration)
-  extends BaseConfig {
+private class MatchingConnectorConfig @Inject()(implicit configuration: Configuration) {
 
   lazy val authenticatorBaseUrl: String =
     configuration.loadMandatory[Host]("authenticator") + "/authenticator"

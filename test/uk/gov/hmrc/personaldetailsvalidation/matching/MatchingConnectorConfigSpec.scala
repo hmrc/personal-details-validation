@@ -63,6 +63,6 @@ class MatchingConnectorConfigSpec
   }
 
   private trait Setup extends ConfigSetup[MatchingConnectorConfig] {
-    val newConfigObject: Configuration => MatchingConnectorConfig = new MatchingConnectorConfig(_)
+    val newConfigObject: Configuration => MatchingConnectorConfig = new MatchingConnectorConfig()(_)
   }
 }
