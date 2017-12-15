@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import java.time.{Duration, LocalDateTime}
 import java.time.ZoneOffset.UTC
+import java.time.{Duration, LocalDateTime}
 
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
+import mongo.MongoIndexVerifier
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
 import play.api.Configuration
@@ -39,6 +40,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class PersonalDetailsValidationMongoRepositorySpec
   extends UnitSpec
     with MongoSpecSupport
+    with MongoIndexVerifier
     with MockFactory
     with ScalaFutures {
 
@@ -74,7 +76,7 @@ class PersonalDetailsValidationMongoRepositorySpec
   "repository" should {
     "create ttl on collection" in new Setup {
       val expectedIndex = Index(Seq("createdAt" -> Descending), name = Some("personal-details-validation-ttl-index"), options = BSONDocument("expireAfterSeconds" -> ttlSeconds))
-      verifyIndex(expectedIndex)
+      verify(expectedIndex).on(repository.collection.name)
     }
   }
 
@@ -96,18 +98,5 @@ class PersonalDetailsValidationMongoRepositorySpec
     val repository = new PersonalDetailsValidationMongoRepository(config, new ReactiveMongoComponent {
       override val mongoConnector = mongoConnectorForTest
     })
-
-    def verifyIndex(expectedIndex: Index) = {
-      val expectedIndexName = expectedIndex.eventualName
-      val collectionIndexes = await(mongo().indexesManager.onCollection(repository.collection.name).list())
-
-      val index = collectionIndexes
-        .find(_.name.contains(expectedIndexName))
-        .getOrElse(throw new RuntimeException(s"Index with name $expectedIndexName not found in collection ${repository.collection.name}"))
-
-      //version of index is managed by mongodb. We don't want to assert on it.
-      index shouldBe expectedIndex.copy(version = index.version)
-    }
   }
-
 }
