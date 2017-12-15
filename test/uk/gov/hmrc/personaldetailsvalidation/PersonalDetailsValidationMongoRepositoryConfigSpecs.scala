@@ -46,8 +46,6 @@ class PersonalDetailsValidationMongoRepositoryConfigSpecs extends UnitSpec {
   }
 
   private trait Setup extends ConfigSetup[PersonalDetailsValidationMongoRepositoryConfig] {
-    val newConfigObject: Configuration => PersonalDetailsValidationMongoRepositoryConfig = new PersonalDetailsValidationMongoRepositoryConfig()(_)
+    val newConfigObject: Configuration => PersonalDetailsValidationMongoRepositoryConfig = new PersonalDetailsValidationMongoRepositoryConfig(_)
   }
-
-
 }
