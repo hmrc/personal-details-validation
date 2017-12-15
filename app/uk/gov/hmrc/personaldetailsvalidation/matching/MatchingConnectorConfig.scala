@@ -24,7 +24,7 @@ import uk.gov.hmrc.config.ops._
 import uk.gov.hmrc.http.Host
 
 @Singleton
-private class MatchingConnectorConfig @Inject()(implicit configuration: Configuration) {
+private class MatchingConnectorConfig @Inject()(configuration: Configuration) {
 
   lazy val authenticatorBaseUrl: String =
     configuration.loadMandatory[Host]("authenticator") + "/authenticator"

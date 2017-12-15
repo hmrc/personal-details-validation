@@ -23,16 +23,15 @@ private[config] trait ConfigurationOps {
   implicit class ConfigurationOps(configuration: Configuration) {
 
     def loadMandatory[A](key: String)
-                        (implicit find: String => Option[A]): A =
-      find(key).getOrElse(throw new RuntimeException(s"Missing key: $key"))
+                        (implicit find: String => Configuration => Option[A]): A =
+      find(key)(configuration).getOrElse(throw new RuntimeException(s"Missing key: $key"))
 
     def loadOptional[A](key: String)
-                       (implicit find: String => Option[A]): Option[A] =
-      find(key)
+                       (implicit find: String => Configuration => Option[A]): Option[A] =
+      find(key)(configuration)
 
     def load[A](key: String, default: => A)
-               (implicit find: String => Option[A]): A =
-      find(key).getOrElse(default)
+               (implicit find: String => Configuration => Option[A]): A =
+      find(key)(configuration).getOrElse(default)
   }
-
 }

@@ -87,7 +87,7 @@ class PersonalDetailsValidationMongoRepositorySpec
 
     implicit val currentTimeProvider = stub[CurrentTimeProvider]
 
-    val config = new PersonalDetailsValidationMongoRepositoryConfig()(mock[Configuration]) {
+    val config = new PersonalDetailsValidationMongoRepositoryConfig(mock[Configuration]) {
       override lazy val collectionTtl: Duration = Duration.ofSeconds(ttlSeconds)
     }
 

@@ -23,10 +23,10 @@ import uk.gov.hmrc.http.Host
 
 private[config] trait ImplicitConversions {
   import ops._
-  implicit def stringValueFinder(key: String)(implicit configuration: Configuration): Option[String] = configuration.getString(key)
-  implicit def intValueFinder(key: String)(implicit configuration: Configuration): Option[Int] = configuration.getInt(key)
+  implicit def stringValueFinder(key: String)(configuration: Configuration): Option[String] = configuration.getString(key)
+  implicit def intValueFinder(key: String)(configuration: Configuration): Option[Int] = configuration.getInt(key)
 
-  implicit def hostFinder(key: String)(implicit configuration: Configuration): Option[Host] = for {
+  implicit def hostFinder(key: String)(configuration: Configuration): Option[Host] = for {
     servicesKey <- Some("microservice.services")
     defaultProtocol <- Some(configuration.load(s"$servicesKey.protocol", "http"))
     host <- configuration.loadOptional[String](s"$servicesKey.$key.host")
@@ -36,7 +36,7 @@ private[config] trait ImplicitConversions {
     Host(s"$protocol://$host:$port")
   }
 
-  implicit def durationFinder(key: String)(implicit configuration: Configuration): Option[Duration] = {
+  implicit def durationFinder(key: String)(configuration: Configuration): Option[Duration] = {
     val durationValue = configuration.loadMandatory[String](key)
     Some(Duration.parse(durationValue))
   }

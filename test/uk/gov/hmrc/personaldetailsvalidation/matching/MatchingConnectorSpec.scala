@@ -81,7 +81,7 @@ class MatchingConnectorSpec
       "nino" -> personalDetails.nino
     )
 
-    private val connectorConfig = new MatchingConnectorConfig()(mock[Configuration]) {
+    private val connectorConfig = new MatchingConnectorConfig(mock[Configuration]) {
       override lazy val authenticatorBaseUrl = "http://host/authenticator"
     }
     val connector = new MatchingConnector(httpClient, connectorConfig)
