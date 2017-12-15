@@ -14,18 +14,12 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation.matching
+package uk.gov.hmrc.datetime
 
-import javax.inject.{Inject, Singleton}
-
-import play.api.Configuration
-import uk.gov.hmrc.config.implicits._
-import uk.gov.hmrc.config.ops._
-import uk.gov.hmrc.http.Host
+import java.time.LocalDateTime
+import javax.inject.Singleton
 
 @Singleton
-private class MatchingConnectorConfig @Inject()(configuration: Configuration) {
-
-  lazy val authenticatorBaseUrl: String =
-    configuration.loadMandatory[Host]("authenticator") + "/authenticator"
+class CurrentTimeProvider extends (() => LocalDateTime) {
+  def apply(): LocalDateTime = LocalDateTime.now()
 }

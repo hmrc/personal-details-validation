@@ -28,7 +28,7 @@ import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, ValidationI
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.json.JsonValidation
-import uk.gov.hmrc.play.json.ReadOps._
+import uk.gov.hmrc.play.json.ops._
 
 @Singleton
 class PersonalDetailsValidationResourceController @Inject()(private val personalDetailsValidationRepository: PersonalDetailsValidationRepository,

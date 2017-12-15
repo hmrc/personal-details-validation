@@ -20,12 +20,19 @@ import javax.inject.{Inject, Singleton}
 
 import akka.Done
 import com.google.inject.ImplementedBy
+import play.api.libs.json.JsObject
 import play.modules.reactivemongo.ReactiveMongoComponent
+import reactivemongo.api.indexes.Index
+import reactivemongo.api.indexes.IndexType.Descending
+import reactivemongo.bson.BSONDocument
+import reactivemongo.play.json.ImplicitBSONHandlers._
+import uk.gov.hmrc.datetime.CurrentTimeProvider
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.mongoEntity
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat._
 import uk.gov.hmrc.personaldetailsvalidation.formats.TinyTypesFormats._
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, ValidationId}
+import uk.gov.hmrc.play.json.ops._
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -40,7 +47,7 @@ private trait PersonalDetailsValidationRepository {
 }
 
 @Singleton
-private class PersonalDetailsValidationMongoRepository @Inject()(private val mongoComponent: ReactiveMongoComponent)
+private class PersonalDetailsValidationMongoRepository @Inject()(config: PersonalDetailsValidationMongoRepositoryConfig, mongoComponent: ReactiveMongoComponent)(implicit currentTimeProvider: CurrentTimeProvider)
   extends ReactiveRepository[PersonalDetailsValidation, ValidationId](
     collectionName = "personal-details-validation",
     mongo = mongoComponent.mongoConnector.db,
@@ -48,11 +55,21 @@ private class PersonalDetailsValidationMongoRepository @Inject()(private val mon
     idFormat = personalDetailsValidationIdFormats
   ) with PersonalDetailsValidationRepository {
 
+
+  override def indexes: Seq[Index] = Seq(
+    Index(Seq("createdAt" -> Descending), name = Some("personal-details-validation-ttl-index"), options = BSONDocument("expireAfterSeconds" -> config.collectionTtl.getSeconds))
+  )
+
   def create(personalDetailsValidation: PersonalDetailsValidation)
-            (implicit ec: ExecutionContext): Future[Done] =
-    insert(personalDetailsValidation).map(_ => Done)
+            (implicit ec: ExecutionContext): Future[Done] = {
+
+    val document = domainFormatImplicit.writes(personalDetailsValidation).as[JsObject].withCreatedTimeStamp()
+
+    collection.insert(document).map(_ => Done)
+  }
 
   def get(personalDetailsValidationId: ValidationId)
          (implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]] =
     findById(personalDetailsValidationId)
+
 }

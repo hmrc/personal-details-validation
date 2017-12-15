@@ -14,18 +14,17 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation.matching
+package uk.gov.hmrc.play.json
 
-import javax.inject.{Inject, Singleton}
+import java.time.ZoneOffset.UTC
 
-import play.api.Configuration
-import uk.gov.hmrc.config.implicits._
-import uk.gov.hmrc.config.ops._
-import uk.gov.hmrc.http.Host
+import play.api.libs.json.{JsNumber, JsObject}
+import uk.gov.hmrc.datetime.CurrentTimeProvider
 
-@Singleton
-private class MatchingConnectorConfig @Inject()(configuration: Configuration) {
+private[json] trait JsonObjectOps {
 
-  lazy val authenticatorBaseUrl: String =
-    configuration.loadMandatory[Host]("authenticator") + "/authenticator"
+  implicit class JsonObjectOps(target: JsObject) {
+    def withCreatedTimeStamp(fieldName: String = "createdAt")(implicit currentTimeProvider: CurrentTimeProvider) = target + (fieldName -> JsNumber(currentTimeProvider().atZone(UTC).toInstant.toEpochMilli))
+  }
+
 }

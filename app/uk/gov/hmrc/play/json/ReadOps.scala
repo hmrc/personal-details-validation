@@ -18,7 +18,7 @@ package uk.gov.hmrc.play.json
 
 import play.api.libs.json._
 
-object ReadOps {
+private [json] trait ReadOps {
   implicit class JsPathOps(path: JsPath) extends JsPath {
     def readOrError[T](error: => String)(implicit r: Reads[T]): Reads[T] = new Reads[T] {
       override def reads(json: JsValue): JsResult[T] = path.readNullable.reads(json) match {
