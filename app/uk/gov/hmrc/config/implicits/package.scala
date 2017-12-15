@@ -21,8 +21,10 @@ import java.time.Duration
 import play.api.Configuration
 import uk.gov.hmrc.http.Host
 
-private[config] trait ImplicitConversions {
+package object implicits {
+
   import ops._
+
   implicit def stringValueFinder(key: String)(configuration: Configuration): Option[String] = configuration.getString(key)
   implicit def intValueFinder(key: String)(configuration: Configuration): Option[Int] = configuration.getInt(key)
 
@@ -40,4 +42,6 @@ private[config] trait ImplicitConversions {
     val durationValue = configuration.loadMandatory[String](key)
     Some(Duration.parse(durationValue))
   }
+
+
 }

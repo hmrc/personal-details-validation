@@ -18,7 +18,7 @@ package uk.gov.hmrc.config
 
 import play.api.Configuration
 
-private[config] trait ConfigurationOps {
+package object ops {
 
   implicit class ConfigurationOps(configuration: Configuration) {
 
@@ -34,4 +34,6 @@ private[config] trait ConfigurationOps {
                (implicit find: String => Configuration => Option[A]): A =
       find(key)(configuration).getOrElse(default)
   }
+
+
 }
