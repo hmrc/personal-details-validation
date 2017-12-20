@@ -25,9 +25,9 @@ import generators.ObjectGenerators._
 import org.scalacheck.Arbitrary
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.prop.PropertyChecks
+import org.scalatest.prop.{PropertyChecks, TableDrivenPropertyChecks}
 import play.api.libs.json.Json.toJson
-import play.api.libs.json.{JsNull, JsUndefined, Json, Writes}
+import play.api.libs.json._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.http.HeaderCarrier
@@ -44,7 +44,8 @@ class PersonalDetailsValidationResourceControllerSpec
     with PropertyChecks
     with ScalaFutures
     with MockFactory
-    with MockArgumentMatchers {
+    with MockArgumentMatchers
+    with TableDrivenPropertyChecks {
 
   "create" should {
 
@@ -97,9 +98,30 @@ class PersonalDetailsValidationResourceControllerSpec
       (jsonBodyOf(response) \ "errors").as[List[String]] should contain only(
         "firstName is missing",
         "lastName is missing",
-        "dateOfBirth is missing",
-        "nino is missing"
+        "dateOfBirth is missing/invalid",
+        "nino is missing/invalid"
       )
+    }
+
+    val invalidDataScenarios = Table(
+      ("scenario", "personalDetails", "errorMessages"),
+      ("firstName is empty", "firstName" -> JsString(""), List("firstName is blank/empty")),
+      ("firstName is blank", "firstName" -> JsString("   "), List("firstName is blank/empty")),
+      ("lastName is empty", "lastName" -> JsString(""), List("lastName is blank/empty")),
+      ("lastName is blank", "lastName" -> JsString("  "), List("lastName is blank/empty")),
+      ("dateOfBirth is invalid", "dateOfBirth" -> JsString("31/11/2018"), List("dateOfBirth is missing/invalid. Reasons: error.expected.date.isoformat")),
+      ("nino is invalid", "nino" -> JsString(" 1234 "), List("nino is missing/invalid. Reasons: requirement failed:  1234  is not a valid nino."))
+    )
+
+    forAll(invalidDataScenarios) { (scenario, jsonModification, errorMessages) =>
+      s"return errors if $scenario" in new Setup {
+        val personalDetailsJson = Json.toJson(randomPersonalDetails).as[JsObject] + jsonModification
+        val response = controller.create(request.withBody(personalDetailsJson)).futureValue
+
+        status(response) shouldBe BAD_REQUEST
+
+        (jsonBodyOf(response) \ "errors").as[List[String]] should contain only (errorMessages: _*)
+      }
     }
   }
 
@@ -201,4 +223,5 @@ class PersonalDetailsValidationResourceControllerSpec
     val mockValidator = mock[PersonalDetailsValidator]
     val controller = new PersonalDetailsValidationResourceController(mockRepository, mockValidator)
   }
+
 }

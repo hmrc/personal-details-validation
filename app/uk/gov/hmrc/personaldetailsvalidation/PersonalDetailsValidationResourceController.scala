@@ -19,6 +19,7 @@ package uk.gov.hmrc.personaldetailsvalidation
 import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 
+import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Json.toJson
 import play.api.libs.json._
@@ -39,10 +40,10 @@ class PersonalDetailsValidationResourceController @Inject()(private val personal
   import formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
 
   private implicit val personalDetailsReads: Reads[PersonalDetails] = (
-    (__ \ "firstName").readOrError[String]("firstName is missing") and
-      (__ \ "lastName").readOrError[String]("lastName is missing") and
-      (__ \ "dateOfBirth").readOrError[LocalDate]("dateOfBirth is missing") and
-      (__ \ "nino").readOrError[Nino]("nino is missing")
+    (__ \ "firstName").readOrError[String]("firstName is missing").filter(ValidationError("firstName is blank/empty"))(_.trim.nonEmpty) and
+      (__ \ "lastName").readOrError[String]("lastName is missing").filter(ValidationError("lastName is blank/empty"))(_.trim.nonEmpty) and
+      (__ \ "dateOfBirth").readOrError[LocalDate]("dateOfBirth is missing/invalid") and
+      (__ \ "nino").readOrError[Nino]("nino is missing/invalid")
     ) (PersonalDetails.apply _)
 
   def create = Action.async(parse.json) { implicit request =>
