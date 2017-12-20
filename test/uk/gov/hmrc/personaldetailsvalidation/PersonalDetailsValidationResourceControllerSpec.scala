@@ -30,6 +30,7 @@ import play.api.libs.json.Json.toJson
 import play.api.libs.json._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
@@ -59,6 +60,31 @@ class PersonalDetailsValidationResourceControllerSpec
           .returns(Future.successful(validationId))
 
         val response = controller.create(request.withBody(toJson(personalDetails)))
+
+        status(response) shouldBe CREATED
+      }
+    }
+
+    val ninoTransformationScenarios = Table(
+      ("scenario", "originalNinoValue", "finalNinoValue"),
+      ("convert nino value to UPPER CASE", "aa000003d", "AA000003D"),
+      ("remove intermediate spaces in nino value", "aa 00 00 03 d", "AA000003D")
+    )
+
+    forAll(ninoTransformationScenarios) { (scenario, originalNinoValue, finalNinoValue) =>
+      s"$scenario" in new Setup {
+
+        val requestPersonalDetails = randomPersonalDetails
+
+        val json = Json.toJson(requestPersonalDetails).as[JsObject] + ("nino" -> JsString(originalNinoValue))
+
+        val personalDetailsWithUpperCaseNino = requestPersonalDetails.copy(nino = Nino(finalNinoValue))
+
+        (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
+          .expects(personalDetailsWithUpperCaseNino, instanceOf[HeaderCarrier], instanceOf[MdcLoggingExecutionContext])
+          .returns(Future.successful(ValidationId()))
+
+        val response = controller.create(request.withBody(json))
 
         status(response) shouldBe CREATED
       }
@@ -99,23 +125,24 @@ class PersonalDetailsValidationResourceControllerSpec
         "firstName is missing",
         "lastName is missing",
         "dateOfBirth is missing/invalid",
-        "nino is missing/invalid"
+        "nino is missing"
       )
     }
 
     val invalidDataScenarios = Table(
-      ("scenario", "personalDetails", "errorMessages"),
-      ("firstName is empty", "firstName" -> JsString(""), List("firstName is blank/empty")),
-      ("firstName is blank", "firstName" -> JsString("   "), List("firstName is blank/empty")),
-      ("lastName is empty", "lastName" -> JsString(""), List("lastName is blank/empty")),
-      ("lastName is blank", "lastName" -> JsString("  "), List("lastName is blank/empty")),
-      ("dateOfBirth is invalid", "dateOfBirth" -> JsString("31/11/2018"), List("dateOfBirth is missing/invalid. Reasons: error.expected.date.isoformat")),
-      ("nino is invalid", "nino" -> JsString(" 1234 "), List("nino is missing/invalid. Reasons: requirement failed:  1234  is not a valid nino."))
+      ("scenario", "requestPersonalDetails", "errorMessages"),
+      ("firstName is empty", Json.obj("firstName" -> JsString("")), List("firstName is blank/empty")),
+      ("firstName is blank", Json.obj("firstName" -> JsString("   ")), List("firstName is blank/empty")),
+      ("lastName is empty", Json.obj("lastName" -> JsString("")), List("lastName is blank/empty")),
+      ("lastName is blank", Json.obj("lastName" -> JsString("  ")), List("lastName is blank/empty")),
+      ("dateOfBirth is invalid", Json.obj("dateOfBirth" -> JsString("31/11/2018")), List("dateOfBirth is missing/invalid. Reasons: error.expected.date.isoformat")),
+      ("nino is invalid", Json.obj("nino" -> JsString(" 1234 ")), List("' 1234 ' is an invalid nino format")),
+      ("multiple data invalid", Json.obj("nino" -> JsString(" 1234 "), "firstName" -> JsString("")), List("firstName is blank/empty", "' 1234 ' is an invalid nino format"))
     )
 
     forAll(invalidDataScenarios) { (scenario, jsonModification, errorMessages) =>
       s"return errors if $scenario" in new Setup {
-        val personalDetailsJson = Json.toJson(randomPersonalDetails).as[JsObject] + jsonModification
+        val personalDetailsJson = Json.toJson(randomPersonalDetails).as[JsObject] ++ jsonModification
         val response = controller.create(request.withBody(personalDetailsJson)).futureValue
 
         status(response) shouldBe BAD_REQUEST
