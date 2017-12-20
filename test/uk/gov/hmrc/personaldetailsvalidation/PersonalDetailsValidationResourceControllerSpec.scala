@@ -135,7 +135,8 @@ class PersonalDetailsValidationResourceControllerSpec
       ("firstName is blank", Json.obj("firstName" -> JsString("   ")), List("firstName is blank/empty")),
       ("lastName is empty", Json.obj("lastName" -> JsString("")), List("lastName is blank/empty")),
       ("lastName is blank", Json.obj("lastName" -> JsString("  ")), List("lastName is blank/empty")),
-      ("dateOfBirth is invalid", Json.obj("dateOfBirth" -> JsString("31/11/2018")), List("dateOfBirth is missing/invalid. Reasons: error.expected.date.isoformat")),
+      ("dateOfBirth is in invalid iso format", Json.obj("dateOfBirth" -> JsString("31/12/2018")), List("dateOfBirth is missing/invalid. Reasons: error.expected.date.isoformat")),
+      ("dateOfBirth is an invalid date", Json.obj("dateOfBirth" -> JsString("2018-11-31")), List("dateOfBirth is missing/invalid. Reasons: error.expected.date.isoformat")),
       ("nino is invalid", Json.obj("nino" -> JsString(" 1234 ")), List("' 1234 ' is an invalid nino format")),
       ("multiple data invalid", Json.obj("nino" -> JsString(" 1234 "), "firstName" -> JsString("")), List("firstName is blank/empty", "' 1234 ' is an invalid nino format"))
     )
