@@ -19,6 +19,7 @@ package generators
 import java.time.{Instant, LocalDate, ZoneId, ZonedDateTime}
 
 import org.scalacheck.{Arbitrary, Gen}
+import uk.gov.hmrc.model.NonEmptyString
 
 import scala.language.implicitConversions
 
@@ -46,10 +47,10 @@ trait Generators {
     chars <- Gen.listOfN(length, Gen.alphaNumChar)
   } yield chars.mkString
 
-  val nonEmptyStrings: Gen[String] = for {
+  val nonEmptyStrings: Gen[NonEmptyString] = for {
     length <- Gen.chooseNum(1, 1000)
     chars <- Gen.listOfN(length, Gen.alphaNumChar)
-  } yield chars.mkString
+  } yield NonEmptyString(chars.mkString)
 
   implicit val instants: Gen[Instant] = Gen.choose(minTimestamp, maxTimestamp).map(Instant.ofEpochMilli)
 

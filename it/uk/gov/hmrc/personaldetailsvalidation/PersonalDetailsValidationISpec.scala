@@ -66,7 +66,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec with Wiremocked
       (createResponse.json \ "errors").as[List[String]] must contain only(
         "firstName is missing",
         "lastName is missing",
-        "dateOfBirth is missing",
+        "dateOfBirth is missing/invalid",
         "nino is missing"
       )
     }

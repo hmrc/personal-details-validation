@@ -24,7 +24,7 @@ private [json] trait ReadOps {
       override def reads(json: JsValue): JsResult[T] = path.readNullable.reads(json) match {
         case JsSuccess(Some(value), _) => JsSuccess(value, path)
         case JsSuccess(None, _) => JsError(error)
-        case err@JsError(_) => err
+        case JsError(errors) => JsError(s"$error. Reasons: ${errors.flatMap(_._2.map(_.message)).mkString(",")}")
       }
     }
   }
