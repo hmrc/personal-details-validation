@@ -31,7 +31,7 @@ import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.json.JsonValidation
 import uk.gov.hmrc.play.json.ops._
 
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 
 @Singleton
 class PersonalDetailsValidationResourceController @Inject()(private val personalDetailsValidationRepository: PersonalDetailsValidationRepository,
@@ -41,20 +41,11 @@ class PersonalDetailsValidationResourceController @Inject()(private val personal
 
   import formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
 
-  private val ninoReads = Reads[Nino] { json =>
-    (json \ "nino").asOpt[String].map { ninoValue =>
-      Try(Nino(ninoValue.toUpperCase.replaceAll("""\s""", ""))) match {
-        case Success(nino) => JsSuccess(nino)
-        case Failure(_) => JsError(s"'$ninoValue' is an invalid nino format")
-      }
-    }.getOrElse(JsError("nino is missing"))
-  }
-
   private implicit val personalDetailsReads: Reads[PersonalDetails] = (
     (__ \ "firstName").readOrError[String]("firstName is missing").filter(ValidationError("firstName is blank/empty"))(_.trim.nonEmpty) and
       (__ \ "lastName").readOrError[String]("lastName is missing").filter(ValidationError("lastName is blank/empty"))(_.trim.nonEmpty) and
       (__ \ "dateOfBirth").readOrError[LocalDate]("dateOfBirth is missing/invalid") and
-      ninoReads
+      (__ \ "nino").readOrError[String]("nino is missing").map(_.toUpperCase.replaceAll("""\s""", "")).filter(ValidationError("invalid nino format"))(str => Try(Nino(str)).isSuccess).map(Nino)
     ) (PersonalDetails.apply _)
 
   def create = Action.async(parse.json) { implicit request =>
