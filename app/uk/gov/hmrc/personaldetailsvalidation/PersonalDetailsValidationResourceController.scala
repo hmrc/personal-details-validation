@@ -34,19 +34,12 @@ import uk.gov.hmrc.play.json.ops._
 import scala.util.Try
 
 @Singleton
-class PersonalDetailsValidationResourceController @Inject()(private val personalDetailsValidationRepository: PersonalDetailsValidationRepository,
-                                                            private val personalDetailsValidator: PersonalDetailsValidator)
+class PersonalDetailsValidationResourceController @Inject()(personalDetailsValidationRepository: PersonalDetailsValidationRepository,
+                                                            personalDetailsValidator: PersonalDetailsValidator)
   extends BaseController
     with JsonValidation {
-
   import formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
-
-  private implicit val personalDetailsReads: Reads[PersonalDetails] = (
-    (__ \ "firstName").readOrError[String]("firstName is missing").filter(ValidationError("firstName is blank/empty"))(_.trim.nonEmpty) and
-      (__ \ "lastName").readOrError[String]("lastName is missing").filter(ValidationError("lastName is blank/empty"))(_.trim.nonEmpty) and
-      (__ \ "dateOfBirth").readOrError[LocalDate]("dateOfBirth is missing/invalid") and
-      (__ \ "nino").readOrError[String]("nino is missing").map(_.toUpperCase.replaceAll("""\s""", "")).filter(ValidationError("invalid nino format"))(str => Try(Nino(str)).isSuccess).map(Nino)
-    ) (PersonalDetails.apply _)
+  import PersonalDetailsValidationResourceController._
 
   def create = Action.async(parse.json) { implicit request =>
     withJsonBody[PersonalDetails] { personalDetails =>
@@ -64,4 +57,15 @@ class PersonalDetailsValidationResourceController @Inject()(private val personal
       case None => NotFound
     }
   }
+}
+
+object PersonalDetailsValidationResourceController {
+
+  private implicit val personalDetailsReads: Reads[PersonalDetails] = (
+    (__ \ "firstName").readOrError[String]("firstName is missing").filter(ValidationError("firstName is blank/empty"))(_.trim.nonEmpty) and
+      (__ \ "lastName").readOrError[String]("lastName is missing").filter(ValidationError("lastName is blank/empty"))(_.trim.nonEmpty) and
+      (__ \ "dateOfBirth").readOrError[LocalDate]("dateOfBirth is missing/invalid") and
+      (__ \ "nino").readOrError[String]("nino is missing").map(_.toUpperCase.replaceAll("""\s""", "")).filter(ValidationError("invalid nino format"))(str => Try(Nino(str)).isSuccess).map(Nino)
+    ) (PersonalDetails(_, _, _, _))
+
 }

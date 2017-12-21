@@ -14,14 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation.model
+package uk.gov.hmrc.model
 
-import java.time.LocalDate
+import play.api.libs.json.Format
+import uk.gov.voa.valuetype.StringValue
+import uk.gov.voa.valuetype.play.formats.ValueTypeFormat._
 
-import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.model.NonEmptyString
+case class NonEmptyString(value: String) extends StringValue {
+  require(value.trim.length > 0, s"$typeName cannot be empty")
+}
 
-case class PersonalDetails(firstName: NonEmptyString,
-                           lastName: NonEmptyString,
-                           dateOfBirth: LocalDate,
-                           nino: Nino)
+object NonEmptyString {
+  implicit val formatNonEmptyString: Format[NonEmptyString] = format(NonEmptyString.apply)
+
+  implicit def toNonEmptyString(value: String): NonEmptyString = NonEmptyString(value)
+}
