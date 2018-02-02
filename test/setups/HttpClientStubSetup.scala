@@ -60,10 +60,15 @@ trait HttpClientStubSetup extends MockFactory {
     private[HttpClientStubSetup] var postStubbing: (String, JsObject) => HttpResponse =
       (_, _) => throw new IllegalStateException("HttpClientStub not configured")
 
+    private var invoked = false
+
     override def doPost[A](url: String, body: A, headers: Seq[(String, String)])
                           (implicit wts: Writes[A], hc: HeaderCarrier): Future[HttpResponse] = Future.successful {
+      invoked = true
       postStubbing(url, body.asInstanceOf[JsObject])
     }
+
+    def assertInvocation = if(!invoked) fail("stub was not invoked")
   }
 
   val httpClient: HttpClientStub = new HttpClientStub()

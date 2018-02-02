@@ -37,25 +37,21 @@ private class PersonalDetailsValidator @Inject()(matchingConnector: MatchingConn
                                                 (implicit uuidProvider: UUIDProvider) {
 
   def validate(personalDetails: PersonalDetails)
-              (implicit headerCarrier: HeaderCarrier,
-               executionContext: ExecutionContext): EitherT[Future, MatchingError, ValidationId] =
-    for {
-      matchResult <- getMatchingResult(personalDetails)
-      _ = matchingEventsSender.sendMatchResultEvent(matchResult)
-      personalDetailsValidation = matchResult.toPersonalDetailsValidation(optionallyHaving = personalDetails)
-      _ <- persist(personalDetailsValidation)
-    } yield personalDetailsValidation.id
+              (implicit hc: HeaderCarrier, ec: ExecutionContext): EitherT[Future, MatchingError, ValidationId] = for {
+    matchResult <- getMatchingResult(personalDetails)
+    _ = matchingEventsSender.sendMatchResultEvent(matchResult)
+    personalDetailsValidation = matchResult.toPersonalDetailsValidation(optionallyHaving = personalDetails)
+    _ <- persist(personalDetailsValidation)
+  } yield personalDetailsValidation.id
 
-  private def getMatchingResult(personalDetails: PersonalDetails)(implicit headerCarrier: HeaderCarrier,
-                                                                  executionContext: ExecutionContext) = {
+  private def getMatchingResult(personalDetails: PersonalDetails)(implicit hc: HeaderCarrier, ec: ExecutionContext) = {
     for {
       error <- matchingConnector.doMatch(personalDetails).swap
       _ = matchingEventsSender.sendMatchingErrorEvent
     } yield error
   }.swap
 
-  private def persist(personalDetailsValidation: PersonalDetailsValidation)(implicit headerCarrier: HeaderCarrier,
-                                                                            executionContext: ExecutionContext) =
+  private def persist(personalDetailsValidation: PersonalDetailsValidation)(implicit hc: HeaderCarrier, ec: ExecutionContext) =
     EitherT.right[MatchingError](personalDetailsValidationRepository.create(personalDetailsValidation))
 
   private implicit class MatchResultOps(matchResult: MatchResult) {

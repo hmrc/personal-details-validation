@@ -33,7 +33,7 @@ case class MatchingGaEvent(label: String) extends GAEvent {
 @Singleton
 private[personaldetailsvalidation] class MatchingEventsSender @Inject()(platformAnalyticsConnector: PlatformAnalyticsConnector) {
 
-  def sendMatchResultEvent(matchResult: MatchResult)(implicit header: HeaderCarrier, ec: ExecutionContext): Unit = {
+  def sendMatchResultEvent(matchResult: MatchResult)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
     val label = matchResult match {
       case MatchSuccessful => "success"
       case MatchFailed => "failed_matching"
@@ -42,6 +42,6 @@ private[personaldetailsvalidation] class MatchingEventsSender @Inject()(platform
     platformAnalyticsConnector.sendEvent(MatchingGaEvent(label))
   }
 
-  def sendMatchingErrorEvent(implicit header: HeaderCarrier, ec: ExecutionContext): Unit =
+  def sendMatchingErrorEvent(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit =
     platformAnalyticsConnector.sendEvent(MatchingGaEvent("technical_error_matching"))
 }
