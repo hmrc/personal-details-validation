@@ -50,14 +50,11 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
     withJsonBody[PersonalDetails] { personalDetails =>
 
       def handleMatchingDone(validationId: ValidationId) =
-        Created.withHeaders(LOCATION -> routes.PersonalDetailsValidationResourceController.get(validationId).url)
+        Future.successful(Created.withHeaders(LOCATION -> routes.PersonalDetailsValidationResourceController.get(validationId).url))
 
       def handleMatchingError(matchingError: MatchingError): Future[Result] = Future.failed(new BadGatewayException(matchingError.message))
 
-      personalDetailsValidator.validate(personalDetails)
-        .leftSemiflatMap(handleMatchingError)
-        .map(handleMatchingDone)
-        .merge
+      personalDetailsValidator.validate(personalDetails).fold(handleMatchingError, handleMatchingDone).flatten
     }
   }
 

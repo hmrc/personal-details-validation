@@ -26,10 +26,11 @@ import generators.ObjectGenerators._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.personaldetailsvalidation.audit.MatchingEventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.{MatchResult, MatchingError}
-import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsValidation, ValidationId}
+import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsValidation}
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.uuid.UUIDProvider
 
@@ -48,9 +49,16 @@ class PersonalDetailsValidatorSpec
       "and return the ValidationId" in new Setup {
       val personalDetails = personalDetailsObjects.generateOne
 
+      val matchResult = MatchSuccessful
+
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
-        .returning(EitherT.right[MatchingError](Future.successful(MatchSuccessful)))
+        .returning(EitherT.right[MatchingError](Future.successful(matchResult)))
+
+
+      (matchingEventsSender.sendMatchResultEvent(_: MatchResult)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(matchResult, headerCarrier, executionContext)
+        .returning(Future.successful(Done))
 
       val personalDetailsValidation = PersonalDetailsValidation.successful(personalDetails)
 
@@ -65,10 +73,15 @@ class PersonalDetailsValidatorSpec
       "store them as FailedPersonalDetailsValidation for unsuccessful match " +
       "and return the ValidationId" in new Setup {
       val personalDetails = personalDetailsObjects.generateOne
+      val matchResult = MatchFailed
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
-        .returning(EitherT.right[MatchingError](Future.successful(MatchFailed)))
+        .returning(EitherT.right[MatchingError](Future.successful(matchResult)))
+
+      (matchingEventsSender.sendMatchResultEvent(_: MatchResult)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(matchResult, headerCarrier, executionContext)
+        .returning(Future.successful(Done))
 
       val personalDetailsValidation = PersonalDetailsValidation.failed()
 
@@ -87,6 +100,10 @@ class PersonalDetailsValidatorSpec
         .expects(personalDetails, headerCarrier, executionContext)
         .returning(EitherT.left[MatchResult](Future.successful(matchingError)))
 
+      (matchingEventsSender.sendMatchingErrorEvent(_: HeaderCarrier, _: ExecutionContext))
+        .expects(headerCarrier, executionContext)
+        .returning(Future.successful(Done))
+
       validator.validate(personalDetails).value.futureValue shouldBe Left(matchingError)
     }
   }
@@ -95,11 +112,12 @@ class PersonalDetailsValidatorSpec
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
     val matchingConnector = mock[MatchingConnector]
+    val matchingEventsSender = mock[MatchingEventsSender]
 
     val repository = mock[PersonalDetailsValidationRepository]
     implicit val uuidProvider: UUIDProvider = stub[UUIDProvider]
     uuidProvider.apply _ when() returns randomUUID()
 
-    val validator = new PersonalDetailsValidator(matchingConnector, repository)
+    val validator = new PersonalDetailsValidator(matchingConnector, repository, matchingEventsSender)
   }
 }
