@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 HM Revenue & Customs
+ * Copyright 2018 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ package uk.gov.hmrc.personaldetailsvalidation
 import java.util.UUID.randomUUID
 
 import akka.Done
+import cats.data.EitherT
+import cats.implicits._
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
 import org.scalamock.scalatest.MockFactory
@@ -26,7 +28,8 @@ import org.scalatest.concurrent.ScalaFutures
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
-import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsValidation}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.{MatchResult, MatchingError}
+import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.uuid.UUIDProvider
 
@@ -47,7 +50,7 @@ class PersonalDetailsValidatorSpec
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
-        .returning(Future.successful(MatchSuccessful))
+        .returning(EitherT.right[MatchingError](Future.successful(MatchSuccessful)))
 
       val personalDetailsValidation = PersonalDetailsValidation.successful(personalDetails)
 
@@ -55,7 +58,7 @@ class PersonalDetailsValidatorSpec
         .expects(personalDetailsValidation, executionContext)
         .returning(Future.successful(Done))
 
-      validator.validate(personalDetails).futureValue shouldBe personalDetailsValidation.id
+      validator.validate(personalDetails).value.futureValue shouldBe Right(personalDetailsValidation.id)
     }
 
     "match the given personal details with matching service, " +
@@ -65,7 +68,7 @@ class PersonalDetailsValidatorSpec
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
-        .returning(Future.successful(MatchFailed))
+        .returning(EitherT.right[MatchingError](Future.successful(MatchFailed)))
 
       val personalDetailsValidation = PersonalDetailsValidation.failed()
 
@@ -73,34 +76,18 @@ class PersonalDetailsValidatorSpec
         .expects(personalDetailsValidation, executionContext)
         .returning(Future.successful(Done))
 
-      validator.validate(personalDetails).futureValue shouldBe personalDetailsValidation.id
+      validator.validate(personalDetails).value.futureValue shouldBe Right(personalDetailsValidation.id)
     }
 
-    "return a failure when the call to match fails" in new Setup {
+    "return matching error when the call to match fails" in new Setup {
       val personalDetails = personalDetailsObjects.generateOne
 
+      val matchingError = MatchingError("error")
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
-        .returning(Future.failed(new RuntimeException("error")))
+        .returning(EitherT.left[MatchResult](Future.successful(matchingError)))
 
-      a[RuntimeException] should be thrownBy validator.validate(personalDetails).futureValue
-    }
-
-    Set(MatchSuccessful, MatchFailed) foreach { matchResult =>
-      s"return a failure if match succeeds with $matchResult " +
-        "and the repository returns a failure on PersonalDetailsValidation creation" in new Setup {
-        val personalDetails = personalDetailsObjects.generateOne
-
-        (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
-          .expects(personalDetails, headerCarrier, executionContext)
-          .returning(Future.successful(matchResult))
-
-        (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
-          .expects(*, executionContext)
-          .returning(Future.failed(new RuntimeException("error")))
-
-        a[RuntimeException] should be thrownBy validator.validate(personalDetails).futureValue
-      }
+      validator.validate(personalDetails).value.futureValue shouldBe Left(matchingError)
     }
   }
 

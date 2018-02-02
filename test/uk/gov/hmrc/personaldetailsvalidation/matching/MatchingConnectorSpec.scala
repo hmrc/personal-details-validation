@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 HM Revenue & Customs
+ * Copyright 2018 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,8 +24,9 @@ import play.api.Configuration
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import setups.HttpClientStubSetup
-import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchingError
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
@@ -42,7 +43,7 @@ class MatchingConnectorSpec
         .withPayload(payload)
         .returning(OK)
 
-      connector.doMatch(personalDetails).futureValue shouldBe MatchSuccessful
+      connector.doMatch(personalDetails).value.futureValue shouldBe Right(MatchSuccessful)
     }
 
     "return MatchFailed when POST to authenticator's /authenticator/match returns UNAUTHORISED" in new Setup {
@@ -50,22 +51,18 @@ class MatchingConnectorSpec
         .withPayload(payload)
         .returning(UNAUTHORIZED)
 
-      connector.doMatch(personalDetails).futureValue shouldBe MatchFailed
+      connector.doMatch(personalDetails).value.futureValue shouldBe Right(MatchFailed)
     }
 
     Set(NO_CONTENT, NOT_FOUND, INTERNAL_SERVER_ERROR) foreach { unexpectedStatus =>
 
-      s"throws an HttpException when POST to /authenticator/match returns $unexpectedStatus" in new Setup {
+      s"return MatchingError when POST to /authenticator/match returns $unexpectedStatus" in new Setup {
 
         expectPost(toUrl = "http://host/authenticator/match")
           .withPayload(payload)
           .returning(unexpectedStatus, "some response body")
 
-        val exception = intercept[HttpException] {
-          await(connector.doMatch(personalDetails))
-        }
-        exception.message shouldBe s"Unexpected response from POST http://host/authenticator/match with status: '$unexpectedStatus' and body: some response body"
-        exception.responseCode shouldBe BAD_GATEWAY
+        connector.doMatch(personalDetails).value.futureValue shouldBe Left(MatchingError(s"Unexpected response from POST http://host/authenticator/match with status: '$unexpectedStatus' and body: some response body"))
       }
     }
   }

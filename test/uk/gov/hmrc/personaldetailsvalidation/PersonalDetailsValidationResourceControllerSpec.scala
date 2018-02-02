@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 HM Revenue & Customs
+ * Copyright 2018 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package uk.gov.hmrc.personaldetailsvalidation
 import java.util.UUID.randomUUID
 
 import akka.stream.Materializer
+import cats.data.EitherT
 import factory.ObjectFactory._
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
@@ -31,7 +32,8 @@ import play.api.libs.json._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchingError
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 import uk.gov.hmrc.play.test.UnitSpec
@@ -39,6 +41,9 @@ import uk.gov.hmrc.uuid.UUIDProvider
 
 import scala.concurrent.{ExecutionContext, Future}
 import scalamock.MockArgumentMatchers
+import cats.implicits._
+
+import ExecutionContext.Implicits.global
 
 class PersonalDetailsValidationResourceControllerSpec
   extends UnitSpec
@@ -52,12 +57,11 @@ class PersonalDetailsValidationResourceControllerSpec
 
     implicit val generator: Arbitrary[PersonalDetails] = asArbitrary(personalDetailsObjects)
 
-    "tell the PersonalDetailsValidator to validate the given personal details " +
-      "and return CREATED when it completes" in new Setup {
+    "return CREATED when personal details are validated with no error" in new Setup {
       forAll { (personalDetails: PersonalDetails, validationId: ValidationId) =>
         (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
           .expects(personalDetails, instanceOf[HeaderCarrier], instanceOf[MdcLoggingExecutionContext])
-          .returns(Future.successful(validationId))
+          .returns(EitherT.rightT[Future, MatchingError](validationId))
 
         val response = controller.create(request.withBody(toJson(personalDetails)))
 
@@ -82,7 +86,7 @@ class PersonalDetailsValidationResourceControllerSpec
 
         (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
           .expects(personalDetailsWithUpperCaseNino, instanceOf[HeaderCarrier], instanceOf[MdcLoggingExecutionContext])
-          .returns(Future.successful(ValidationId()))
+          .returns(EitherT.rightT[Future, MatchingError](ValidationId()))
 
         val response = controller.create(request.withBody(json))
 
@@ -94,7 +98,7 @@ class PersonalDetailsValidationResourceControllerSpec
       forAll { (personalDetails: PersonalDetails, validationId: ValidationId) =>
         (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
           .expects(personalDetails, instanceOf[HeaderCarrier], instanceOf[MdcLoggingExecutionContext])
-          .returns(Future.successful(validationId))
+          .returns(EitherT.rightT[Future, MatchingError](validationId))
 
         val response = controller.create(request.withBody(toJson(personalDetails)))
 
@@ -102,14 +106,18 @@ class PersonalDetailsValidationResourceControllerSpec
       }
     }
 
-    "return failed future if PersonalDetailsValidator returns one" in new Setup {
+    "return BadGatewayException if matching error occurs" in new Setup {
       val personalDetails = randomPersonalDetails
+
+      val error = MatchingError("some error")
 
       (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, instanceOf[HeaderCarrier], instanceOf[MdcLoggingExecutionContext])
-        .returns(Future.failed(new RuntimeException("error")))
+        .returns(EitherT.leftT[Future, ValidationId](error))
 
-      a[RuntimeException] should be thrownBy controller.create(request.withBody(toJson(personalDetails))).futureValue
+      val exception = controller.create(request.withBody(toJson(personalDetails))).failed.futureValue
+      exception shouldBe an[BadGatewayException]
+      exception.getMessage shouldBe error.message
     }
 
     "return BAD_REQUEST if mandatory fields are missing" in new Setup {
