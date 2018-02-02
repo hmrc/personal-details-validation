@@ -31,17 +31,17 @@ import uk.gov.hmrc.uuid.UUIDProvider
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-private class PersonalDetailsValidator @Inject()(private val matchingConnector: MatchingConnector,
-                                                 private val personalDetailsValidationRepository: PersonalDetailsValidationRepository,
-                                                 private val matchingEventsSender: MatchingEventsSender)
-                                                (implicit private val uuidProvider: UUIDProvider) {
+private class PersonalDetailsValidator @Inject()(matchingConnector: MatchingConnector,
+                                                 personalDetailsValidationRepository: PersonalDetailsValidationRepository,
+                                                 matchingEventsSender: MatchingEventsSender)
+                                                (implicit uuidProvider: UUIDProvider) {
 
   def validate(personalDetails: PersonalDetails)
               (implicit headerCarrier: HeaderCarrier,
                executionContext: ExecutionContext): EitherT[Future, MatchingError, ValidationId] =
     for {
       matchResult <- getMatchingResult(personalDetails)
-      _ <- sendMatchingResultEvent(matchResult)
+      _ = matchingEventsSender.sendMatchResultEvent(matchResult)
       personalDetailsValidation = matchResult.toPersonalDetailsValidation(optionallyHaving = personalDetails)
       _ <- persist(personalDetailsValidation)
     } yield personalDetailsValidation.id
@@ -50,16 +50,9 @@ private class PersonalDetailsValidator @Inject()(private val matchingConnector: 
                                                                   executionContext: ExecutionContext) = {
     for {
       error <- matchingConnector.doMatch(personalDetails).swap
-      _ <- sendMatchingErrorEvent
+      _ = matchingEventsSender.sendMatchingErrorEvent
     } yield error
   }.swap
-
-  private def sendMatchingResultEvent(matchResult: MatchResult)(implicit headerCarrier: HeaderCarrier,
-                                                                executionContext: ExecutionContext) =
-    EitherT.right[MatchingError](matchingEventsSender.sendMatchResultEvent(matchResult))
-
-  private def sendMatchingErrorEvent(implicit headerCarrier: HeaderCarrier,
-                                     executionContext: ExecutionContext) = EitherT.right[MatchResult](matchingEventsSender.sendMatchingErrorEvent)
 
   private def persist(personalDetailsValidation: PersonalDetailsValidation)(implicit headerCarrier: HeaderCarrier,
                                                                             executionContext: ExecutionContext) =

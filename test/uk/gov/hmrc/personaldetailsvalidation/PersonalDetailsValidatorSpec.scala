@@ -58,7 +58,6 @@ class PersonalDetailsValidatorSpec
 
       (matchingEventsSender.sendMatchResultEvent(_: MatchResult)(_: HeaderCarrier, _: ExecutionContext))
         .expects(matchResult, headerCarrier, executionContext)
-        .returning(Future.successful(Done))
 
       val personalDetailsValidation = PersonalDetailsValidation.successful(personalDetails)
 
@@ -81,7 +80,6 @@ class PersonalDetailsValidatorSpec
 
       (matchingEventsSender.sendMatchResultEvent(_: MatchResult)(_: HeaderCarrier, _: ExecutionContext))
         .expects(matchResult, headerCarrier, executionContext)
-        .returning(Future.successful(Done))
 
       val personalDetailsValidation = PersonalDetailsValidation.failed()
 
@@ -102,7 +100,6 @@ class PersonalDetailsValidatorSpec
 
       (matchingEventsSender.sendMatchingErrorEvent(_: HeaderCarrier, _: ExecutionContext))
         .expects(headerCarrier, executionContext)
-        .returning(Future.successful(Done))
 
       validator.validate(personalDetails).value.futureValue shouldBe Left(matchingError)
     }

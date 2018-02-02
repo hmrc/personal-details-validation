@@ -16,14 +16,32 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.audit
 
-import akka.Done
+import javax.inject.{Inject, Singleton}
+
+import uk.gov.hmrc.audit.{GAEvent, PlatformAnalyticsConnector}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
-class MatchingEventsSender {
+case class MatchingGaEvent(label: String) extends GAEvent {
+  override val category = "sos_iv"
+  override val action = "personal_detail_validation_result"
+}
 
-  def sendMatchResultEvent(matchResult: MatchResult)(implicit header: HeaderCarrier, ec: ExecutionContext): Future[Done] = ???
-  def sendMatchingErrorEvent(implicit header: HeaderCarrier, ec: ExecutionContext): Future[Done] = ???
+@Singleton
+private[personaldetailsvalidation] class MatchingEventsSender @Inject()(platformAnalyticsConnector: PlatformAnalyticsConnector) {
+
+  def sendMatchResultEvent(matchResult: MatchResult)(implicit header: HeaderCarrier, ec: ExecutionContext): Unit = {
+    val label = matchResult match {
+      case MatchSuccessful => "success"
+      case MatchFailed => "failed_matching"
+    }
+
+    platformAnalyticsConnector.sendEvent(MatchingGaEvent(label))
+  }
+
+  def sendMatchingErrorEvent(implicit header: HeaderCarrier, ec: ExecutionContext): Unit =
+    platformAnalyticsConnector.sendEvent(MatchingGaEvent("technical_error_matching"))
 }
