@@ -27,6 +27,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
 import generators.Generators.Implicits._
+import uk.gov.hmrc.domain.Nino
 
 class MatchingEventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
 
@@ -53,6 +54,34 @@ class MatchingEventsSenderSpec extends UnitSpec with MockFactory with ScalaFutur
         .expects(GAEvent("sos_iv", "personal_detail_validation_result", "technical_error_matching"), headerCarrier, executionContext)
 
       sender.sendMatchingErrorEvent
+    }
+
+    "send suffix matching event if nino suffix does not match between external person and matched person" in new Setup {
+      val personalDetails = personalDetailsObjects.generateOne.copy(nino = Nino("AA000003D"))
+      val matchedPerson = personalDetails.copy(nino = Nino("AA000003C"))
+
+      (connector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(GAEvent("sos_iv", "personal_detail_validation_end", "success_nino_suffix_different_from_cid"), headerCarrier, executionContext)
+
+      sender.sendSuffixMatchingEvent(personalDetails, MatchSuccessful(matchedPerson))
+    }
+
+    "send suffix matching event if nino suffix matches between external person and matched person" in new Setup {
+      val personalDetails = personalDetailsObjects.generateOne
+
+      (connector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(GAEvent("sos_iv", "personal_detail_validation_end", "success_nino_suffix_same_as_cid"), headerCarrier, executionContext)
+
+      sender.sendSuffixMatchingEvent(personalDetails, MatchSuccessful(personalDetails))
+    }
+
+    "not send suffix matching event if match was failure" in new Setup {
+      val personalDetails = personalDetailsObjects.generateOne
+
+      (connector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(*, headerCarrier, executionContext).never()
+
+      sender.sendSuffixMatchingEvent(personalDetails, MatchFailed)
     }
   }
 

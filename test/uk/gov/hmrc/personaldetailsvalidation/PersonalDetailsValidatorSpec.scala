@@ -59,6 +59,9 @@ class PersonalDetailsValidatorSpec
       (matchingEventsSender.sendMatchResultEvent(_: MatchResult)(_: HeaderCarrier, _: ExecutionContext))
         .expects(matchResult, headerCarrier, executionContext)
 
+      (matchingEventsSender.sendSuffixMatchingEvent(_: PersonalDetails, _: MatchResult)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(personalDetails, matchResult, headerCarrier, executionContext)
+
       val personalDetailsValidation = PersonalDetailsValidation.successful(personalDetails)
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
@@ -80,6 +83,9 @@ class PersonalDetailsValidatorSpec
 
       (matchingEventsSender.sendMatchResultEvent(_: MatchResult)(_: HeaderCarrier, _: ExecutionContext))
         .expects(matchResult, headerCarrier, executionContext)
+
+      (matchingEventsSender.sendSuffixMatchingEvent(_: PersonalDetails, _: MatchResult)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(personalDetails, matchResult, headerCarrier, executionContext)
 
       val personalDetailsValidation = PersonalDetailsValidation.failed()
 

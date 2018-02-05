@@ -36,10 +36,13 @@ private class PersonalDetailsValidator @Inject()(matchingConnector: MatchingConn
                                                  matchingEventsSender: MatchingEventsSender)
                                                 (implicit uuidProvider: UUIDProvider) {
 
+  import matchingEventsSender._
+
   def validate(personalDetails: PersonalDetails)
               (implicit hc: HeaderCarrier, ec: ExecutionContext): EitherT[Future, MatchingError, ValidationId] = for {
     matchResult <- getMatchingResult(personalDetails)
-    _ = matchingEventsSender.sendMatchResultEvent(matchResult)
+    _ = sendMatchResultEvent(matchResult)
+    _ = sendSuffixMatchingEvent(personalDetails, matchResult)
     personalDetailsValidation = matchResult.toPersonalDetailsValidation(optionallyHaving = personalDetails)
     _ <- persist(personalDetailsValidation)
   } yield personalDetailsValidation.id

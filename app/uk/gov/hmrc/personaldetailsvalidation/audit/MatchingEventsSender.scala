@@ -22,6 +22,7 @@ import uk.gov.hmrc.audit.{GAEvent, PlatformAnalyticsConnector}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
+import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
 
 import scala.concurrent.ExecutionContext
 
@@ -41,6 +42,18 @@ private[personaldetailsvalidation] class MatchingEventsSender @Inject()(platform
   def sendMatchingErrorEvent(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit =
     platformAnalyticsConnector.sendEvent(matchingGaEvent("technical_error_matching"))
 
+  def sendSuffixMatchingEvent(externalPerson: PersonalDetails, matchResult: MatchResult)
+                             (implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = matchResult match {
+    case MatchSuccessful(matchedPerson) if externalPerson.hasSameNinoSuffixAs(matchedPerson) => platformAnalyticsConnector.sendEvent(suffixGaEvent("success_nino_suffix_same_as_cid"))
+    case MatchSuccessful(_)  => platformAnalyticsConnector.sendEvent(suffixGaEvent("success_nino_suffix_different_from_cid"))
+    case _ =>
+  }
+
+  private implicit class PersonalDetailsOps(target: PersonalDetails) {
+    def hasSameNinoSuffixAs(other: PersonalDetails): Boolean = target.nino.value.last == other.nino.value.last
+  }
+
   private def matchingGaEvent(label: String) = GAEvent("sos_iv", "personal_detail_validation_result", label)
+  private def suffixGaEvent(label: String) = GAEvent("sos_iv", "personal_detail_validation_end", label)
 
 }
