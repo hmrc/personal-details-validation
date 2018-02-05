@@ -35,7 +35,7 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MockFactory {
     "send event to platform analytics using gaUserId from header carrier" in new Setup {
       val gaUserId = "ga-user-id"
 
-      expectPost(toUrl = s"${connectorConfig.baseUrl}/event")
+      expectPost(toUrl = s"${connectorConfig.baseUrl}/platform-analytics/event")
         .withPayload(payload(gaUserId))
         .returning(OK)
 
@@ -52,7 +52,7 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MockFactory {
       randomIntProvider.apply _ when() returns randomValue1 noMoreThanOnce()
       randomIntProvider.apply _ when() returns randomValue2
 
-      expectPost(toUrl = s"${connectorConfig.baseUrl}/event")
+      expectPost(toUrl = s"${connectorConfig.baseUrl}/platform-analytics/event")
         .withPayload(payload(s"GA1.1.${Math.abs(randomValue1)}.${Math.abs(randomValue2)}"))
         .returning(OK)
 

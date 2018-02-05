@@ -30,7 +30,7 @@ class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConf
 
   def sendEvent(event: GAEvent)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit =
     httpClient.POST[JsObject, HttpResponse](
-      url = s"${connectorConfig.baseUrl}/event",
+      url = s"${connectorConfig.baseUrl}/platform-analytics/event",
       body = event.toJson(hc.gaUserId.getOrElse(randomGaUserId))
     )
 
