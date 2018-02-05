@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.audit
 
+import generators.ObjectGenerators.personalDetailsObjects
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
 import uk.gov.hmrc.audit.{GAEvent, PlatformAnalyticsConnector}
@@ -25,6 +26,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
+import generators.Generators.Implicits._
 
 class MatchingEventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
 
@@ -34,7 +36,7 @@ class MatchingEventsSenderSpec extends UnitSpec with MockFactory with ScalaFutur
       (connector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
         .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success"), headerCarrier, executionContext)
 
-      sender.sendMatchResultEvent(MatchSuccessful)
+      sender.sendMatchResultEvent(MatchSuccessful(personalDetailsObjects.generateOne))
     }
 
     "send failure MatchResultEvent" in new Setup {

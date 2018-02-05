@@ -49,7 +49,7 @@ class PersonalDetailsValidatorSpec
       "and return the ValidationId" in new Setup {
       val personalDetails = personalDetailsObjects.generateOne
 
-      val matchResult = MatchSuccessful
+      val matchResult = MatchSuccessful(personalDetails)
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)

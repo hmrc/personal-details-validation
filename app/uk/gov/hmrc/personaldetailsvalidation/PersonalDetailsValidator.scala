@@ -56,7 +56,7 @@ private class PersonalDetailsValidator @Inject()(matchingConnector: MatchingConn
 
   private implicit class MatchResultOps(matchResult: MatchResult) {
     def toPersonalDetailsValidation(optionallyHaving: PersonalDetails): PersonalDetailsValidation = matchResult match {
-      case MatchSuccessful => PersonalDetailsValidation.successful(optionallyHaving)
+      case MatchSuccessful(_) => PersonalDetailsValidation.successful(optionallyHaving)
       case MatchFailed => PersonalDetailsValidation.failed()
     }
   }

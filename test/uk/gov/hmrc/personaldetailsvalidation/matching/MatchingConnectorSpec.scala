@@ -20,10 +20,11 @@ import generators.Generators.Implicits._
 import generators.ObjectGenerators._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
-import play.api.libs.json.Json
+import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
 import setups.HttpClientStubSetup
 import uk.gov.hmrc.config.HostConfigProvider
+import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchingError
@@ -39,11 +40,14 @@ class MatchingConnectorSpec
   "doMatch" should {
 
     "return MatchSuccessful when POST to authenticator's /authenticator/match returns OK" in new Setup {
+
+      val matchingResponsePayload = payload + ("nino" -> JsString(ninoWithDifferentSuffix.value))
+
       expectPost(toUrl = "http://host/authenticator/match")
         .withPayload(payload)
-        .returning(OK)
+        .returning(OK, matchingResponsePayload)
 
-      connector.doMatch(personalDetails).value.futureValue shouldBe Right(MatchSuccessful)
+      connector.doMatch(personalDetails).value.futureValue shouldBe Right(MatchSuccessful(personalDetails.copy(nino = ninoWithDifferentSuffix)))
     }
 
     "return MatchFailed when POST to authenticator's /authenticator/match returns UNAUTHORISED" in new Setup {
@@ -70,7 +74,9 @@ class MatchingConnectorSpec
   private trait Setup extends HttpClientStubSetup {
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
-    val personalDetails = personalDetailsObjects.generateOne
+    val nino = Nino("AA000003D")
+    val ninoWithDifferentSuffix = Nino("AA000003C")
+    val personalDetails = personalDetailsObjects.generateOne.copy(nino = nino)
     val payload = Json.obj(
       "firstName" -> personalDetails.firstName,
       "lastName" -> personalDetails.lastName,

@@ -33,6 +33,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class MatchingConnector @Inject()(httpClient: HttpClient, connectorConfig: MatchingConnectorConfig) {
 
   import connectorConfig.authenticatorBaseUrl
+  import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsFormat._
 
   def doMatch(personalDetails: PersonalDetails)
              (implicit headerCarrier: HeaderCarrier,
@@ -44,7 +45,7 @@ class MatchingConnector @Inject()(httpClient: HttpClient, connectorConfig: Match
 
   private implicit val matchingResultHttpReads: HttpReads[Either[MatchingError, MatchResult]] = new HttpReads[Either[MatchingError, MatchResult]] {
     override def read(method: String, url: String, response: HttpResponse): Either[MatchingError, MatchResult] = response.status match {
-      case OK => Right(MatchSuccessful)
+      case OK => Right(MatchSuccessful(response.json.as[PersonalDetails]))
       case UNAUTHORIZED => Right(MatchFailed)
       case other => Left(MatchingError(s"Unexpected response from $method $url with status: '$other' and body: ${response.body}"))
     }
@@ -68,7 +69,7 @@ object MatchingConnector {
 
   object MatchResult {
 
-    case object MatchSuccessful extends MatchResult
+    case class MatchSuccessful(matchedPerson: PersonalDetails) extends MatchResult
     case object MatchFailed extends MatchResult
   }
 }

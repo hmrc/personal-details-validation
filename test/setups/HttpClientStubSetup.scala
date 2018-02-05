@@ -42,6 +42,9 @@ trait HttpClientStubSetup extends MockFactory {
       def returning(status: Int, body: String): Unit =
         returning(HttpResponse(status, responseString = Some(body)))
 
+      def returning(status: Int, body: JsObject): Unit =
+        returning(HttpResponse(status, responseJson = Some(body)))
+
       def returning(response: HttpResponse): Unit =
         httpClient.postStubbing = (actualUrl: String, actualPayload: JsObject) => {
           actualUrl shouldBe toUrl

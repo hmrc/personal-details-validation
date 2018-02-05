@@ -31,7 +31,7 @@ private[personaldetailsvalidation] class MatchingEventsSender @Inject()(platform
 
   def sendMatchResultEvent(matchResult: MatchResult)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
     val label = matchResult match {
-      case MatchSuccessful => "success"
+      case MatchSuccessful(_) => "success"
       case MatchFailed => "failed_matching"
     }
 
