@@ -8,12 +8,9 @@ import play.api.libs.json.{JsUndefined, JsValue, Json}
 import play.mvc.Http.HeaderNames.{CONTENT_TYPE, LOCATION}
 import uk.gov.hmrc.support.BaseIntegrationSpec
 import uk.gov.hmrc.support.stubs.AuthenticatorStub
-import uk.gov.hmrc.support.wiremock.{WiremockSpecSupport, WiremockedServiceSupport}
+import uk.gov.hmrc.support.stubs.PlatformAnalyticsStub.verifyGAMatchEvent
 
-class PersonalDetailsValidationISpec extends BaseIntegrationSpec with WiremockedServiceSupport with WiremockSpecSupport {
-
-  override val wiremockedServices: List[String] = List("authenticator")
-  override lazy val additionalConfiguration = wiremockedServicesConfiguration
+class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
 
   "POST /personal-details-validation" should {
 
@@ -32,6 +29,8 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec with Wiremocked
       (getResponse.json \ "id").as[String] mustBe validationId
       (getResponse.json \ "validationStatus").as[String] mustBe "success"
       (getResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetails)
+
+      verifyGAMatchEvent("success")
     }
 
     "return OK with failure validation status when provided personal details cannot be matched by Authenticator" in new Setup {
@@ -49,6 +48,8 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec with Wiremocked
       (getResponse.json \ "id").as[String] mustBe validationId
       (getResponse.json \ "validationStatus").as[String] mustBe "failure"
       (getResponse.json \ "personalDetails") mustBe a[JsUndefined]
+
+      verifyGAMatchEvent("failed_matching")
     }
 
     "return BAD_GATEWAY when Authenticator returns an unexpected status code" in new Setup {
@@ -56,6 +57,8 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec with Wiremocked
 
       val createResponse = sendCreateValidationResourceRequest(personalDetails).futureValue
       createResponse.status mustBe BAD_GATEWAY
+
+      verifyGAMatchEvent("technical_error_matching")
     }
 
     "return BAD Request if mandatory fields are missing" in new Setup {
