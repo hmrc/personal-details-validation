@@ -20,10 +20,10 @@ import generators.Generators.Implicits._
 import generators.ObjectGenerators._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
-import play.api.Configuration
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import setups.HttpClientStubSetup
+import uk.gov.hmrc.config.HostConfigProvider
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchingError
@@ -78,7 +78,7 @@ class MatchingConnectorSpec
       "nino" -> personalDetails.nino
     )
 
-    private val connectorConfig = new MatchingConnectorConfig(mock[Configuration]) {
+    private val connectorConfig = new MatchingConnectorConfig(mock[HostConfigProvider]) {
       override lazy val authenticatorBaseUrl = "http://host/authenticator"
     }
     val connector = new MatchingConnector(httpClient, connectorConfig)

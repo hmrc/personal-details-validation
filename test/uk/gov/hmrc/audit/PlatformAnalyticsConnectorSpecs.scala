@@ -17,10 +17,10 @@
 package uk.gov.hmrc.audit
 
 import org.scalamock.scalatest.MockFactory
-import play.api.Configuration
 import play.api.libs.json.Json
 import play.api.test.Helpers.OK
 import setups.HttpClientStubSetup
+import uk.gov.hmrc.config.HostConfigProvider
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.random.RandomIntProvider
@@ -76,7 +76,7 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MockFactory {
       ))
     )
 
-    val connectorConfig = new PlatformAnalyticsConnectorConfig(mock[Configuration]) {
+    val connectorConfig = new PlatformAnalyticsConnectorConfig(mock[HostConfigProvider]) {
       override lazy val baseUrl = "http://host/platform-analytics"
     }
 

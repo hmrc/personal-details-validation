@@ -17,52 +17,26 @@
 package uk.gov.hmrc.personaldetailsvalidation.matching
 
 import org.scalamock.scalatest.MockFactory
-import play.api.Configuration
-import setups.ConfigSetup
+import uk.gov.hmrc.config.HostConfigProvider
+import uk.gov.hmrc.http.Host
 import uk.gov.hmrc.play.test.UnitSpec
 
 class MatchingConnectorConfigSpec
   extends UnitSpec
     with MockFactory {
 
-  "authenticatorHost" should {
+  "authenticatorBaseUrl" should {
 
-    "return be comprised of configured host, port and '/authenticator" in new Setup {
-      whenConfigEntriesExists(
-        "microservice.services.authenticator.host" -> "some-host",
-        "microservice.services.authenticator.port" -> "123") { config =>
-        config.authenticatorBaseUrl shouldBe "http://some-host:123/authenticator"
-      }
-    }
-    "return be comprised of configured protocol, host and port and '/authenticator" in new Setup {
-      whenConfigEntriesExists(
-        "microservice.services.authenticator.protocol" -> "some-protocol",
-        "microservice.services.authenticator.host" -> "some-host",
-        "microservice.services.authenticator.port" -> "123") { config =>
-        config.authenticatorBaseUrl shouldBe "some-protocol://some-host:123/authenticator"
-      }
-    }
-    "return be comprised of configured protocol, host and port and '/authenticator when 'microservice.services.protocol' is given" in new Setup {
-      whenConfigEntriesExists(
-        "microservice.services.protocol" -> "some-protocol",
-        "microservice.services.authenticator.host" -> "some-host",
-        "microservice.services.authenticator.port" -> "123") { config =>
-        config.authenticatorBaseUrl shouldBe "some-protocol://some-host:123/authenticator"
-      }
-    }
-    "throw a runtime exception when there's no value for 'authenticator.host'" in new Setup {
-      whenConfigEntriesExists("microservice.services.authenticator.port" -> "123") { config =>
-        a[RuntimeException] should be thrownBy config.authenticatorBaseUrl
-      }
-    }
-    "throw a runtime exception when there's no value for 'authenticator.port'" in new Setup {
-      whenConfigEntriesExists("microservice.services.authenticator.host" -> "some-host") { config =>
-        a[RuntimeException] should be thrownBy config.authenticatorBaseUrl
-      }
+    "be created using HostConfigProvider" in new Setup {
+      val hostValue = "http://localhost:9000"
+      hostProvider.hostFor _ expects "authenticator" returning Host(hostValue)
+      config.authenticatorBaseUrl shouldBe s"$hostValue/authenticator"
     }
   }
 
-  private trait Setup extends ConfigSetup[MatchingConnectorConfig] {
-    val newConfigObject: Configuration => MatchingConnectorConfig = new MatchingConnectorConfig(_)
+  private trait Setup {
+    val hostProvider = mock[HostConfigProvider]
+    val config = new MatchingConnectorConfig(hostProvider)
   }
+
 }

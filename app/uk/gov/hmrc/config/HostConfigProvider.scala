@@ -14,14 +14,19 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation.matching
+package uk.gov.hmrc.config
 
 import javax.inject.{Inject, Singleton}
 
-import uk.gov.hmrc.config.HostConfigProvider
+import play.api.Configuration
+import uk.gov.hmrc.http.Host
+import uk.gov.hmrc.config.ops._
+import uk.gov.hmrc.config.implicits._
+
 
 @Singleton
-private class MatchingConnectorConfig @Inject()(hostProvider: HostConfigProvider) {
+class HostConfigProvider @Inject()(configuration: Configuration) {
 
-  lazy val authenticatorBaseUrl: String = hostProvider.hostFor("authenticator") + "/authenticator"
+  def hostFor(serviceName: String): Host = configuration.loadMandatory[Host](serviceName)
+
 }

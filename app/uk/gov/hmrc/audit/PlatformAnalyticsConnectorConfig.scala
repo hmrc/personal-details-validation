@@ -18,10 +18,10 @@ package uk.gov.hmrc.audit
 
 import javax.inject.{Inject, Singleton}
 
-import play.api.Configuration
+import uk.gov.hmrc.config.HostConfigProvider
 
 @Singleton
-private class PlatformAnalyticsConnectorConfig @Inject()(configuration: Configuration) {
+private class PlatformAnalyticsConnectorConfig @Inject()(hostProvider: HostConfigProvider) {
 
-  lazy val baseUrl: String = ???
+  lazy val baseUrl: String = hostProvider.hostFor("platform-analytics").value
 }
