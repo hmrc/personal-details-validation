@@ -25,10 +25,6 @@ import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchRes
 
 import scala.concurrent.ExecutionContext
 
-case class MatchingGaEvent(label: String) extends GAEvent {
-  override val category = "sos_iv"
-  override val action = "personal_detail_validation_result"
-}
 
 @Singleton
 private[personaldetailsvalidation] class MatchingEventsSender @Inject()(platformAnalyticsConnector: PlatformAnalyticsConnector) {
@@ -39,9 +35,12 @@ private[personaldetailsvalidation] class MatchingEventsSender @Inject()(platform
       case MatchFailed => "failed_matching"
     }
 
-    platformAnalyticsConnector.sendEvent(MatchingGaEvent(label))
+    platformAnalyticsConnector.sendEvent(matchingGaEvent(label))
   }
 
   def sendMatchingErrorEvent(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit =
-    platformAnalyticsConnector.sendEvent(MatchingGaEvent("technical_error_matching"))
+    platformAnalyticsConnector.sendEvent(matchingGaEvent("technical_error_matching"))
+
+  private def matchingGaEvent(label: String) = GAEvent("sos_iv", "personal_detail_validation_result", label)
+
 }
