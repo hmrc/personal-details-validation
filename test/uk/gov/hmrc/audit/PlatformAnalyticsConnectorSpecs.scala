@@ -99,7 +99,8 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MixedMockFactory wit
       "events" -> Json.arr(Json.obj(
         "category" -> s"${gaEvent.category}",
         "action" -> s"${gaEvent.action}",
-        "label" -> s"${gaEvent.label}"
+        "label" -> s"${gaEvent.label}",
+        "dimensions" -> Json.arr()
       ))
     )
 

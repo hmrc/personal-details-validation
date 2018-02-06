@@ -47,7 +47,8 @@ class PlatformAnalyticsConnector(httpClient: HttpClient, connectorConfig: Platfo
       "events" -> Json.arr(Json.obj(
         "category" -> s"${gaEvent.category}",
         "action" -> s"${gaEvent.action}",
-        "label" -> s"${gaEvent.label}"
+        "label" -> s"${gaEvent.label}",
+        "dimensions" -> Json.arr()
       ))
     )
   }
