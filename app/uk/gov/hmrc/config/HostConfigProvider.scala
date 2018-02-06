@@ -14,15 +14,19 @@
  * limitations under the License.
  */
 
-package setups
+package uk.gov.hmrc.config
+
+import javax.inject.{Inject, Singleton}
 
 import play.api.Configuration
+import uk.gov.hmrc.http.Host
+import uk.gov.hmrc.config.ops._
+import uk.gov.hmrc.config.implicits._
 
-trait ConfigSetup[T] {
 
-  val newConfigObject: Configuration => T
+@Singleton
+class HostConfigProvider @Inject()(configuration: Configuration) {
 
-  def whenConfigEntriesExists(entries: (String, Any)*)
-                             (testBody: T => Unit): Unit =
-    testBody(newConfigObject(Configuration.from(entries.toMap)))
+  def hostFor(serviceName: String): Host = configuration.loadMandatory[Host](serviceName)
+
 }

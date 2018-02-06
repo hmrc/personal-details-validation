@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-package setups
+package uk.gov.hmrc.audit
 
-import play.api.Configuration
+import javax.inject.{Inject, Singleton}
 
-trait ConfigSetup[T] {
+import uk.gov.hmrc.config.HostConfigProvider
 
-  val newConfigObject: Configuration => T
+@Singleton
+private class PlatformAnalyticsConnectorConfig @Inject()(hostProvider: HostConfigProvider) {
 
-  def whenConfigEntriesExists(entries: (String, Any)*)
-                             (testBody: T => Unit): Unit =
-    testBody(newConfigObject(Configuration.from(entries.toMap)))
+  lazy val baseUrl: String = hostProvider.hostFor("platform-analytics").value
 }

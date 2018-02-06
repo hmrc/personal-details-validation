@@ -1,6 +1,5 @@
 package uk.gov.hmrc.support.stubs
 
-import com.github.tomakehurst.wiremock.client.MappingBuilder
 import com.github.tomakehurst.wiremock.client.WireMock._
 import play.api.http.Status._
 

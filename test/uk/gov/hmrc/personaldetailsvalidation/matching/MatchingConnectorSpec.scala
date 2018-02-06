@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 HM Revenue & Customs
+ * Copyright 2018 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +20,14 @@ import generators.Generators.Implicits._
 import generators.ObjectGenerators._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
-import play.api.Configuration
-import play.api.libs.json.Json
+import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
 import setups.HttpClientStubSetup
-import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
+import uk.gov.hmrc.config.HostConfigProvider
+import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchingError
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
@@ -38,11 +40,14 @@ class MatchingConnectorSpec
   "doMatch" should {
 
     "return MatchSuccessful when POST to authenticator's /authenticator/match returns OK" in new Setup {
+
+      val matchingResponsePayload = payload + ("nino" -> JsString(ninoWithDifferentSuffix.value))
+
       expectPost(toUrl = "http://host/authenticator/match")
         .withPayload(payload)
-        .returning(OK)
+        .returning(OK, matchingResponsePayload)
 
-      connector.doMatch(personalDetails).futureValue shouldBe MatchSuccessful
+      connector.doMatch(personalDetails).value.futureValue shouldBe Right(MatchSuccessful(personalDetails.copy(nino = ninoWithDifferentSuffix)))
     }
 
     "return MatchFailed when POST to authenticator's /authenticator/match returns UNAUTHORISED" in new Setup {
@@ -50,22 +55,18 @@ class MatchingConnectorSpec
         .withPayload(payload)
         .returning(UNAUTHORIZED)
 
-      connector.doMatch(personalDetails).futureValue shouldBe MatchFailed
+      connector.doMatch(personalDetails).value.futureValue shouldBe Right(MatchFailed)
     }
 
     Set(NO_CONTENT, NOT_FOUND, INTERNAL_SERVER_ERROR) foreach { unexpectedStatus =>
 
-      s"throws an HttpException when POST to /authenticator/match returns $unexpectedStatus" in new Setup {
+      s"return MatchingError when POST to /authenticator/match returns $unexpectedStatus" in new Setup {
 
         expectPost(toUrl = "http://host/authenticator/match")
           .withPayload(payload)
           .returning(unexpectedStatus, "some response body")
 
-        val exception = intercept[HttpException] {
-          await(connector.doMatch(personalDetails))
-        }
-        exception.message shouldBe s"Unexpected response from POST http://host/authenticator/match with status: '$unexpectedStatus' and body: some response body"
-        exception.responseCode shouldBe BAD_GATEWAY
+        connector.doMatch(personalDetails).value.futureValue shouldBe Left(MatchingError(s"Unexpected response from POST http://host/authenticator/match with status: '$unexpectedStatus' and body: some response body"))
       }
     }
   }
@@ -73,7 +74,9 @@ class MatchingConnectorSpec
   private trait Setup extends HttpClientStubSetup {
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
-    val personalDetails = personalDetailsObjects.generateOne
+    val nino = Nino("AA000003D")
+    val ninoWithDifferentSuffix = Nino("AA000003C")
+    val personalDetails = personalDetailsObjects.generateOne.copy(nino = nino)
     val payload = Json.obj(
       "firstName" -> personalDetails.firstName,
       "lastName" -> personalDetails.lastName,
@@ -81,7 +84,7 @@ class MatchingConnectorSpec
       "nino" -> personalDetails.nino
     )
 
-    private val connectorConfig = new MatchingConnectorConfig(mock[Configuration]) {
+    private val connectorConfig = new MatchingConnectorConfig(mock[HostConfigProvider]) {
       override lazy val authenticatorBaseUrl = "http://host/authenticator"
     }
     val connector = new MatchingConnector(httpClient, connectorConfig)

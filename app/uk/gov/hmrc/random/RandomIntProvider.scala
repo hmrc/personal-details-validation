@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
-package setups
+package uk.gov.hmrc.random
 
-import play.api.Configuration
+import javax.inject.Singleton
 
-trait ConfigSetup[T] {
+import scala.util.Random
 
-  val newConfigObject: Configuration => T
-
-  def whenConfigEntriesExists(entries: (String, Any)*)
-                             (testBody: T => Unit): Unit =
-    testBody(newConfigObject(Configuration.from(entries.toMap)))
+@Singleton
+class RandomIntProvider extends (() => Int) {
+  def apply(): Int = Random.nextInt()
 }

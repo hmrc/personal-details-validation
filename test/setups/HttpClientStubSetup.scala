@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 HM Revenue & Customs
+ * Copyright 2018 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,6 +42,9 @@ trait HttpClientStubSetup extends MockFactory {
       def returning(status: Int, body: String): Unit =
         returning(HttpResponse(status, responseString = Some(body)))
 
+      def returning(status: Int, body: JsObject): Unit =
+        returning(HttpResponse(status, responseJson = Some(body)))
+
       def returning(response: HttpResponse): Unit =
         httpClient.postStubbing = (actualUrl: String, actualPayload: JsObject) => {
           actualUrl shouldBe toUrl
@@ -60,10 +63,15 @@ trait HttpClientStubSetup extends MockFactory {
     private[HttpClientStubSetup] var postStubbing: (String, JsObject) => HttpResponse =
       (_, _) => throw new IllegalStateException("HttpClientStub not configured")
 
+    private var invoked = false
+
     override def doPost[A](url: String, body: A, headers: Seq[(String, String)])
                           (implicit wts: Writes[A], hc: HeaderCarrier): Future[HttpResponse] = Future.successful {
+      invoked = true
       postStubbing(url, body.asInstanceOf[JsObject])
     }
+
+    def assertInvocation = if(!invoked) fail("stub was not invoked")
   }
 
   val httpClient: HttpClientStub = new HttpClientStub()

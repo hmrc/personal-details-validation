@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 HM Revenue & Customs
+ * Copyright 2018 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,18 +19,22 @@ package uk.gov.hmrc.personaldetailsvalidation
 import java.time.LocalDate
 import javax.inject.{Inject, Singleton}
 
+import cats.implicits._
 import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Json.toJson
 import play.api.libs.json._
-import play.api.mvc.Action
+import play.api.mvc.{Action, Result}
 import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.http.BadGatewayException
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchingError
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, ValidationId}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
 import uk.gov.hmrc.play.json.JsonValidation
 import uk.gov.hmrc.play.json.ops._
 
+import scala.concurrent.Future
 import scala.util.Try
 
 @Singleton
@@ -38,16 +42,19 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
                                                             personalDetailsValidator: PersonalDetailsValidator)
   extends BaseController
     with JsonValidation {
-  import formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
+
   import PersonalDetailsValidationResourceController._
+  import formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
 
   def create = Action.async(parse.json) { implicit request =>
     withJsonBody[PersonalDetails] { personalDetails =>
-      personalDetailsValidator.validate(personalDetails) map { validationId =>
-        Created.withHeaders(
-          LOCATION -> routes.PersonalDetailsValidationResourceController.get(validationId).url
-        )
-      }
+
+      def handleMatchingDone(validationId: ValidationId) =
+        Future.successful(Created.withHeaders(LOCATION -> routes.PersonalDetailsValidationResourceController.get(validationId).url))
+
+      def handleMatchingError(matchingError: MatchingError): Future[Result] = Future.failed(new BadGatewayException(matchingError.message))
+
+      personalDetailsValidator.validate(personalDetails).fold(handleMatchingError, handleMatchingDone).flatten
     }
   }
 

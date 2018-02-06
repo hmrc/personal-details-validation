@@ -14,14 +14,28 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation.matching
+package uk.gov.hmrc.audit
 
-import javax.inject.{Inject, Singleton}
-
+import org.scalamock.scalatest.MockFactory
 import uk.gov.hmrc.config.HostConfigProvider
+import uk.gov.hmrc.http.Host
+import uk.gov.hmrc.play.test.UnitSpec
 
-@Singleton
-private class MatchingConnectorConfig @Inject()(hostProvider: HostConfigProvider) {
+class PlatformAnalyticsConnectorConfigSpec extends UnitSpec with MockFactory {
 
-  lazy val authenticatorBaseUrl: String = hostProvider.hostFor("authenticator") + "/authenticator"
+  "baseUrl" should {
+
+    "be created using HostConfigProvider" in new Setup {
+      val hostValue = "http://localhost:9000"
+      hostProvider.hostFor _ expects "platform-analytics" returning Host(hostValue)
+      config.baseUrl shouldBe hostValue
+    }
+  }
+
+
+  private trait Setup {
+    val hostProvider = mock[HostConfigProvider]
+    val config = new PlatformAnalyticsConnectorConfig(hostProvider)
+  }
+
 }

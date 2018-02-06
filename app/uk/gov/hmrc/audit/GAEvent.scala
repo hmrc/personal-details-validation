@@ -14,15 +14,6 @@
  * limitations under the License.
  */
 
-package setups
+package uk.gov.hmrc.audit
 
-import play.api.Configuration
-
-trait ConfigSetup[T] {
-
-  val newConfigObject: Configuration => T
-
-  def whenConfigEntriesExists(entries: (String, Any)*)
-                             (testBody: T => Unit): Unit =
-    testBody(newConfigObject(Configuration.from(entries.toMap)))
-}
+case class GAEvent(category: String, action: String, label: String)
