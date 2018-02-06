@@ -16,9 +16,10 @@
 
 package uk.gov.hmrc.audit
 
-import org.scalamock.scalatest.MockFactory
+import org.scalamock.scalatest.MixedMockFactory
+import play.api.LoggerLike
 import play.api.libs.json.Json
-import play.api.test.Helpers.OK
+import play.api.test.Helpers._
 import setups.HttpClientStubSetup
 import uk.gov.hmrc.config.HostConfigProvider
 import uk.gov.hmrc.http.HeaderCarrier
@@ -28,7 +29,7 @@ import uk.gov.hmrc.random.RandomIntProvider
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
 
-class PlatformAnalyticsConnectorSpecs extends UnitSpec with MockFactory {
+class PlatformAnalyticsConnectorSpecs extends UnitSpec with MixedMockFactory {
 
   "connector" should {
 
@@ -60,6 +61,25 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MockFactory {
 
       httpClient.assertInvocation
     }
+
+    "log error if call to platform-analytics fail" in new Setup {
+      val gaUserId = "ga-user-id"
+
+      val httpResponseStatus = BAD_GATEWAY
+      val httpResponseBody = "some-error-response-body"
+
+      expectPost(toUrl = s"${connectorConfig.baseUrl}/platform-analytics/event")
+        .withPayload(payload(gaUserId))
+        .returning(httpResponseStatus, httpResponseBody)
+
+      logger.when('error)(*)
+
+      connector.sendEvent(gaEvent)(headerCarrier.copy(gaUserId = Some(gaUserId)), global)
+
+      logger.verify('error)(argAssert { (message: () => String) =>
+        message() shouldBe s"Unexpected response from POST $testBaseUrl/platform-analytics/event with status: '$httpResponseStatus' and body: $httpResponseBody"
+      })
+    }
   }
 
   private trait Setup extends HttpClientStubSetup {
@@ -76,13 +96,15 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MockFactory {
       ))
     )
 
+    val testBaseUrl = "http://localhost:9000"
     val connectorConfig = new PlatformAnalyticsConnectorConfig(mock[HostConfigProvider]) {
-      override lazy val baseUrl = "http://host/platform-analytics"
+      override lazy val baseUrl = testBaseUrl
     }
 
     val randomIntProvider = stub[RandomIntProvider]
+    val logger = Proxy.stub[LoggerLike]
 
-    val connector = new PlatformAnalyticsConnector(httpClient, connectorConfig, randomIntProvider)
+    val connector = new PlatformAnalyticsConnector(httpClient, connectorConfig, randomIntProvider, logger)
   }
 
 }

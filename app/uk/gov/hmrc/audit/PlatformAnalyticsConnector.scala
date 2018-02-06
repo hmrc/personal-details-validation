@@ -18,15 +18,18 @@ package uk.gov.hmrc.audit
 
 import javax.inject.{Inject, Singleton}
 
+import play.api.{Logger, LoggerLike}
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpReads, HttpResponse}
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.random.RandomIntProvider
 
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConfig: PlatformAnalyticsConnectorConfig, randomIntProvider: RandomIntProvider) {
+class PlatformAnalyticsConnector (httpClient: HttpClient, connectorConfig: PlatformAnalyticsConnectorConfig, randomIntProvider: RandomIntProvider, logger: LoggerLike) {
+
+  @Inject() def this(httpClient: HttpClient, connectorConfig: PlatformAnalyticsConnectorConfig, randomIntProvider: RandomIntProvider) = this(httpClient, connectorConfig, randomIntProvider, Logger)
 
   def sendEvent(event: GAEvent)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit =
     httpClient.POST[JsObject, HttpResponse](
@@ -35,6 +38,15 @@ class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConf
     )
 
   private def randomGaUserId = s"GA1.1.${Math.abs(randomIntProvider())}.${Math.abs(randomIntProvider())}"
+
+  private implicit val httpReads: HttpReads[HttpResponse] = new HttpReads[HttpResponse] {
+    override def read(method: String, url: String, response: HttpResponse): HttpResponse = response.status match {
+      case 200 => response
+      case status =>
+        logger.error(s"Unexpected response from $method $url with status: '$status' and body: ${response.body}")
+        response
+    }
+  }
 
   private implicit class GAEventSerializer(gaEvent: GAEvent) {
     def toJson(gaUserId: String): JsObject = Json.obj(
