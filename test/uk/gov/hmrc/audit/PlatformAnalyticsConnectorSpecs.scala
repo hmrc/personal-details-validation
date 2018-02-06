@@ -17,19 +17,20 @@
 package uk.gov.hmrc.audit
 
 import org.scalamock.scalatest.MixedMockFactory
+import org.scalatest.concurrent.Eventually
 import play.api.LoggerLike
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import setups.HttpClientStubSetup
 import uk.gov.hmrc.config.HostConfigProvider
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier, Upstream5xxResponse}
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.random.RandomIntProvider
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
 
-class PlatformAnalyticsConnectorSpecs extends UnitSpec with MixedMockFactory {
+class PlatformAnalyticsConnectorSpecs extends UnitSpec with MixedMockFactory with Eventually {
 
   "connector" should {
 
@@ -72,13 +73,19 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MixedMockFactory {
         .withPayload(payload(gaUserId))
         .returning(httpResponseStatus, httpResponseBody)
 
-      logger.when('error)(*)
+      logger.when('error)(*,*)
 
       connector.sendEvent(gaEvent)(headerCarrier.copy(gaUserId = Some(gaUserId)), global)
 
-      logger.verify('error)(argAssert { (message: () => String) =>
-        message() shouldBe s"Unexpected response from POST $testBaseUrl/platform-analytics/event with status: '$httpResponseStatus' and body: $httpResponseBody"
-      })
+      eventually {
+        logger.verify('error)(
+          argAssert { (message: () => String) =>
+            message() shouldBe "Unexpected response from platform-analytics"
+          },
+          argAssert { (throwable: () => Throwable) =>
+            throwable() shouldBe a[Upstream5xxResponse]
+          })
+      }
     }
   }
 
