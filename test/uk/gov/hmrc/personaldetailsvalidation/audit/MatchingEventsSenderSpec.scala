@@ -61,7 +61,7 @@ class MatchingEventsSenderSpec extends UnitSpec with MockFactory with ScalaFutur
       val matchedPerson = personalDetails.copy(nino = Nino("AA000003C"))
 
       (connector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(GAEvent("sos_iv", "personal_detail_validation_end", "success_nino_suffix_different_from_cid"), headerCarrier, executionContext)
+        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_nino_suffix_different_from_cid"), headerCarrier, executionContext)
 
       sender.sendSuffixMatchingEvent(personalDetails, MatchSuccessful(matchedPerson))
     }
@@ -70,7 +70,7 @@ class MatchingEventsSenderSpec extends UnitSpec with MockFactory with ScalaFutur
       val personalDetails = personalDetailsObjects.generateOne
 
       (connector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(GAEvent("sos_iv", "personal_detail_validation_end", "success_nino_suffix_same_as_cid"), headerCarrier, executionContext)
+        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_nino_suffix_same_as_cid"), headerCarrier, executionContext)
 
       sender.sendSuffixMatchingEvent(personalDetails, MatchSuccessful(personalDetails))
     }

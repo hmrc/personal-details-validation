@@ -36,16 +36,16 @@ private[personaldetailsvalidation] class MatchingEventsSender @Inject()(platform
       case MatchFailed => "failed_matching"
     }
 
-    platformAnalyticsConnector.sendEvent(matchingGaEvent(label))
+    platformAnalyticsConnector.sendEvent(gaEvent(label))
   }
 
   def sendMatchingErrorEvent(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit =
-    platformAnalyticsConnector.sendEvent(matchingGaEvent("technical_error_matching"))
+    platformAnalyticsConnector.sendEvent(gaEvent("technical_error_matching"))
 
   def sendSuffixMatchingEvent(externalPerson: PersonalDetails, matchResult: MatchResult)
                              (implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = matchResult match {
-    case MatchSuccessful(matchedPerson) if externalPerson.hasSameNinoSuffixAs(matchedPerson) => platformAnalyticsConnector.sendEvent(suffixGaEvent("success_nino_suffix_same_as_cid"))
-    case MatchSuccessful(_)  => platformAnalyticsConnector.sendEvent(suffixGaEvent("success_nino_suffix_different_from_cid"))
+    case MatchSuccessful(matchedPerson) if externalPerson.hasSameNinoSuffixAs(matchedPerson) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_same_as_cid"))
+    case MatchSuccessful(_)  => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_different_from_cid"))
     case _ =>
   }
 
@@ -53,7 +53,6 @@ private[personaldetailsvalidation] class MatchingEventsSender @Inject()(platform
     def hasSameNinoSuffixAs(other: PersonalDetails): Boolean = target.nino.value.last == other.nino.value.last
   }
 
-  private def matchingGaEvent(label: String) = GAEvent("sos_iv", "personal_detail_validation_result", label)
-  private def suffixGaEvent(label: String) = GAEvent("sos_iv", "personal_detail_validation_end", label)
+  private def gaEvent(label: String) = GAEvent("sos_iv", "personal_detail_validation_result", label)
 
 }
