@@ -29,6 +29,7 @@ import uk.gov.hmrc.random.RandomIntProvider
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Random
+import scala.concurrent.duration._
 
 class PlatformAnalyticsConnectorSpecs extends UnitSpec with MixedMockFactory with Eventually {
 
@@ -76,6 +77,8 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MixedMockFactory wit
       logger.when('error)(*,*)
 
       connector.sendEvent(gaEvent)(headerCarrier.copy(gaUserId = Some(gaUserId)), global)
+
+      implicit val patienceConfig = PatienceConfig(timeout = 5 seconds, interval = 100 millis)
 
       eventually {
         logger.verify('error)(
