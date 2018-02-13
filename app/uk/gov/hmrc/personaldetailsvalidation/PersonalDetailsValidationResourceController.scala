@@ -50,9 +50,9 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
       def handleMatchingDone(validationId: ValidationId) =
         Future.successful(Created.withHeaders(LOCATION -> routes.PersonalDetailsValidationResourceController.get(validationId).url))
 
-      def handleMatchingError(exception: Exception): Future[Result] = Future.failed(exception)
+      def handleException(exception: Exception): Future[Result] = Future.failed(exception)
 
-      personalDetailsValidator.validate(personalDetails).fold(handleMatchingError, handleMatchingDone).flatten
+      personalDetailsValidator.validate(personalDetails).fold(handleException, handleMatchingDone).flatten
     }
   }
 

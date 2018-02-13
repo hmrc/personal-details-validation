@@ -51,7 +51,9 @@ class FuturedMatchingConnector @Inject()(httpClient: HttpClient, connectorConfig
     EitherT(httpClient.POST[JsObject, Either[Exception, MatchResult]](
       url = s"$authenticatorBaseUrl/match",
       body = personalDetails.toJson
-    ))
+    ) recover {
+      case ex: Exception => Left(ex)
+    })
 
   private implicit val matchingResultHttpReads: HttpReads[Either[Exception, MatchResult]] = new HttpReads[Either[Exception, MatchResult]] {
     override def read(method: String, url: String, response: HttpResponse): Either[Exception, MatchResult] = response.status match {

@@ -59,7 +59,7 @@ class FuturedMatchingConnectorSpec
 
     Set(NO_CONTENT, NOT_FOUND, INTERNAL_SERVER_ERROR) foreach { unexpectedStatus =>
 
-      s"return MatchingError when POST to /authenticator/match returns $unexpectedStatus" in new Setup {
+      s"return Left when POST to /authenticator/match returns $unexpectedStatus" in new Setup {
 
         expectPost(toUrl = "http://host/authenticator/match")
           .withPayload(payload)
@@ -69,6 +69,17 @@ class FuturedMatchingConnectorSpec
         expectedException shouldBe a[BadGatewayException]
         expectedException.getMessage shouldBe s"Unexpected response from POST http://host/authenticator/match with status: '$unexpectedStatus' and body: some response body"
       }
+    }
+
+    "return Left when POST to /authenticator/match returns a failed Future" in new Setup {
+
+      val exception = new RuntimeException("some error")
+
+      expectPost(toUrl = "http://host/authenticator/match")
+        .withPayload(payload)
+        .throwing(exception)
+
+      connector.doMatch(personalDetails).value.futureValue shouldBe Left(exception)
     }
   }
 
