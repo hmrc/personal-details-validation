@@ -19,6 +19,7 @@ package uk.gov.hmrc.personaldetailsvalidation
 import java.time.ZoneOffset.UTC
 import java.time.{Duration, LocalDateTime}
 
+import akka.Done
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
 import mongo.MongoIndexVerifier
@@ -51,7 +52,7 @@ class PersonalDetailsValidationMongoRepositorySpec
     ) foreach { personalDetailsValidation =>
 
       s"be able to insert ${personalDetailsValidation.getClass.getSimpleName}" in new Setup {
-        await(repository.create(personalDetailsValidation))
+        repository.create(personalDetailsValidation).value.futureValue shouldBe Right(Done)
 
         repository.get(personalDetailsValidation.id).futureValue shouldBe Some(personalDetailsValidation)
       }
@@ -61,7 +62,7 @@ class PersonalDetailsValidationMongoRepositorySpec
       val personalDetailsValidation = successfulPersonalDetailsValidationObjects.generateOne
       val validationId = personalDetailsValidation.id.value.toString
 
-      await(repository.create(personalDetailsValidation))
+      repository.create(personalDetailsValidation).value.futureValue shouldBe Right(Done)
 
       bsonCollection(repository.collection.name)().count(selector = Some(BSONDocument("_id" -> validationId, "createdAt" -> currentTime.atZone(UTC).toInstant.toEpochMilli))).futureValue shouldBe 1
     }

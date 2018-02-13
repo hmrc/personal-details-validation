@@ -19,6 +19,7 @@ package uk.gov.hmrc.personaldetailsvalidation
 import javax.inject.{Inject, Singleton}
 
 import akka.Done
+import cats.data.EitherT
 import com.google.inject.ImplementedBy
 import play.api.libs.json.JsObject
 import play.modules.reactivemongo.ReactiveMongoComponent
@@ -36,11 +37,13 @@ import uk.gov.hmrc.play.json.ops._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.higherKinds
+import cats.implicits._
+import ExecutionContext.Implicits.global
 
 private trait PersonalDetailsValidationRepository[Interpretation[_]] {
 
   def create(personalDetails: PersonalDetailsValidation)
-            (implicit ec: ExecutionContext): Interpretation[Done]
+            (implicit ec: ExecutionContext): EitherT[Interpretation, Exception, Done]
 
   def get(personalDetailsValidationId: ValidationId)
          (implicit ec: ExecutionContext): Interpretation[Option[PersonalDetailsValidation]]
@@ -64,11 +67,11 @@ private class PersonalDetailsValidationMongoRepository @Inject()(config: Persona
   )
 
   def create(personalDetailsValidation: PersonalDetailsValidation)
-            (implicit ec: ExecutionContext): Future[Done] = {
+            (implicit ec: ExecutionContext): EitherT[Future, Exception, Done] = {
 
     val document = domainFormatImplicit.writes(personalDetailsValidation).as[JsObject].withCreatedTimeStamp()
 
-    collection.insert(document).map(_ => Done)
+    EitherT.right[Exception](collection.insert(document).map(_ => Done))
   }
 
   def get(personalDetailsValidationId: ValidationId)

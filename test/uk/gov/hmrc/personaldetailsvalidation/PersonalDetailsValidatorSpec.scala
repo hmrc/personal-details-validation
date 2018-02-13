@@ -64,7 +64,7 @@ class PersonalDetailsValidatorSpec
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(personalDetailsValidation, executionContext)
-        .returning(Done)
+        .returning(EitherT.rightT[Id, Exception](Done))
 
       validator.validate(personalDetails).value shouldBe Right(personalDetailsValidation.id)
     }
@@ -89,7 +89,7 @@ class PersonalDetailsValidatorSpec
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(personalDetailsValidation, executionContext)
-        .returning(Done)
+        .returning(EitherT.rightT[Id, Exception](Done))
 
       validator.validate(personalDetails).value shouldBe Right(personalDetailsValidation.id)
     }

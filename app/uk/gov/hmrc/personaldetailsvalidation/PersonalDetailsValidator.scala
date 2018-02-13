@@ -53,7 +53,7 @@ private class PersonalDetailsValidator[Interpretation[_] : Monad](matchingConnec
     _ = sendMatchResultEvent(matchResult)
     _ = sendSuffixMatchingEvent(personalDetails, matchResult)
     personalDetailsValidation = matchResult.toPersonalDetailsValidation(optionallyHaving = personalDetails)
-    _ <- persist(personalDetailsValidation)
+    _ <- personalDetailsValidationRepository.create(personalDetailsValidation)
   } yield personalDetailsValidation.id
 
   private def getMatchingResult(personalDetails: PersonalDetails)(implicit hc: HeaderCarrier, ec: ExecutionContext) = {
@@ -62,9 +62,6 @@ private class PersonalDetailsValidator[Interpretation[_] : Monad](matchingConnec
       _ = matchingEventsSender.sendMatchingErrorEvent
     } yield error
   }.swap
-
-  private def persist(personalDetailsValidation: PersonalDetailsValidation)(implicit hc: HeaderCarrier, ec: ExecutionContext) =
-    EitherT.right[Exception](personalDetailsValidationRepository.create(personalDetailsValidation))
 
   private implicit class MatchResultOps(matchResult: MatchResult) {
     def toPersonalDetailsValidation(optionallyHaving: PersonalDetails): PersonalDetailsValidation = matchResult match {
