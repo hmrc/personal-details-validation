@@ -107,6 +107,28 @@ class PersonalDetailsValidatorSpec
 
       validator.validate(personalDetails).value shouldBe Left(exception)
     }
+
+    "return matching error when the call to persist fails" in new Setup {
+      val personalDetails = personalDetailsObjects.generateOne
+
+      val matchResult = MatchSuccessful(personalDetails)
+
+      (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(personalDetails, headerCarrier, executionContext)
+        .returning(EitherT.rightT[Id, Exception](matchResult))
+
+      val personalDetailsValidation = PersonalDetailsValidation.successful(personalDetails)
+
+      val exception = new RuntimeException("error")
+      (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
+        .expects(personalDetailsValidation, executionContext)
+        .returning(EitherT.leftT[Id, Done](exception))
+
+      (matchingEventsSender.sendMatchingErrorEvent(_: HeaderCarrier, _: ExecutionContext))
+        .expects(headerCarrier, executionContext)
+
+      validator.validate(personalDetails).value shouldBe Left(exception)
+    }
   }
 
   private trait Setup {

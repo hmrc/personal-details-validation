@@ -46,22 +46,18 @@ private class PersonalDetailsValidator[Interpretation[_] : Monad](matchingConnec
                                                                  (implicit uuidProvider: UUIDProvider) {
 
   import matchingEventsSender._
+  import matchingConnector._
 
   def validate(personalDetails: PersonalDetails)
-              (implicit hc: HeaderCarrier, ec: ExecutionContext): EitherT[Interpretation, Exception, ValidationId] = for {
-    matchResult <- getMatchingResult(personalDetails)
-    _ = sendMatchResultEvent(matchResult)
-    _ = sendSuffixMatchingEvent(personalDetails, matchResult)
-    personalDetailsValidation = matchResult.toPersonalDetailsValidation(optionallyHaving = personalDetails)
-    _ <- personalDetailsValidationRepository.create(personalDetailsValidation)
-  } yield personalDetailsValidation.id
-
-  private def getMatchingResult(personalDetails: PersonalDetails)(implicit hc: HeaderCarrier, ec: ExecutionContext) = {
+              (implicit hc: HeaderCarrier, ec: ExecutionContext): EitherT[Interpretation, Exception, ValidationId] = {
     for {
-      error <- matchingConnector.doMatch(personalDetails).swap
-      _ = matchingEventsSender.sendMatchingErrorEvent
-    } yield error
-  }.swap
+      matchResult <- doMatch(personalDetails)
+      personalDetailsValidation = matchResult.toPersonalDetailsValidation(optionallyHaving = personalDetails)
+      _ <- personalDetailsValidationRepository.create(personalDetailsValidation)
+      _ = sendMatchResultEvent(matchResult)
+      _ = sendSuffixMatchingEvent(personalDetails, matchResult)
+    } yield personalDetailsValidation.id
+  }.leftMap { error => sendMatchingErrorEvent; error }
 
   private implicit class MatchResultOps(matchResult: MatchResult) {
     def toPersonalDetailsValidation(optionallyHaving: PersonalDetails): PersonalDetailsValidation = matchResult match {
