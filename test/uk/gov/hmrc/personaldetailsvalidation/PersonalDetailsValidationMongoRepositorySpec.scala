@@ -24,7 +24,7 @@ import generators.Generators.Implicits._
 import generators.ObjectGenerators._
 import mongo.MongoIndexVerifier
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import play.api.Configuration
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
@@ -43,7 +43,8 @@ class PersonalDetailsValidationMongoRepositorySpec
     with MongoSpecSupport
     with MongoIndexVerifier
     with MockFactory
-    with ScalaFutures {
+    with ScalaFutures
+    with IntegrationPatience {
 
   "create" should {
     Set(
@@ -56,6 +57,12 @@ class PersonalDetailsValidationMongoRepositorySpec
 
         repository.get(personalDetailsValidation.id).futureValue shouldBe Some(personalDetailsValidation)
       }
+    }
+
+    "convert exception into Either.Left" in new Setup {
+      val personalDetailsValidation = successfulPersonalDetailsValidationObjects.generateOne
+      repository.create(personalDetailsValidation).value.futureValue shouldBe Right(Done)
+      repository.create(personalDetailsValidation).value.futureValue shouldBe a[Left[_, _]]
     }
 
     "add 'createdAt' field with current time when persisting the document" in new Setup {
