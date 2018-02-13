@@ -26,8 +26,6 @@ import play.api.libs.json.Json.toJson
 import play.api.libs.json._
 import play.api.mvc.{Action, Result}
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.http.BadGatewayException
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchingError
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, ValidationId}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
@@ -52,7 +50,7 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
       def handleMatchingDone(validationId: ValidationId) =
         Future.successful(Created.withHeaders(LOCATION -> routes.PersonalDetailsValidationResourceController.get(validationId).url))
 
-      def handleMatchingError(matchingError: MatchingError): Future[Result] = Future.failed(new BadGatewayException(matchingError.message))
+      def handleMatchingError(exception: Exception): Future[Result] = Future.failed(exception)
 
       personalDetailsValidator.validate(personalDetails).fold(handleMatchingError, handleMatchingDone).flatten
     }

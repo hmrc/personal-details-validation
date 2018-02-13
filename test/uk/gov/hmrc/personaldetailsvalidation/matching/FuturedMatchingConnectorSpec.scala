@@ -25,9 +25,8 @@ import play.api.test.Helpers._
 import setups.HttpClientStubSetup
 import uk.gov.hmrc.config.HostConfigProvider
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchingError
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
@@ -66,7 +65,9 @@ class FuturedMatchingConnectorSpec
           .withPayload(payload)
           .returning(unexpectedStatus, "some response body")
 
-        connector.doMatch(personalDetails).value.futureValue shouldBe Left(MatchingError(s"Unexpected response from POST http://host/authenticator/match with status: '$unexpectedStatus' and body: some response body"))
+        val Left(expectedException) = connector.doMatch(personalDetails).value.futureValue
+        expectedException shouldBe a[BadGatewayException]
+        expectedException.getMessage shouldBe s"Unexpected response from POST http://host/authenticator/match with status: '$unexpectedStatus' and body: some response body"
       }
     }
   }

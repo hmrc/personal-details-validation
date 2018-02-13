@@ -27,8 +27,8 @@ import org.scalamock.scalatest.MockFactory
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.MatchingEventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.{MatchResult, MatchingError}
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsValidation}
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.uuid.UUIDProvider
@@ -51,7 +51,7 @@ class PersonalDetailsValidatorSpec
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
-        .returning(EitherT.rightT[Id, MatchingError](matchResult))
+        .returning(EitherT.rightT[Id, Exception](matchResult))
 
 
       (matchingEventsSender.sendMatchResultEvent(_: MatchResult)(_: HeaderCarrier, _: ExecutionContext))
@@ -77,7 +77,7 @@ class PersonalDetailsValidatorSpec
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
-        .returning(EitherT.rightT[Id, MatchingError](matchResult))
+        .returning(EitherT.rightT[Id, Exception](matchResult))
 
       (matchingEventsSender.sendMatchResultEvent(_: MatchResult)(_: HeaderCarrier, _: ExecutionContext))
         .expects(matchResult, headerCarrier, executionContext)
@@ -97,15 +97,15 @@ class PersonalDetailsValidatorSpec
     "return matching error when the call to match fails" in new Setup {
       val personalDetails = personalDetailsObjects.generateOne
 
-      val matchingError = MatchingError("error")
+      val exception = new RuntimeException("error")
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
-        .returning(EitherT.leftT[Id, MatchResult](matchingError))
+        .returning(EitherT.leftT[Id, MatchResult](exception))
 
       (matchingEventsSender.sendMatchingErrorEvent(_: HeaderCarrier, _: ExecutionContext))
         .expects(headerCarrier, executionContext)
 
-      validator.validate(personalDetails).value shouldBe Left(matchingError)
+      validator.validate(personalDetails).value shouldBe Left(exception)
     }
   }
 

@@ -29,12 +29,13 @@ import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.language.higherKinds
 
 @ImplementedBy(classOf[FuturedMatchingConnector])
 trait MatchingConnector[Interpretation[_]] {
 
   def doMatch(personalDetails: PersonalDetails)
-             (implicit headerCarrier: HeaderCarrier, executionContext: ExecutionContext): EitherT[Interpretation, MatchingError, MatchResult]
+             (implicit headerCarrier: HeaderCarrier, executionContext: ExecutionContext): EitherT[Interpretation, Exception, MatchResult]
 
 }
 
@@ -46,17 +47,17 @@ class FuturedMatchingConnector @Inject()(httpClient: HttpClient, connectorConfig
 
   def doMatch(personalDetails: PersonalDetails)
              (implicit headerCarrier: HeaderCarrier,
-              executionContext: ExecutionContext): EitherT[Future, MatchingError, MatchResult] =
-    EitherT(httpClient.POST[JsObject, Either[MatchingError, MatchResult]](
+              executionContext: ExecutionContext): EitherT[Future, Exception, MatchResult] =
+    EitherT(httpClient.POST[JsObject, Either[Exception, MatchResult]](
       url = s"$authenticatorBaseUrl/match",
       body = personalDetails.toJson
     ))
 
-  private implicit val matchingResultHttpReads: HttpReads[Either[MatchingError, MatchResult]] = new HttpReads[Either[MatchingError, MatchResult]] {
-    override def read(method: String, url: String, response: HttpResponse): Either[MatchingError, MatchResult] = response.status match {
+  private implicit val matchingResultHttpReads: HttpReads[Either[Exception, MatchResult]] = new HttpReads[Either[Exception, MatchResult]] {
+    override def read(method: String, url: String, response: HttpResponse): Either[Exception, MatchResult] = response.status match {
       case OK => Right(MatchSuccessful(response.json.as[PersonalDetails]))
       case UNAUTHORIZED => Right(MatchFailed)
-      case other => Left(MatchingError(s"Unexpected response from $method $url with status: '$other' and body: ${response.body}"))
+      case other => Left(new BadGatewayException(s"Unexpected response from $method $url with status: '$other' and body: ${response.body}"))
     }
   }
 
@@ -73,8 +74,6 @@ class FuturedMatchingConnector @Inject()(httpClient: HttpClient, connectorConfig
 object MatchingConnector {
 
   sealed trait MatchResult
-
-  case class MatchingError(message: String)
 
   object MatchResult {
 

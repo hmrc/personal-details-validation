@@ -20,6 +20,7 @@ import java.util.UUID.randomUUID
 
 import akka.stream.Materializer
 import cats.data.EitherT
+import cats.implicits._
 import factory.ObjectFactory._
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
@@ -33,17 +34,14 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchingError
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.uuid.UUIDProvider
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 import scalamock.MockArgumentMatchers
-import cats.implicits._
-
-import ExecutionContext.Implicits.global
 
 class PersonalDetailsValidationResourceControllerSpec
   extends UnitSpec
@@ -61,7 +59,7 @@ class PersonalDetailsValidationResourceControllerSpec
       forAll { (personalDetails: PersonalDetails, validationId: ValidationId) =>
         (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
           .expects(personalDetails, instanceOf[HeaderCarrier], instanceOf[MdcLoggingExecutionContext])
-          .returns(EitherT.rightT[Future, MatchingError](validationId))
+          .returns(EitherT.rightT[Future, Exception](validationId))
 
         val response = controller.create(request.withBody(toJson(personalDetails)))
 
@@ -86,7 +84,7 @@ class PersonalDetailsValidationResourceControllerSpec
 
         (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
           .expects(personalDetailsWithUpperCaseNino, instanceOf[HeaderCarrier], instanceOf[MdcLoggingExecutionContext])
-          .returns(EitherT.rightT[Future, MatchingError](ValidationId()))
+          .returns(EitherT.rightT[Future, Exception](ValidationId()))
 
         val response = controller.create(request.withBody(json))
 
@@ -98,7 +96,7 @@ class PersonalDetailsValidationResourceControllerSpec
       forAll { (personalDetails: PersonalDetails, validationId: ValidationId) =>
         (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
           .expects(personalDetails, instanceOf[HeaderCarrier], instanceOf[MdcLoggingExecutionContext])
-          .returns(EitherT.rightT[Future, MatchingError](validationId))
+          .returns(EitherT.rightT[Future, Exception](validationId))
 
         val response = controller.create(request.withBody(toJson(personalDetails)))
 
@@ -109,15 +107,13 @@ class PersonalDetailsValidationResourceControllerSpec
     "return BadGatewayException if matching error occurs" in new Setup {
       val personalDetails = randomPersonalDetails
 
-      val error = MatchingError("some error")
+      val badGatewayException = new BadGatewayException("some error")
 
       (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, instanceOf[HeaderCarrier], instanceOf[MdcLoggingExecutionContext])
-        .returns(EitherT.leftT[Future, ValidationId](error))
+        .returns(EitherT.leftT[Future, ValidationId](badGatewayException))
 
-      val exception = controller.create(request.withBody(toJson(personalDetails))).failed.futureValue
-      exception shouldBe an[BadGatewayException]
-      exception.getMessage shouldBe error.message
+      controller.create(request.withBody(toJson(personalDetails))).failed.futureValue shouldBe badGatewayException
     }
 
     "return BAD_REQUEST if mandatory fields are missing" in new Setup {
