@@ -19,12 +19,11 @@ package uk.gov.hmrc.personaldetailsvalidation
 import java.util.UUID.randomUUID
 
 import akka.Done
+import cats.Id
 import cats.data.EitherT
-import cats.implicits._
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.concurrent.ScalaFutures
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.MatchingEventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
@@ -34,12 +33,11 @@ import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDet
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.uuid.UUIDProvider
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
-import scala.concurrent.{ExecutionContext, Future}
 
 class PersonalDetailsValidatorSpec
   extends UnitSpec
-    with ScalaFutures
     with MockFactory {
 
   "validate" should {
@@ -53,7 +51,7 @@ class PersonalDetailsValidatorSpec
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
-        .returning(EitherT.right[MatchingError](Future.successful(matchResult)))
+        .returning(EitherT.rightT[Id, MatchingError](matchResult))
 
 
       (matchingEventsSender.sendMatchResultEvent(_: MatchResult)(_: HeaderCarrier, _: ExecutionContext))
@@ -66,9 +64,9 @@ class PersonalDetailsValidatorSpec
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(personalDetailsValidation, executionContext)
-        .returning(Future.successful(Done))
+        .returning(Done)
 
-      validator.validate(personalDetails).value.futureValue shouldBe Right(personalDetailsValidation.id)
+      validator.validate(personalDetails).value shouldBe Right(personalDetailsValidation.id)
     }
 
     "match the given personal details with matching service, " +
@@ -79,7 +77,7 @@ class PersonalDetailsValidatorSpec
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
-        .returning(EitherT.right[MatchingError](Future.successful(matchResult)))
+        .returning(EitherT.rightT[Id, MatchingError](matchResult))
 
       (matchingEventsSender.sendMatchResultEvent(_: MatchResult)(_: HeaderCarrier, _: ExecutionContext))
         .expects(matchResult, headerCarrier, executionContext)
@@ -91,9 +89,9 @@ class PersonalDetailsValidatorSpec
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(personalDetailsValidation, executionContext)
-        .returning(Future.successful(Done))
+        .returning(Done)
 
-      validator.validate(personalDetails).value.futureValue shouldBe Right(personalDetailsValidation.id)
+      validator.validate(personalDetails).value shouldBe Right(personalDetailsValidation.id)
     }
 
     "return matching error when the call to match fails" in new Setup {
@@ -102,22 +100,22 @@ class PersonalDetailsValidatorSpec
       val matchingError = MatchingError("error")
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
-        .returning(EitherT.left[MatchResult](Future.successful(matchingError)))
+        .returning(EitherT.leftT[Id, MatchResult](matchingError))
 
       (matchingEventsSender.sendMatchingErrorEvent(_: HeaderCarrier, _: ExecutionContext))
         .expects(headerCarrier, executionContext)
 
-      validator.validate(personalDetails).value.futureValue shouldBe Left(matchingError)
+      validator.validate(personalDetails).value shouldBe Left(matchingError)
     }
   }
 
   private trait Setup {
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
-    val matchingConnector = mock[MatchingConnector]
+    val matchingConnector = mock[MatchingConnector[Id]]
     val matchingEventsSender = mock[MatchingEventsSender]
 
-    val repository = mock[PersonalDetailsValidationRepository]
+    val repository = mock[PersonalDetailsValidationRepository[Id]]
     implicit val uuidProvider: UUIDProvider = stub[UUIDProvider]
     uuidProvider.apply _ when() returns randomUUID()
 

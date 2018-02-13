@@ -38,8 +38,8 @@ import scala.concurrent.Future
 import scala.util.Try
 
 @Singleton
-class PersonalDetailsValidationResourceController @Inject()(personalDetailsValidationRepository: PersonalDetailsValidationRepository,
-                                                            personalDetailsValidator: PersonalDetailsValidator)
+class PersonalDetailsValidationResourceController @Inject()(personalDetailsValidationRepository: FuturedPersonalDetailsValidationRepository,
+                                                            personalDetailsValidator: FuturedPersonalDetailsValidator)
   extends BaseController
     with JsonValidation {
 

@@ -255,8 +255,8 @@ class PersonalDetailsValidationResourceControllerSpec
     uuidProvider.apply _ when() returns randomUUID()
 
     val request = FakeRequest()
-    val mockRepository = mock[PersonalDetailsValidationRepository]
-    val mockValidator = mock[PersonalDetailsValidator]
+    val mockRepository = mock[FuturedPersonalDetailsValidationRepository]
+    val mockValidator = mock[FuturedPersonalDetailsValidator]
     val controller = new PersonalDetailsValidationResourceController(mockRepository, mockValidator)
   }
 

@@ -35,16 +35,19 @@ import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, V
 import uk.gov.hmrc.play.json.ops._
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.language.higherKinds
 
-@ImplementedBy(classOf[PersonalDetailsValidationMongoRepository])
-private trait PersonalDetailsValidationRepository {
+private trait PersonalDetailsValidationRepository[Interpretation[_]] {
 
   def create(personalDetails: PersonalDetailsValidation)
-            (implicit ec: ExecutionContext): Future[Done]
+            (implicit ec: ExecutionContext): Interpretation[Done]
 
   def get(personalDetailsValidationId: ValidationId)
-         (implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]]
+         (implicit ec: ExecutionContext): Interpretation[Option[PersonalDetailsValidation]]
 }
+
+@ImplementedBy(classOf[PersonalDetailsValidationMongoRepository])
+private trait FuturedPersonalDetailsValidationRepository extends PersonalDetailsValidationRepository[Future]
 
 @Singleton
 private class PersonalDetailsValidationMongoRepository @Inject()(config: PersonalDetailsValidationMongoRepositoryConfig, mongoComponent: ReactiveMongoComponent)(implicit currentTimeProvider: CurrentTimeProvider)
@@ -53,7 +56,7 @@ private class PersonalDetailsValidationMongoRepository @Inject()(config: Persona
     mongo = mongoComponent.mongoConnector.db,
     domainFormat = mongoEntity(personalDetailsValidationFormats),
     idFormat = personalDetailsValidationIdFormats
-  ) with PersonalDetailsValidationRepository {
+  ) with FuturedPersonalDetailsValidationRepository {
 
 
   override def indexes: Seq[Index] = Seq(

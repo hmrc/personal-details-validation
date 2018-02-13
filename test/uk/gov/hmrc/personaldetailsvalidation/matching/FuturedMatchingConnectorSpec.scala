@@ -32,7 +32,7 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
 
-class MatchingConnectorSpec
+class FuturedMatchingConnectorSpec
   extends UnitSpec
     with ScalaFutures
     with MockFactory {
@@ -87,6 +87,6 @@ class MatchingConnectorSpec
     private val connectorConfig = new MatchingConnectorConfig(mock[HostConfigProvider]) {
       override lazy val authenticatorBaseUrl = "http://host/authenticator"
     }
-    val connector = new MatchingConnector(httpClient, connectorConfig)
+    val connector = new FuturedMatchingConnector(httpClient, connectorConfig)
   }
 }
