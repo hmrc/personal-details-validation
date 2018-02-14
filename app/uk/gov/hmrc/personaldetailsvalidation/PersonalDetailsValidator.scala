@@ -54,8 +54,7 @@ private class PersonalDetailsValidator[Interpretation[_] : Monad](matchingConnec
       matchResult <- doMatch(personalDetails)
       personalDetailsValidation = matchResult.toPersonalDetailsValidation(optionallyHaving = personalDetails)
       _ <- personalDetailsValidationRepository.create(personalDetailsValidation)
-      _ = sendMatchResultEvent(matchResult)
-      _ = sendSuffixMatchingEvent(personalDetails, matchResult)
+      _ = sendEvents(matchResult, personalDetails)
     } yield personalDetailsValidation.id
   }.leftMap { error => sendMatchingErrorEvent; error }
 

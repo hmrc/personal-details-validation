@@ -54,11 +54,8 @@ class PersonalDetailsValidatorSpec
         .returning(EitherT.rightT[Id, Exception](matchResult))
 
 
-      (matchingEventsSender.sendMatchResultEvent(_: MatchResult)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(matchResult, headerCarrier, executionContext)
-
-      (matchingEventsSender.sendSuffixMatchingEvent(_: PersonalDetails, _: MatchResult)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(personalDetails, matchResult, headerCarrier, executionContext)
+      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(matchResult, personalDetails, headerCarrier, executionContext)
 
       val personalDetailsValidation = PersonalDetailsValidation.successful(personalDetails)
 
@@ -79,11 +76,8 @@ class PersonalDetailsValidatorSpec
         .expects(personalDetails, headerCarrier, executionContext)
         .returning(EitherT.rightT[Id, Exception](matchResult))
 
-      (matchingEventsSender.sendMatchResultEvent(_: MatchResult)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(matchResult, headerCarrier, executionContext)
-
-      (matchingEventsSender.sendSuffixMatchingEvent(_: PersonalDetails, _: MatchResult)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(personalDetails, matchResult, headerCarrier, executionContext)
+      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(matchResult, personalDetails, headerCarrier, executionContext)
 
       val personalDetailsValidation = PersonalDetailsValidation.failed()
 

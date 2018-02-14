@@ -31,13 +31,29 @@ import uk.gov.hmrc.domain.Nino
 
 class MatchingEventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
 
-  "MatchingEventsSender" should {
-    "send success MatchResultEvent" in new Setup {
+  "sendEvents" should {
+    "send success MatchResultEvent and suffix event when nino suffix matches between external person and matched person" in new Setup {
 
       (connector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
         .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success"), headerCarrier, executionContext)
 
-      sender.sendMatchResultEvent(MatchSuccessful(personalDetailsObjects.generateOne))
+      (connector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_nino_suffix_same_as_cid"), headerCarrier, executionContext)
+
+
+      sender.sendEvents(MatchSuccessful(personalDetails), personalDetails)
+    }
+
+    "send success MatchResultEvent and suffix event when nino suffix does not match between external person and matched person" in new Setup {
+      val matchedPersonDetails = personalDetails.copy(nino = Nino("AA000003C"))
+
+      (connector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success"), headerCarrier, executionContext)
+
+      (connector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_nino_suffix_different_from_cid"), headerCarrier, executionContext)
+
+      sender.sendEvents(MatchSuccessful(matchedPersonDetails), personalDetails)
     }
 
     "send failure MatchResultEvent" in new Setup {
@@ -45,7 +61,7 @@ class MatchingEventsSenderSpec extends UnitSpec with MockFactory with ScalaFutur
       (connector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
         .expects(GAEvent("sos_iv", "personal_detail_validation_result", "failed_matching"), headerCarrier, executionContext)
 
-      sender.sendMatchResultEvent(MatchFailed)
+      sender.sendEvents(MatchFailed, personalDetails)
     }
 
     "send technical error matching event" in new Setup {
@@ -55,38 +71,11 @@ class MatchingEventsSenderSpec extends UnitSpec with MockFactory with ScalaFutur
 
       sender.sendMatchingErrorEvent
     }
-
-    "send suffix matching event if nino suffix does not match between external person and matched person" in new Setup {
-      val personalDetails = personalDetailsObjects.generateOne.copy(nino = Nino("AA000003D"))
-      val matchedPerson = personalDetails.copy(nino = Nino("AA000003C"))
-
-      (connector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_nino_suffix_different_from_cid"), headerCarrier, executionContext)
-
-      sender.sendSuffixMatchingEvent(personalDetails, MatchSuccessful(matchedPerson))
-    }
-
-    "send suffix matching event if nino suffix matches between external person and matched person" in new Setup {
-      val personalDetails = personalDetailsObjects.generateOne
-
-      (connector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_nino_suffix_same_as_cid"), headerCarrier, executionContext)
-
-      sender.sendSuffixMatchingEvent(personalDetails, MatchSuccessful(personalDetails))
-    }
-
-    "not send suffix matching event if match was failure" in new Setup {
-      val personalDetails = personalDetailsObjects.generateOne
-
-      (connector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(*, headerCarrier, executionContext).never()
-
-      sender.sendSuffixMatchingEvent(personalDetails, MatchFailed)
-    }
   }
 
   trait Setup {
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
+    val personalDetails = personalDetailsObjects.generateOne.copy(nino = Nino("AA000003D"))
 
     val connector = mock[PlatformAnalyticsConnector]
     val sender = new MatchingEventsSender(connector)

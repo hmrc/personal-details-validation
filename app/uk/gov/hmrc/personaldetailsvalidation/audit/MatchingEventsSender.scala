@@ -30,7 +30,12 @@ import scala.concurrent.ExecutionContext
 @Singleton
 private[personaldetailsvalidation] class MatchingEventsSender @Inject()(platformAnalyticsConnector: PlatformAnalyticsConnector) {
 
-  def sendMatchResultEvent(matchResult: MatchResult)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+  def sendEvents(matchResult: MatchResult, personalDetails: PersonalDetails)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+    sendGAMatchResultEvent(matchResult)
+    sendGASuffixMatchingEvent(matchResult, personalDetails)
+  }
+
+  private def sendGAMatchResultEvent(matchResult: MatchResult)(implicit hc: HeaderCarrier, ec: ExecutionContext) = {
     val label = matchResult match {
       case MatchSuccessful(_) => "success"
       case MatchFailed => "failed_matching"
@@ -39,15 +44,15 @@ private[personaldetailsvalidation] class MatchingEventsSender @Inject()(platform
     platformAnalyticsConnector.sendEvent(gaEvent(label))
   }
 
-  def sendMatchingErrorEvent(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit =
-    platformAnalyticsConnector.sendEvent(gaEvent("technical_error_matching"))
-
-  def sendSuffixMatchingEvent(externalPerson: PersonalDetails, matchResult: MatchResult)
-                             (implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = matchResult match {
+  private def sendGASuffixMatchingEvent(matchResult: MatchResult, externalPerson: PersonalDetails)
+                                     (implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = matchResult match {
     case MatchSuccessful(matchedPerson) if externalPerson.hasSameNinoSuffixAs(matchedPerson) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_same_as_cid"))
     case MatchSuccessful(_)  => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_different_from_cid"))
     case _ =>
   }
+
+  def sendMatchingErrorEvent(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit =
+    platformAnalyticsConnector.sendEvent(gaEvent("technical_error_matching"))
 
   private implicit class PersonalDetailsOps(target: PersonalDetails) {
     def hasSameNinoSuffixAs(other: PersonalDetails): Boolean = target.nino.value.last == other.nino.value.last
