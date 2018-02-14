@@ -36,12 +36,8 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
   def sendEvents(matchResult: MatchResult, personalDetails: PersonalDetails)(implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): Unit = {
     sendGAMatchResultEvent(matchResult)
     sendGASuffixMatchingEvent(matchResult, personalDetails)
-    sendAuditMatchResultEvent(matchResult, personalDetails)
-  }
-
-  private def sendAuditMatchResultEvent(matchResult: MatchResult, personalDetails: PersonalDetails)
-                                       (implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext) =
     auditConnector.sendEvent(auditDataFactory.createEvent(matchResult, personalDetails))
+  }
 
   private def sendGAMatchResultEvent(matchResult: MatchResult)(implicit hc: HeaderCarrier, ec: ExecutionContext) = {
     val label = matchResult match {
@@ -59,8 +55,10 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
     case _ =>
   }
 
-  def sendMatchingErrorEvent(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit =
+  def sendErrorEvents(personalDetails: PersonalDetails)(implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): Unit = {
     platformAnalyticsConnector.sendEvent(gaEvent("technical_error_matching"))
+    auditConnector.sendEvent(auditDataFactory.createErrorEvent(personalDetails))
+  }
 
   private implicit class PersonalDetailsOps(target: PersonalDetails) {
     def hasSameNinoSuffixAs(other: PersonalDetails): Boolean = target.nino.value.last == other.nino.value.last

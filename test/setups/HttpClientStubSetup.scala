@@ -79,7 +79,7 @@ trait HttpClientStubSetup extends MockFactory {
       postStubbing(url, body.asInstanceOf[JsObject])
     }
 
-    def assertInvocation = if (!invoked) fail("stub was not invoked")
+    def assertInvocation() = if (!invoked) fail("stub was not invoked")
   }
 
   val httpClient: HttpClientStub = new HttpClientStub()

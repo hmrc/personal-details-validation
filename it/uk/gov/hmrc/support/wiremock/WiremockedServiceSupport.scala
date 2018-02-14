@@ -14,7 +14,7 @@ trait WiremockedServiceSupport {
       )
     }
 
-    val auditingConfig = Map(
+    val auditingConfig = Map[String, Any](
       "auditing.consumer.baseUri.host" -> wiremockHost,
       "auditing.consumer.baseUri.port" -> wiremockPort
     )

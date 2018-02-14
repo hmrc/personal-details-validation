@@ -57,7 +57,7 @@ private class PersonalDetailsValidator[Interpretation[_] : Monad](matchingConnec
       _ <- personalDetailsValidationRepository.create(personalDetailsValidation)
       _ = sendEvents(matchResult, personalDetails)
     } yield personalDetailsValidation.id
-  }.leftMap { error => sendMatchingErrorEvent; error }
+  }.leftMap { error => sendErrorEvents(personalDetails); error }
 
   private implicit class MatchResultOps(matchResult: MatchResult) {
     def toPersonalDetailsValidation(optionallyHaving: PersonalDetails): PersonalDetailsValidation = matchResult match {

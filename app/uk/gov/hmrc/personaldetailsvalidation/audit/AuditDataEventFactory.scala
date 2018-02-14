@@ -37,11 +37,17 @@ private[personaldetailsvalidation] class AuditDataEventFactory(auditConfig: Audi
   )
 
   def createEvent(matchResult: MatchResult, personalDetails: PersonalDetails)
-                 (implicit hc: HeaderCarrier, request: Request[_]) = DataEvent(
+                 (implicit hc: HeaderCarrier, request: Request[_]): DataEvent = createEvent(personalDetails, matchResult.toMatchingStatus)
+
+  def createErrorEvent(personalDetails: PersonalDetails)
+                      (implicit hc: HeaderCarrier, request: Request[_]): DataEvent = createEvent(personalDetails, "technicalError")
+
+  private def createEvent(personalDetails: PersonalDetails, matchingStatus: String)
+                         (implicit hc: HeaderCarrier, request: Request[_]): DataEvent = DataEvent(
     auditSource = auditConfig.appName,
     auditType = auditType,
     tags = auditTagProvider(hc, auditType, request),
-    detail = auditDetailsProvider(hc) + ("nino" -> personalDetails.nino.value) + ("matchingStatus" -> matchResult.toMatchingStatus)
+    detail = auditDetailsProvider(hc) + ("nino" -> personalDetails.nino.value) + ("matchingStatus" -> matchingStatus)
   )
 
   private implicit class MatchResultOps(target: MatchResult) {

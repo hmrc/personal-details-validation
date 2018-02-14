@@ -95,13 +95,23 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
 
       sender.sendEvents(matchResult, personalDetails)
     }
+  }
+
+  "sendErrorEvents" should {
 
     "send technical error matching event" in new Setup {
 
       (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
         .expects(GAEvent("sos_iv", "personal_detail_validation_result", "technical_error_matching"), headerCarrier, executionContext)
 
-      sender.sendMatchingErrorEvent
+      (auditDataEventFactory.createErrorEvent(_: PersonalDetails)(_: HeaderCarrier, _: Request[_]))
+        .expects(personalDetails, headerCarrier, request)
+        .returning(dataEvent)
+
+      (auditConnector.sendEvent(_: DataEvent)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(dataEvent, headerCarrier, executionContext)
+
+      sender.sendErrorEvents(personalDetails)
     }
   }
 
@@ -109,7 +119,7 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
     implicit val request = FakeRequest()
     val personalDetails = personalDetailsObjects.generateOne.copy(nino = Nino("AA000003D"))
-    val dataEvent= dataEvents.generateOne
+    val dataEvent = dataEvents.generateOne
 
     val platformAnalyticsConnector = mock[PlatformAnalyticsConnector]
     val auditConnector = mock[AuditConnector]

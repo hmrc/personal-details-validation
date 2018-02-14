@@ -62,6 +62,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       createResponse.status mustBe BAD_GATEWAY
 
       verifyGAMatchEvent("technical_error_matching")
+      verifyAuditEvent(matchingStatus = "technicalError")
     }
 
     "return BAD Request if mandatory fields are missing" in new Setup {

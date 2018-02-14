@@ -98,8 +98,8 @@ class PersonalDetailsValidatorSpec
         .expects(personalDetails, headerCarrier, executionContext)
         .returning(EitherT.leftT[Id, MatchResult](exception))
 
-      (matchingEventsSender.sendMatchingErrorEvent(_: HeaderCarrier, _: ExecutionContext))
-        .expects(headerCarrier, executionContext)
+      (matchingEventsSender.sendErrorEvents(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(personalDetails, headerCarrier, request, executionContext)
 
       validator.validate(personalDetails).value shouldBe Left(exception)
     }
@@ -120,8 +120,8 @@ class PersonalDetailsValidatorSpec
         .expects(personalDetailsValidation, executionContext)
         .returning(EitherT.leftT[Id, Done](exception))
 
-      (matchingEventsSender.sendMatchingErrorEvent(_: HeaderCarrier, _: ExecutionContext))
-        .expects(headerCarrier, executionContext)
+      (matchingEventsSender.sendErrorEvents(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(personalDetails, headerCarrier, request, executionContext)
 
       validator.validate(personalDetails).value shouldBe Left(exception)
     }

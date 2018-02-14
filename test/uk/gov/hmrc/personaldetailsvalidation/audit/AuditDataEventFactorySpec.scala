@@ -45,6 +45,16 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
         dataEvent.detail shouldBe auditDetails + ("nino" -> personalDetails.nino.value) + ("matchingStatus" -> matchingStatus)
       }
     }
+
+    "create error data event" in new Setup {
+      val dataEvent = auditDataFactory.createErrorEvent(personalDetails)
+
+      dataEvent.auditSource shouldBe auditConfig.appName
+      dataEvent.auditType shouldBe "MatchingResult"
+      dataEvent.tags shouldBe auditTags
+      dataEvent.detail shouldBe auditDetails + ("nino" -> personalDetails.nino.value) + ("matchingStatus" -> "technicalError")
+    }
+
   }
 
   trait Setup {
