@@ -21,8 +21,9 @@ import javax.inject.{Inject, Singleton}
 import cats.Monad
 import cats.data.EitherT
 import cats.implicits._
+import play.api.mvc.Request
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.personaldetailsvalidation.audit.MatchingEventsSender
+import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.matching.{FuturedMatchingConnector, MatchingConnector}
@@ -36,20 +37,20 @@ import scala.language.higherKinds
 @Singleton
 private class FuturedPersonalDetailsValidator @Inject()(matchingConnector: FuturedMatchingConnector,
                                                         personalDetailsValidationRepository: PersonalDetailsValidationMongoRepository,
-                                                        matchingEventsSender: MatchingEventsSender)
+                                                        matchingEventsSender: EventsSender)
                                                        (implicit uuidProvider: UUIDProvider) extends
   PersonalDetailsValidator[Future](matchingConnector, personalDetailsValidationRepository, matchingEventsSender)
 
 private class PersonalDetailsValidator[Interpretation[_] : Monad](matchingConnector: MatchingConnector[Interpretation],
                                                                   personalDetailsValidationRepository: PersonalDetailsValidationRepository[Interpretation],
-                                                                  matchingEventsSender: MatchingEventsSender)
+                                                                  matchingEventsSender: EventsSender)
                                                                  (implicit uuidProvider: UUIDProvider) {
 
   import matchingEventsSender._
   import matchingConnector._
 
   def validate(personalDetails: PersonalDetails)
-              (implicit hc: HeaderCarrier, ec: ExecutionContext): EitherT[Interpretation, Exception, ValidationId] = {
+              (implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): EitherT[Interpretation, Exception, ValidationId] = {
     for {
       matchResult <- doMatch(personalDetails)
       personalDetailsValidation = matchResult.toPersonalDetailsValidation(optionallyHaving = personalDetails)

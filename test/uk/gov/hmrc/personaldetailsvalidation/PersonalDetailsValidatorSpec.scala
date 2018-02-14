@@ -24,8 +24,10 @@ import cats.data.EitherT
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
 import org.scalamock.scalatest.MockFactory
+import play.api.mvc.Request
+import play.api.test.FakeRequest
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.personaldetailsvalidation.audit.MatchingEventsSender
+import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
@@ -54,8 +56,8 @@ class PersonalDetailsValidatorSpec
         .returning(EitherT.rightT[Id, Exception](matchResult))
 
 
-      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(matchResult, personalDetails, headerCarrier, executionContext)
+      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(matchResult, personalDetails, headerCarrier, request, executionContext)
 
       val personalDetailsValidation = PersonalDetailsValidation.successful(personalDetails)
 
@@ -76,8 +78,8 @@ class PersonalDetailsValidatorSpec
         .expects(personalDetails, headerCarrier, executionContext)
         .returning(EitherT.rightT[Id, Exception](matchResult))
 
-      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(matchResult, personalDetails, headerCarrier, executionContext)
+      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(matchResult, personalDetails, headerCarrier, request, executionContext)
 
       val personalDetailsValidation = PersonalDetailsValidation.failed()
 
@@ -127,9 +129,10 @@ class PersonalDetailsValidatorSpec
 
   private trait Setup {
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
+    implicit val request = FakeRequest()
 
     val matchingConnector = mock[MatchingConnector[Id]]
-    val matchingEventsSender = mock[MatchingEventsSender]
+    val matchingEventsSender = mock[EventsSender]
 
     val repository = mock[PersonalDetailsValidationRepository[Id]]
     implicit val uuidProvider: UUIDProvider = stub[UUIDProvider]

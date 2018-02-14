@@ -22,7 +22,7 @@ trait BaseIntegrationSpec
   protected def additionalConfiguration = Map.empty[String, Any]
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().configure(additionalConfiguration ++ wiremockedServicesConfiguration).build()
+    new GuiceApplicationBuilder().configure(additionalConfiguration ++ wiremockedServicesConfiguration + ("auditing.enabled" -> true)).build()
 
   protected implicit lazy val wsClient: WSClient =
     app.injector.instanceOf[WSClient]

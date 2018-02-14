@@ -30,6 +30,7 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.prop.{PropertyChecks, TableDrivenPropertyChecks}
 import play.api.libs.json.Json.toJson
 import play.api.libs.json._
+import play.api.mvc.Request
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.domain.Nino
@@ -57,11 +58,13 @@ class PersonalDetailsValidationResourceControllerSpec
 
     "return CREATED when personal details are validated with no error" in new Setup {
       forAll { (personalDetails: PersonalDetails, validationId: ValidationId) =>
-        (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
-          .expects(personalDetails, instanceOf[HeaderCarrier], instanceOf[MdcLoggingExecutionContext])
+        val requestWithBody = request.withBody(toJson(personalDetails))
+
+        (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+          .expects(personalDetails, instanceOf[HeaderCarrier], requestWithBody, instanceOf[MdcLoggingExecutionContext])
           .returns(EitherT.rightT[Future, Exception](validationId))
 
-        val response = controller.create(request.withBody(toJson(personalDetails)))
+        val response = controller.create(requestWithBody)
 
         status(response) shouldBe CREATED
       }
@@ -77,16 +80,16 @@ class PersonalDetailsValidationResourceControllerSpec
       s"$scenario" in new Setup {
 
         val requestPersonalDetails = randomPersonalDetails
-
         val json = Json.toJson(requestPersonalDetails).as[JsObject] + ("nino" -> JsString(originalNinoValue))
+        val requestWithBody: FakeRequest[JsObject] = request.withBody(json)
 
         val personalDetailsWithUpperCaseNino = requestPersonalDetails.copy(nino = Nino(finalNinoValue))
 
-        (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
-          .expects(personalDetailsWithUpperCaseNino, instanceOf[HeaderCarrier], instanceOf[MdcLoggingExecutionContext])
+        (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+          .expects(personalDetailsWithUpperCaseNino, instanceOf[HeaderCarrier], requestWithBody, instanceOf[MdcLoggingExecutionContext])
           .returns(EitherT.rightT[Future, Exception](ValidationId()))
 
-        val response = controller.create(request.withBody(json))
+        val response = controller.create(requestWithBody)
 
         status(response) shouldBe CREATED
       }
@@ -94,11 +97,13 @@ class PersonalDetailsValidationResourceControllerSpec
 
     "return uri of the personal-details-validation/:id in the response Location header" in new Setup {
       forAll { (personalDetails: PersonalDetails, validationId: ValidationId) =>
-        (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
-          .expects(personalDetails, instanceOf[HeaderCarrier], instanceOf[MdcLoggingExecutionContext])
+        val requestWithBody = request.withBody(toJson(personalDetails))
+
+        (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+          .expects(personalDetails, instanceOf[HeaderCarrier], requestWithBody, instanceOf[MdcLoggingExecutionContext])
           .returns(EitherT.rightT[Future, Exception](validationId))
 
-        val response = controller.create(request.withBody(toJson(personalDetails)))
+        val response = controller.create(requestWithBody)
 
         header(LOCATION, response) shouldBe Some(routes.PersonalDetailsValidationResourceController.get(validationId).url)
       }
@@ -108,12 +113,13 @@ class PersonalDetailsValidationResourceControllerSpec
       val personalDetails = randomPersonalDetails
 
       val badGatewayException = new BadGatewayException("some error")
+      val requestWithBody: FakeRequest[JsValue] = request.withBody(toJson(personalDetails))
 
-      (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(personalDetails, instanceOf[HeaderCarrier], instanceOf[MdcLoggingExecutionContext])
+      (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(personalDetails, instanceOf[HeaderCarrier], requestWithBody, instanceOf[MdcLoggingExecutionContext])
         .returns(EitherT.leftT[Future, ValidationId](badGatewayException))
 
-      controller.create(request.withBody(toJson(personalDetails))).failed.futureValue shouldBe badGatewayException
+      controller.create(requestWithBody).failed.futureValue shouldBe badGatewayException
     }
 
     "return BAD_REQUEST if mandatory fields are missing" in new Setup {

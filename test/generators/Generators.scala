@@ -48,9 +48,16 @@ trait Generators {
   } yield chars.mkString
 
   val nonEmptyStrings: Gen[NonEmptyString] = for {
-    length <- Gen.chooseNum(1, 1000)
+    length <- Gen.chooseNum(1, 10)
     chars <- Gen.listOfN(length, Gen.alphaNumChar)
   } yield NonEmptyString(chars.mkString)
+
+  val nonEmptyMap: Gen[Map[String, String]] = Gen.nonEmptyMap(
+    for {
+      key <- nonEmptyStrings.map(_.value)
+      value <- nonEmptyStrings.map(_.value)
+    } yield key -> value
+  )
 
   implicit val instants: Gen[Instant] = Gen.choose(minTimestamp, maxTimestamp).map(Instant.ofEpochMilli)
 

@@ -18,22 +18,30 @@ package uk.gov.hmrc.personaldetailsvalidation.audit
 
 import javax.inject.{Inject, Singleton}
 
+import play.api.mvc.Request
 import uk.gov.hmrc.audit.{GAEvent, PlatformAnalyticsConnector}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import scala.concurrent.ExecutionContext
 
-
 @Singleton
-private[personaldetailsvalidation] class MatchingEventsSender @Inject()(platformAnalyticsConnector: PlatformAnalyticsConnector) {
+private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalyticsConnector: PlatformAnalyticsConnector,
+                                                                auditConnector: AuditConnector,
+                                                                auditDataFactory: AuditDataEventFactory) {
 
-  def sendEvents(matchResult: MatchResult, personalDetails: PersonalDetails)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+  def sendEvents(matchResult: MatchResult, personalDetails: PersonalDetails)(implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): Unit = {
     sendGAMatchResultEvent(matchResult)
     sendGASuffixMatchingEvent(matchResult, personalDetails)
+    sendAuditMatchResultEvent(matchResult, personalDetails)
   }
+
+  private def sendAuditMatchResultEvent(matchResult: MatchResult, personalDetails: PersonalDetails)
+                                       (implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext) =
+    auditConnector.sendEvent(auditDataFactory.createEvent(matchResult, personalDetails))
 
   private def sendGAMatchResultEvent(matchResult: MatchResult)(implicit hc: HeaderCarrier, ec: ExecutionContext) = {
     val label = matchResult match {
@@ -45,9 +53,9 @@ private[personaldetailsvalidation] class MatchingEventsSender @Inject()(platform
   }
 
   private def sendGASuffixMatchingEvent(matchResult: MatchResult, externalPerson: PersonalDetails)
-                                     (implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = matchResult match {
+                                       (implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = matchResult match {
     case MatchSuccessful(matchedPerson) if externalPerson.hasSameNinoSuffixAs(matchedPerson) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_same_as_cid"))
-    case MatchSuccessful(_)  => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_different_from_cid"))
+    case MatchSuccessful(_) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_different_from_cid"))
     case _ =>
   }
 
