@@ -18,6 +18,7 @@ package uk.gov.hmrc.audit
 
 import javax.inject.{Inject, Singleton}
 
+import akka.Done
 import play.api.libs.json.{JsObject, Json}
 import play.api.{Logger, LoggerLike}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -35,8 +36,8 @@ class PlatformAnalyticsConnector(httpClient: HttpClient, connectorConfig: Platfo
     httpClient.POST[JsObject, HttpResponse](
       url = s"${connectorConfig.baseUrl}/platform-analytics/event",
       body = event.toJson(hc.gaUserId.getOrElse(randomGaUserId))
-    ).recover {
-      case ex => logger.error("Unexpected response from platform-analytics", ex)
+    ).map(_ => Done).recover {
+      case ex: Exception => logger.error("Unexpected response from platform-analytics", ex); Done
     }
 
   private def randomGaUserId = s"GA1.1.${Math.abs(randomIntProvider())}.${Math.abs(randomIntProvider())}"

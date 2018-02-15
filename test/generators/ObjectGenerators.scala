@@ -18,6 +18,7 @@ package generators
 
 import org.scalacheck.Gen
 import uk.gov.hmrc.personaldetailsvalidation.model.{FailedPersonalDetailsValidation, PersonalDetails, PersonalDetailsValidation, SuccessfulPersonalDetailsValidation}
+import uk.gov.hmrc.play.audit.model.DataEvent
 
 object ObjectGenerators extends ValueGenerators {
 
@@ -40,4 +41,9 @@ object ObjectGenerators extends ValueGenerators {
     case true => successfulPersonalDetailsValidationObjects
     case false => failedPersonalDetailsValidationObjects
   }
+
+  implicit val dataEvents: Gen[DataEvent] = for {
+    auditSource <- nonEmptyStrings.map(_.value)
+    auditType <- nonEmptyStrings.map(_.value)
+  } yield DataEvent(auditSource, auditType)
 }

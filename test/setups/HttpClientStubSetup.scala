@@ -49,8 +49,16 @@ trait HttpClientStubSetup extends MockFactory {
         httpClient.postStubbing = (actualUrl: String, actualPayload: JsObject) => {
           actualUrl shouldBe toUrl
           actualPayload shouldBe payload
-          response
+          Future.successful(response)
         }
+
+      def throwing(exception: Exception): Unit =
+        httpClient.postStubbing =
+          (actualUrl: String, actualPayload: JsObject) => {
+            actualUrl shouldBe toUrl
+            actualPayload shouldBe payload
+            Future.failed(exception)
+          }
     }
   }
 
@@ -60,18 +68,18 @@ trait HttpClientStubSetup extends MockFactory {
 
     override val hooks: Seq[HttpHook] = Nil
 
-    private[HttpClientStubSetup] var postStubbing: (String, JsObject) => HttpResponse =
+    private[HttpClientStubSetup] var postStubbing: (String, JsObject) => Future[HttpResponse] =
       (_, _) => throw new IllegalStateException("HttpClientStub not configured")
 
     private var invoked = false
 
     override def doPost[A](url: String, body: A, headers: Seq[(String, String)])
-                          (implicit wts: Writes[A], hc: HeaderCarrier): Future[HttpResponse] = Future.successful {
+                          (implicit wts: Writes[A], hc: HeaderCarrier): Future[HttpResponse] = {
       invoked = true
       postStubbing(url, body.asInstanceOf[JsObject])
     }
 
-    def assertInvocation = if(!invoked) fail("stub was not invoked")
+    def assertInvocation() = if (!invoked) fail("stub was not invoked")
   }
 
   val httpClient: HttpClientStub = new HttpClientStub()

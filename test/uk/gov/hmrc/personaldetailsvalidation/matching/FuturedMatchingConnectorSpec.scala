@@ -25,14 +25,13 @@ import play.api.test.Helpers._
 import setups.HttpClientStubSetup
 import uk.gov.hmrc.config.HostConfigProvider
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchingError
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
 
-class MatchingConnectorSpec
+class FuturedMatchingConnectorSpec
   extends UnitSpec
     with ScalaFutures
     with MockFactory {
@@ -60,14 +59,27 @@ class MatchingConnectorSpec
 
     Set(NO_CONTENT, NOT_FOUND, INTERNAL_SERVER_ERROR) foreach { unexpectedStatus =>
 
-      s"return MatchingError when POST to /authenticator/match returns $unexpectedStatus" in new Setup {
+      s"return Left when POST to /authenticator/match returns $unexpectedStatus" in new Setup {
 
         expectPost(toUrl = "http://host/authenticator/match")
           .withPayload(payload)
           .returning(unexpectedStatus, "some response body")
 
-        connector.doMatch(personalDetails).value.futureValue shouldBe Left(MatchingError(s"Unexpected response from POST http://host/authenticator/match with status: '$unexpectedStatus' and body: some response body"))
+        val Left(expectedException) = connector.doMatch(personalDetails).value.futureValue
+        expectedException shouldBe a[BadGatewayException]
+        expectedException.getMessage shouldBe s"Unexpected response from POST http://host/authenticator/match with status: '$unexpectedStatus' and body: some response body"
       }
+    }
+
+    "return Left when POST to /authenticator/match returns a failed Future" in new Setup {
+
+      val exception = new RuntimeException("some error")
+
+      expectPost(toUrl = "http://host/authenticator/match")
+        .withPayload(payload)
+        .throwing(exception)
+
+      connector.doMatch(personalDetails).value.futureValue shouldBe Left(exception)
     }
   }
 
@@ -87,6 +99,6 @@ class MatchingConnectorSpec
     private val connectorConfig = new MatchingConnectorConfig(mock[HostConfigProvider]) {
       override lazy val authenticatorBaseUrl = "http://host/authenticator"
     }
-    val connector = new MatchingConnector(httpClient, connectorConfig)
+    val connector = new FuturedMatchingConnector(httpClient, connectorConfig)
   }
 }

@@ -19,27 +19,27 @@ package uk.gov.hmrc.personaldetailsvalidation
 import java.util.UUID.randomUUID
 
 import akka.Done
+import cats.Id
 import cats.data.EitherT
-import cats.implicits._
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.concurrent.ScalaFutures
+import play.api.mvc.Request
+import play.api.test.FakeRequest
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.personaldetailsvalidation.audit.MatchingEventsSender
+import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.{MatchResult, MatchingError}
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsValidation}
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.uuid.UUIDProvider
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
-import scala.concurrent.{ExecutionContext, Future}
 
 class PersonalDetailsValidatorSpec
   extends UnitSpec
-    with ScalaFutures
     with MockFactory {
 
   "validate" should {
@@ -53,22 +53,19 @@ class PersonalDetailsValidatorSpec
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
-        .returning(EitherT.right[MatchingError](Future.successful(matchResult)))
+        .returning(EitherT.rightT[Id, Exception](matchResult))
 
 
-      (matchingEventsSender.sendMatchResultEvent(_: MatchResult)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(matchResult, headerCarrier, executionContext)
-
-      (matchingEventsSender.sendSuffixMatchingEvent(_: PersonalDetails, _: MatchResult)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(personalDetails, matchResult, headerCarrier, executionContext)
+      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(matchResult, personalDetails, headerCarrier, request, executionContext)
 
       val personalDetailsValidation = PersonalDetailsValidation.successful(personalDetails)
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(personalDetailsValidation, executionContext)
-        .returning(Future.successful(Done))
+        .returning(EitherT.rightT[Id, Exception](Done))
 
-      validator.validate(personalDetails).value.futureValue shouldBe Right(personalDetailsValidation.id)
+      validator.validate(personalDetails).value shouldBe Right(personalDetailsValidation.id)
     }
 
     "match the given personal details with matching service, " +
@@ -79,45 +76,65 @@ class PersonalDetailsValidatorSpec
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
-        .returning(EitherT.right[MatchingError](Future.successful(matchResult)))
+        .returning(EitherT.rightT[Id, Exception](matchResult))
 
-      (matchingEventsSender.sendMatchResultEvent(_: MatchResult)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(matchResult, headerCarrier, executionContext)
-
-      (matchingEventsSender.sendSuffixMatchingEvent(_: PersonalDetails, _: MatchResult)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(personalDetails, matchResult, headerCarrier, executionContext)
+      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(matchResult, personalDetails, headerCarrier, request, executionContext)
 
       val personalDetailsValidation = PersonalDetailsValidation.failed()
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(personalDetailsValidation, executionContext)
-        .returning(Future.successful(Done))
+        .returning(EitherT.rightT[Id, Exception](Done))
 
-      validator.validate(personalDetails).value.futureValue shouldBe Right(personalDetailsValidation.id)
+      validator.validate(personalDetails).value shouldBe Right(personalDetailsValidation.id)
     }
 
     "return matching error when the call to match fails" in new Setup {
       val personalDetails = personalDetailsObjects.generateOne
 
-      val matchingError = MatchingError("error")
+      val exception = new RuntimeException("error")
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
-        .returning(EitherT.left[MatchResult](Future.successful(matchingError)))
+        .returning(EitherT.leftT[Id, MatchResult](exception))
 
-      (matchingEventsSender.sendMatchingErrorEvent(_: HeaderCarrier, _: ExecutionContext))
-        .expects(headerCarrier, executionContext)
+      (matchingEventsSender.sendErrorEvents(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(personalDetails, headerCarrier, request, executionContext)
 
-      validator.validate(personalDetails).value.futureValue shouldBe Left(matchingError)
+      validator.validate(personalDetails).value shouldBe Left(exception)
+    }
+
+    "return matching error when the call to persist fails" in new Setup {
+      val personalDetails = personalDetailsObjects.generateOne
+
+      val matchResult = MatchSuccessful(personalDetails)
+
+      (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(personalDetails, headerCarrier, executionContext)
+        .returning(EitherT.rightT[Id, Exception](matchResult))
+
+      val personalDetailsValidation = PersonalDetailsValidation.successful(personalDetails)
+
+      val exception = new RuntimeException("error")
+      (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
+        .expects(personalDetailsValidation, executionContext)
+        .returning(EitherT.leftT[Id, Done](exception))
+
+      (matchingEventsSender.sendErrorEvents(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(personalDetails, headerCarrier, request, executionContext)
+
+      validator.validate(personalDetails).value shouldBe Left(exception)
     }
   }
 
   private trait Setup {
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
+    implicit val request = FakeRequest()
 
-    val matchingConnector = mock[MatchingConnector]
-    val matchingEventsSender = mock[MatchingEventsSender]
+    val matchingConnector = mock[MatchingConnector[Id]]
+    val matchingEventsSender = mock[EventsSender]
 
-    val repository = mock[PersonalDetailsValidationRepository]
+    val repository = mock[PersonalDetailsValidationRepository[Id]]
     implicit val uuidProvider: UUIDProvider = stub[UUIDProvider]
     uuidProvider.apply _ when() returns randomUUID()
 

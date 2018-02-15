@@ -19,6 +19,7 @@ package uk.gov.hmrc.personaldetailsvalidation
 import javax.inject.{Inject, Singleton}
 
 import akka.Done
+import cats.data.EitherT
 import com.google.inject.ImplementedBy
 import play.api.libs.json.JsObject
 import play.modules.reactivemongo.ReactiveMongoComponent
@@ -34,17 +35,21 @@ import uk.gov.hmrc.personaldetailsvalidation.formats.TinyTypesFormats._
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.play.json.ops._
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
+import scala.language.higherKinds
 
-@ImplementedBy(classOf[PersonalDetailsValidationMongoRepository])
-private trait PersonalDetailsValidationRepository {
+private trait PersonalDetailsValidationRepository[Interpretation[_]] {
 
   def create(personalDetails: PersonalDetailsValidation)
-            (implicit ec: ExecutionContext): Future[Done]
+            (implicit ec: ExecutionContext): EitherT[Interpretation, Exception, Done]
 
   def get(personalDetailsValidationId: ValidationId)
-         (implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]]
+         (implicit ec: ExecutionContext): Interpretation[Option[PersonalDetailsValidation]]
 }
+
+@ImplementedBy(classOf[PersonalDetailsValidationMongoRepository])
+private trait FuturedPersonalDetailsValidationRepository extends PersonalDetailsValidationRepository[Future]
 
 @Singleton
 private class PersonalDetailsValidationMongoRepository @Inject()(config: PersonalDetailsValidationMongoRepositoryConfig, mongoComponent: ReactiveMongoComponent)(implicit currentTimeProvider: CurrentTimeProvider)
@@ -53,7 +58,7 @@ private class PersonalDetailsValidationMongoRepository @Inject()(config: Persona
     mongo = mongoComponent.mongoConnector.db,
     domainFormat = mongoEntity(personalDetailsValidationFormats),
     idFormat = personalDetailsValidationIdFormats
-  ) with PersonalDetailsValidationRepository {
+  ) with FuturedPersonalDetailsValidationRepository {
 
 
   override def indexes: Seq[Index] = Seq(
@@ -61,11 +66,14 @@ private class PersonalDetailsValidationMongoRepository @Inject()(config: Persona
   )
 
   def create(personalDetailsValidation: PersonalDetailsValidation)
-            (implicit ec: ExecutionContext): Future[Done] = {
+            (implicit ec: ExecutionContext): EitherT[Future, Exception, Done] = {
 
     val document = domainFormatImplicit.writes(personalDetailsValidation).as[JsObject].withCreatedTimeStamp()
 
-    collection.insert(document).map(_ => Done)
+    EitherT(collection.insert(document).map(_ => Right(Done))
+      .recover {
+        case ex: Exception => Left(ex)
+      })
   }
 
   def get(personalDetailsValidationId: ValidationId)

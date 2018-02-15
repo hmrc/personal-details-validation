@@ -19,35 +19,47 @@ package uk.gov.hmrc.personaldetailsvalidation.matching
 import javax.inject.{Inject, Singleton}
 
 import cats.data.EitherT
+import com.google.inject.ImplementedBy
 import play.api.http.Status._
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.{MatchResult, MatchingError}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector._
 import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.language.higherKinds
+
+@ImplementedBy(classOf[FuturedMatchingConnector])
+trait MatchingConnector[Interpretation[_]] {
+
+  def doMatch(personalDetails: PersonalDetails)
+             (implicit headerCarrier: HeaderCarrier, executionContext: ExecutionContext): EitherT[Interpretation, Exception, MatchResult]
+
+}
 
 @Singleton
-class MatchingConnector @Inject()(httpClient: HttpClient, connectorConfig: MatchingConnectorConfig) {
+class FuturedMatchingConnector @Inject()(httpClient: HttpClient, connectorConfig: MatchingConnectorConfig) extends MatchingConnector[Future] {
 
   import connectorConfig.authenticatorBaseUrl
   import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsFormat._
 
   def doMatch(personalDetails: PersonalDetails)
              (implicit headerCarrier: HeaderCarrier,
-              executionContext: ExecutionContext): EitherT[Future, MatchingError, MatchResult] =
-    EitherT(httpClient.POST[JsObject, Either[MatchingError, MatchResult]](
+              executionContext: ExecutionContext): EitherT[Future, Exception, MatchResult] =
+    EitherT(httpClient.POST[JsObject, Either[Exception, MatchResult]](
       url = s"$authenticatorBaseUrl/match",
       body = personalDetails.toJson
-    ))
+    ) recover {
+      case ex: Exception => Left(ex)
+    })
 
-  private implicit val matchingResultHttpReads: HttpReads[Either[MatchingError, MatchResult]] = new HttpReads[Either[MatchingError, MatchResult]] {
-    override def read(method: String, url: String, response: HttpResponse): Either[MatchingError, MatchResult] = response.status match {
+  private implicit val matchingResultHttpReads: HttpReads[Either[Exception, MatchResult]] = new HttpReads[Either[Exception, MatchResult]] {
+    override def read(method: String, url: String, response: HttpResponse): Either[Exception, MatchResult] = response.status match {
       case OK => Right(MatchSuccessful(response.json.as[PersonalDetails]))
       case UNAUTHORIZED => Right(MatchFailed)
-      case other => Left(MatchingError(s"Unexpected response from $method $url with status: '$other' and body: ${response.body}"))
+      case other => Left(new BadGatewayException(s"Unexpected response from $method $url with status: '$other' and body: ${response.body}"))
     }
   }
 
@@ -64,8 +76,6 @@ class MatchingConnector @Inject()(httpClient: HttpClient, connectorConfig: Match
 object MatchingConnector {
 
   sealed trait MatchResult
-
-  case class MatchingError(message: String)
 
   object MatchResult {
 

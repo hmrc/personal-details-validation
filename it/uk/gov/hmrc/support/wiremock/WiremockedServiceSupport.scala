@@ -13,8 +13,10 @@ trait WiremockedServiceSupport {
         s"microservice.services.$service.port" -> wiremockPort
       )
     }
-    val auditingConfig= Map[String, Any](
-      "auditing.enabled" -> "false"
+
+    val auditingConfig = Map[String, Any](
+      "auditing.consumer.baseUri.host" -> wiremockHost,
+      "auditing.consumer.baseUri.port" -> wiremockPort
     )
 
     servicesConfig ++ auditingConfig

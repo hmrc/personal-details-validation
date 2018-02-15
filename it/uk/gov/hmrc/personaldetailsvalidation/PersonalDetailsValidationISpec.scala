@@ -7,8 +7,9 @@ import play.api.http.Status._
 import play.api.libs.json.{JsUndefined, JsValue, Json}
 import play.mvc.Http.HeaderNames.{CONTENT_TYPE, LOCATION}
 import uk.gov.hmrc.support.BaseIntegrationSpec
+import uk.gov.hmrc.support.stubs.AuditEventStubs._
 import uk.gov.hmrc.support.stubs.AuthenticatorStub
-import uk.gov.hmrc.support.stubs.PlatformAnalyticsStub.verifyGAMatchEvent
+import uk.gov.hmrc.support.stubs.PlatformAnalyticsStub._
 
 class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
 
@@ -30,7 +31,8 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       (getResponse.json \ "validationStatus").as[String] mustBe "success"
       (getResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetails)
 
-      verifyGAMatchEvent("success")
+      verifyGAMatchEvent(label = "success")
+      verifyAuditEvent(matchingStatus = "success")
     }
 
     "return OK with failure validation status when provided personal details cannot be matched by Authenticator" in new Setup {
@@ -49,7 +51,8 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       (getResponse.json \ "validationStatus").as[String] mustBe "failure"
       (getResponse.json \ "personalDetails") mustBe a[JsUndefined]
 
-      verifyGAMatchEvent("failed_matching")
+      verifyGAMatchEvent(label = "failed_matching")
+      verifyAuditEvent(matchingStatus = "failed")
     }
 
     "return BAD_GATEWAY when Authenticator returns an unexpected status code" in new Setup {
@@ -59,6 +62,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       createResponse.status mustBe BAD_GATEWAY
 
       verifyGAMatchEvent("technical_error_matching")
+      verifyAuditEvent(matchingStatus = "technicalError")
     }
 
     "return BAD Request if mandatory fields are missing" in new Setup {
