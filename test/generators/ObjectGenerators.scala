@@ -27,7 +27,7 @@ object ObjectGenerators extends ValueGenerators {
     lastName <- nonEmptyStrings
     dateOfBirth <- localDates
     nino <- ninos
-  } yield PersonalDetails(firstName, lastName, dateOfBirth, nino)
+  } yield PersonalDetails(firstName, lastName, dateOfBirth, Some(nino), None)
 
   implicit val successfulPersonalDetailsValidationObjects: Gen[SuccessfulPersonalDetailsValidation] = for {
     id <- validationIds

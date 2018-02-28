@@ -21,7 +21,7 @@ import javax.inject.{Inject, Singleton}
 import cats.data.EitherT
 import com.google.inject.ImplementedBy
 import play.api.http.Status._
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{Format, JsObject, Json}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector._
@@ -64,12 +64,10 @@ class FuturedMatchingConnector @Inject()(httpClient: HttpClient, connectorConfig
   }
 
   private implicit class PersonalDetailsSerializer(personalDetails: PersonalDetails) {
-    lazy val toJson: JsObject = Json.obj(
-      "firstName" -> personalDetails.firstName,
-      "lastName" -> personalDetails.lastName,
-      "dateOfBirth" -> personalDetails.dateOfBirth,
-      "nino" -> personalDetails.nino
-    )
+    lazy val toJson: JsObject = {
+      implicit val formats: Format[PersonalDetails] = Json.format[PersonalDetails]
+      Json.toJson(personalDetails).as[JsObject]
+    }
   }
 }
 

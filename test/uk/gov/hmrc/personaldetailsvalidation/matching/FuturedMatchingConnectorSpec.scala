@@ -46,7 +46,7 @@ class FuturedMatchingConnectorSpec
         .withPayload(payload)
         .returning(OK, matchingResponsePayload)
 
-      connector.doMatch(personalDetails).value.futureValue shouldBe Right(MatchSuccessful(personalDetails.copy(nino = ninoWithDifferentSuffix)))
+      connector.doMatch(personalDetails).value.futureValue shouldBe Right(MatchSuccessful(personalDetails.copy(nino = Some(ninoWithDifferentSuffix))))
     }
 
     "return MatchFailed when POST to authenticator's /authenticator/match returns UNAUTHORISED" in new Setup {
@@ -88,7 +88,7 @@ class FuturedMatchingConnectorSpec
 
     val nino = Nino("AA000003D")
     val ninoWithDifferentSuffix = Nino("AA000003C")
-    val personalDetails = personalDetailsObjects.generateOne.copy(nino = nino)
+    val personalDetails = personalDetailsObjects.generateOne.copy(nino = Some(nino))
     val payload = Json.obj(
       "firstName" -> personalDetails.firstName,
       "lastName" -> personalDetails.lastName,

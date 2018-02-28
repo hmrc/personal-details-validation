@@ -43,12 +43,24 @@ private[personaldetailsvalidation] class AuditDataEventFactory(auditConfig: Audi
                       (implicit hc: HeaderCarrier, request: Request[_]): DataEvent = createEvent(personalDetails, "technicalError")
 
   private def createEvent(personalDetails: PersonalDetails, matchingStatus: String)
-                         (implicit hc: HeaderCarrier, request: Request[_]): DataEvent = DataEvent(
-    auditSource = auditConfig.appName,
-    auditType = auditType,
-    tags = auditTagProvider(hc, auditType, request),
-    detail = auditDetailsProvider(hc) + ("nino" -> personalDetails.nino.value) + ("matchingStatus" -> matchingStatus)
-  )
+                         (implicit hc: HeaderCarrier, request: Request[_]): DataEvent = {
+    val nino = personalDetails.nino match {
+      case Some(ninoValue) => ninoValue.value
+      case None => "NOT SUPPLIED"
+    }
+
+    val postCode = personalDetails.postCode match {
+      case Some(postCodeValue) => postCodeValue
+      case None => "NOT SUPPLIED"
+    }
+
+    DataEvent(
+      auditSource = auditConfig.appName,
+      auditType = auditType,
+      tags = auditTagProvider(hc, auditType, request),
+      detail = auditDetailsProvider(hc) + ("nino" -> nino) + ("postCode" -> postCode) + ("matchingStatus" -> matchingStatus)
+    )
+  }
 
   private implicit class MatchResultOps(target: MatchResult) {
     def toMatchingStatus = target match {

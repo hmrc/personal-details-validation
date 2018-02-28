@@ -24,4 +24,5 @@ import uk.gov.hmrc.model.NonEmptyString
 case class PersonalDetails(firstName: NonEmptyString,
                            lastName: NonEmptyString,
                            dateOfBirth: LocalDate,
-                           nino: Nino)
+                           nino: Option[Nino],
+                           postCode: Option[String])

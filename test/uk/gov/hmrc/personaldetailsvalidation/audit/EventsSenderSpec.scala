@@ -59,7 +59,7 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
     }
 
     "send success MatchResultEvent and suffix event when nino suffix does not match between external person and matched person" in new Setup {
-      val matchedPersonDetails = personalDetails.copy(nino = Nino("AA000003C"))
+      val matchedPersonDetails = personalDetails.copy(nino = Some(Nino("AA000003C")))
 
       (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
         .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success"), headerCarrier, executionContext)
@@ -118,7 +118,7 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
   trait Setup {
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
     implicit val request = FakeRequest()
-    val personalDetails = personalDetailsObjects.generateOne.copy(nino = Nino("AA000003D"))
+    val personalDetails = personalDetailsObjects.generateOne.copy(nino = Some(Nino("AA000003D")))
     val dataEvent = dataEvents.generateOne
 
     val platformAnalyticsConnector = mock[PlatformAnalyticsConnector]

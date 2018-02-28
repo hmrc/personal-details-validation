@@ -47,10 +47,19 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
   def create = Action.async(parse.json) { implicit request =>
     withJsonBody[PersonalDetails] { personalDetails =>
 
-      def handleMatchingDone(validationId: ValidationId) =
+      def handleMatchingDone(validationId: ValidationId) = {
         Future.successful(Created.withHeaders(LOCATION -> routes.PersonalDetailsValidationResourceController.get(validationId).url))
+      }
 
-      def handleException(exception: Exception): Future[Result] = Future.failed(exception)
+      def handleException(exception: Exception): Future[Result] = {
+        exception match {
+          case ex : IllegalArgumentException =>
+            val errors = JsArray(Seq(JsString(ex.getMessage)))
+            Future.successful(BadRequest(JsObject(Map("errors" -> errors))))
+          case _ => Future.failed(exception)
+        }
+
+      }
 
       personalDetailsValidator.validate(personalDetails).fold(handleException, handleMatchingDone).flatten
     }
@@ -70,7 +79,16 @@ object PersonalDetailsValidationResourceController {
     (__ \ "firstName").readOrError[String]("firstName is missing").filter(ValidationError("firstName is blank/empty"))(_.trim.nonEmpty) and
       (__ \ "lastName").readOrError[String]("lastName is missing").filter(ValidationError("lastName is blank/empty"))(_.trim.nonEmpty) and
       (__ \ "dateOfBirth").readOrError[LocalDate]("dateOfBirth is missing/invalid") and
-      (__ \ "nino").readOrError[String]("nino is missing").map(_.toUpperCase.replaceAll("""\s""", "")).filter(ValidationError("invalid nino format"))(str => Try(Nino(str)).isSuccess).map(Nino)
-    ) (PersonalDetails(_, _, _, _))
-
+      (__ \ "nino").readNullable[String].map {
+        case Some(nino) => Some(nino.toUpperCase.replaceAll("""\s""", ""))
+        case _ => None
+      }.filter(ValidationError("invalid nino format")){
+        case Some(nino) => Try(Nino(nino)).isSuccess
+        case None => true
+      }.map{
+        case Some(nino) => Some(Nino(nino))
+        case _ => None
+      } and
+      (__ \ "postCode").readNullable[String]
+    ) (PersonalDetails(_, _, _, _, _))
 }

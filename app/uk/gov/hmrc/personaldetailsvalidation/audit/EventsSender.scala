@@ -61,7 +61,12 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
   }
 
   private implicit class PersonalDetailsOps(target: PersonalDetails) {
-    def hasSameNinoSuffixAs(other: PersonalDetails): Boolean = target.nino.value.last == other.nino.value.last
+    def hasSameNinoSuffixAs(other: PersonalDetails): Boolean = {
+      (target.nino, other.nino) match {
+        case (Some(first), Some(second)) if first.value == second.value => true
+        case _ => false
+      }
+    }
   }
 
   private def gaEvent(label: String) = GAEvent("sos_iv", "personal_detail_validation_result", label)

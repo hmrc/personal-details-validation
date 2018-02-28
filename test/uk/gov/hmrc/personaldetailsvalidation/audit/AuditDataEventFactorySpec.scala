@@ -42,7 +42,7 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
         dataEvent.auditSource shouldBe auditConfig.appName
         dataEvent.auditType shouldBe "MatchingResult"
         dataEvent.tags shouldBe auditTags
-        dataEvent.detail shouldBe auditDetails + ("nino" -> personalDetails.nino.value) + ("matchingStatus" -> matchingStatus)
+        dataEvent.detail shouldBe auditDetails + ("nino" -> personalDetails.nino.get.value) + ("postCode" -> "NOT SUPPLIED") + ("matchingStatus" -> matchingStatus)
       }
     }
 
@@ -52,9 +52,18 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
       dataEvent.auditSource shouldBe auditConfig.appName
       dataEvent.auditType shouldBe "MatchingResult"
       dataEvent.tags shouldBe auditTags
-      dataEvent.detail shouldBe auditDetails + ("nino" -> personalDetails.nino.value) + ("matchingStatus" -> "technicalError")
+      dataEvent.detail shouldBe auditDetails + ("nino" -> personalDetails.nino.get.value) + ("postCode" -> "NOT SUPPLIED") + ("matchingStatus" -> "technicalError")
     }
 
+    "create error data event for user without nino" in new Setup {
+      val adjustedPerson = personalDetails.copy(nino = None, postCode = Some("SE1 9NT"))
+      val dataEvent = auditDataFactory.createErrorEvent(adjustedPerson)
+
+      dataEvent.auditSource shouldBe auditConfig.appName
+      dataEvent.auditType shouldBe "MatchingResult"
+      dataEvent.tags shouldBe auditTags
+      dataEvent.detail shouldBe auditDetails + ("nino" -> "NOT SUPPLIED") + ("postCode" -> "SE1 9NT") + ("matchingStatus" -> "technicalError")
+    }
   }
 
   trait Setup {

@@ -83,7 +83,7 @@ class PersonalDetailsValidationResourceControllerSpec
         val json = Json.toJson(requestPersonalDetails).as[JsObject] + ("nino" -> JsString(originalNinoValue))
         val requestWithBody: FakeRequest[JsObject] = request.withBody(json)
 
-        val personalDetailsWithUpperCaseNino = requestPersonalDetails.copy(nino = Nino(finalNinoValue))
+        val personalDetailsWithUpperCaseNino = requestPersonalDetails.copy(nino = Some(Nino(finalNinoValue)))
 
         (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
           .expects(personalDetailsWithUpperCaseNino, instanceOf[HeaderCarrier], requestWithBody, instanceOf[MdcLoggingExecutionContext])
@@ -134,8 +134,7 @@ class PersonalDetailsValidationResourceControllerSpec
       (jsonBodyOf(response) \ "errors").as[List[String]] should contain only(
         "firstName is missing",
         "lastName is missing",
-        "dateOfBirth is missing/invalid",
-        "nino is missing"
+        "dateOfBirth is missing/invalid"
       )
     }
 

@@ -52,16 +52,28 @@ private class PersonalDetailsValidator[Interpretation[_] : Monad](matchingConnec
   def validate(personalDetails: PersonalDetails)
               (implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): EitherT[Interpretation, Exception, ValidationId] = {
     for {
-      matchResult <- doMatch(personalDetails)
+      correctContent <- validateContentRules(personalDetails)
+      matchResult <- doMatch(correctContent)
       personalDetailsValidation = matchResult.toPersonalDetailsValidation(optionallyHaving = personalDetails)
       _ <- personalDetailsValidationRepository.create(personalDetailsValidation)
       _ = sendEvents(matchResult, personalDetails)
     } yield personalDetailsValidation.id
-  }.leftMap { error => sendErrorEvents(personalDetails); error }
+  }.leftMap {
+    error => sendErrorEvents(personalDetails); error
+  }
+
+  private def validateContentRules(personalDetails: PersonalDetails): EitherT[Interpretation, Exception, PersonalDetails] = {
+    personalDetails match {
+      case bad if (bad.nino.isDefined && bad.postCode.isDefined) => EitherT.leftT[Interpretation, PersonalDetails](new IllegalArgumentException("both nino and postcode supplied"))
+      case bad if (!bad.nino.isDefined && !bad.postCode.isDefined) => EitherT.leftT[Interpretation, PersonalDetails](new IllegalArgumentException("at least nino or postcode needs to be supplioed supplied"))
+      case _ => EitherT.rightT[Interpretation, Exception](personalDetails)
+    }
+  }
 
   private implicit class MatchResultOps(matchResult: MatchResult) {
     def toPersonalDetailsValidation(optionallyHaving: PersonalDetails): PersonalDetailsValidation = matchResult match {
-      case MatchSuccessful(_) => PersonalDetailsValidation.successful(optionallyHaving)
+      case MatchSuccessful(_) if optionallyHaving.nino.isDefined => PersonalDetailsValidation.successful(optionallyHaving)
+      case MatchSuccessful(person) if optionallyHaving.postCode.isDefined => PersonalDetailsValidation.successful(person.copy(postCode=optionallyHaving.postCode))
       case MatchFailed => PersonalDetailsValidation.failed()
     }
   }
