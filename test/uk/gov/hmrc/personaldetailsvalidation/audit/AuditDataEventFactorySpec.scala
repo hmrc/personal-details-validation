@@ -33,7 +33,7 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
 
     val personalDetails = personalDetailsObjects.generateOne
 
-    val matchResults = Map(MatchSuccessful(personalDetails) -> "success", MatchFailed -> "failed")
+    val matchResults = Map(MatchSuccessful(personalDetails) -> "success", MatchFailed("some errors") -> "failed")
 
     matchResults.foreach { case (matchResult, matchingStatus) =>
       s"create data event for ${matchResult.getClass.getName.split("\\$").last}" in new Setup {

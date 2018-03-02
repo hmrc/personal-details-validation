@@ -53,7 +53,7 @@ private[personaldetailsvalidation] class AuditDataEventFactory(auditConfig: Audi
   private implicit class MatchResultOps(target: MatchResult) {
     def toMatchingStatus = target match {
       case MatchSuccessful(_) => "success"
-      case MatchFailed => "failed"
+      case MatchFailed(_) => "failed"
     }
   }
 

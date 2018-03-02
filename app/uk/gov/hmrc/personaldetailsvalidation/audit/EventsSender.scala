@@ -42,7 +42,7 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
   private def sendGAMatchResultEvent(matchResult: MatchResult)(implicit hc: HeaderCarrier, ec: ExecutionContext) = {
     val label = matchResult match {
       case MatchSuccessful(_) => "success"
-      case MatchFailed => "failed_matching"
+      case MatchFailed(_) => "failed_matching"
     }
 
     platformAnalyticsConnector.sendEvent(gaEvent(label))

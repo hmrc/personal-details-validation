@@ -4,6 +4,7 @@ import java.util.UUID.randomUUID
 
 import play.api.http.ContentTypes.JSON
 import play.api.http.Status._
+import play.api.libs.json
 import play.api.libs.json.{JsUndefined, JsValue, Json}
 import play.mvc.Http.HeaderNames.{CONTENT_TYPE, LOCATION}
 import uk.gov.hmrc.support.BaseIntegrationSpec
@@ -37,7 +38,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
 
     "return OK with failure validation status when provided personal details cannot be matched by Authenticator" in new Setup {
 
-      AuthenticatorStub.expecting(personalDetails).respondWith(UNAUTHORIZED)
+      AuthenticatorStub.expecting(personalDetails).respondWith(UNAUTHORIZED, Some(Json.obj("errors" -> "Last Name does not match CID")))
 
       val createResponse = sendCreateValidationResourceRequest(personalDetails).futureValue
       createResponse.status mustBe CREATED
