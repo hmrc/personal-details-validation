@@ -62,7 +62,7 @@ private class PersonalDetailsValidator[Interpretation[_] : Monad](matchingConnec
   private implicit class MatchResultOps(matchResult: MatchResult) {
     def toPersonalDetailsValidation(optionallyHaving: PersonalDetails): PersonalDetailsValidation = matchResult match {
       case MatchSuccessful(_) => PersonalDetailsValidation.successful(optionallyHaving)
-      case MatchFailed => PersonalDetailsValidation.failed()
+      case MatchFailed(_) => PersonalDetailsValidation.failed()
     }
   }
 

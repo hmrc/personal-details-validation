@@ -37,23 +37,28 @@ private[personaldetailsvalidation] class AuditDataEventFactory(auditConfig: Audi
   )
 
   def createEvent(matchResult: MatchResult, personalDetails: PersonalDetails)
-                 (implicit hc: HeaderCarrier, request: Request[_]): DataEvent = createEvent(personalDetails, matchResult.toMatchingStatus)
+                 (implicit hc: HeaderCarrier, request: Request[_]): DataEvent = createEvent(personalDetails, matchResult.toMatchingStatus, matchResult.otherDetails)
 
   def createErrorEvent(personalDetails: PersonalDetails)
                       (implicit hc: HeaderCarrier, request: Request[_]): DataEvent = createEvent(personalDetails, "technicalError")
 
-  private def createEvent(personalDetails: PersonalDetails, matchingStatus: String)
+  private def createEvent(personalDetails: PersonalDetails, matchingStatus: String, otherDetails: Map[String, String] = Map.empty)
                          (implicit hc: HeaderCarrier, request: Request[_]): DataEvent = DataEvent(
     auditSource = auditConfig.appName,
     auditType = auditType,
     tags = auditTagProvider(hc, auditType, request),
-    detail = auditDetailsProvider(hc) + ("nino" -> personalDetails.nino.value) + ("matchingStatus" -> matchingStatus)
+    detail = auditDetailsProvider(hc) + ("nino" -> personalDetails.nino.value) + ("matchingStatus" -> matchingStatus) ++ otherDetails
   )
 
   private implicit class MatchResultOps(target: MatchResult) {
     def toMatchingStatus = target match {
       case MatchSuccessful(_) => "success"
-      case MatchFailed => "failed"
+      case MatchFailed(_) => "failed"
+    }
+
+    def otherDetails = target match {
+      case MatchSuccessful(_) => Map.empty[String, String]
+      case MatchFailed(errors) => Map("failureDetail" -> errors)
     }
   }
 

@@ -32,12 +32,13 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       (getResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetails)
 
       verifyGAMatchEvent(label = "success")
-      verifyAuditEvent(matchingStatus = "success")
+      verifyMatchingStatusInAuditEvent(matchingStatus = "success")
     }
 
     "return OK with failure validation status when provided personal details cannot be matched by Authenticator" in new Setup {
 
-      AuthenticatorStub.expecting(personalDetails).respondWith(UNAUTHORIZED)
+      val failureDetail = "Last Name does not match CID"
+      AuthenticatorStub.expecting(personalDetails).respondWith(UNAUTHORIZED, Some(Json.obj("errors" -> failureDetail)))
 
       val createResponse = sendCreateValidationResourceRequest(personalDetails).futureValue
       createResponse.status mustBe CREATED
@@ -52,7 +53,8 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       (getResponse.json \ "personalDetails") mustBe a[JsUndefined]
 
       verifyGAMatchEvent(label = "failed_matching")
-      verifyAuditEvent(matchingStatus = "failed")
+      verifyMatchingStatusInAuditEvent(matchingStatus = "failed")
+      verifyFailureDetailInAuditEvent(failureDetail = failureDetail)
     }
 
     "return BAD_GATEWAY when Authenticator returns an unexpected status code" in new Setup {
@@ -62,7 +64,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       createResponse.status mustBe BAD_GATEWAY
 
       verifyGAMatchEvent("technical_error_matching")
-      verifyAuditEvent(matchingStatus = "technicalError")
+      verifyMatchingStatusInAuditEvent(matchingStatus = "technicalError")
     }
 
     "return BAD Request if mandatory fields are missing" in new Setup {

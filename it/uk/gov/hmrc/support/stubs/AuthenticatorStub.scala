@@ -2,6 +2,7 @@ package uk.gov.hmrc.support.stubs
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import play.api.http.Status._
+import play.api.libs.json.JsValue
 
 object AuthenticatorStub {
 
@@ -29,10 +30,10 @@ object AuthenticatorStub {
       )
     }
 
-    def respondWith(status: Int): Unit = {
+    def respondWith(status: Int, body: Option[JsValue] = None): Unit = {
       stubFor(
         mappingBuilder.willReturn(
-          aResponse().withStatus(status)
+          aResponse().withStatus(status).withBody(body.map(_.toString()).getOrElse(""))
         )
       )
     }
