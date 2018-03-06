@@ -52,7 +52,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       (getResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetailsBoth)
 
       verifyGAMatchEvent(label = "success")
-      verifyAuditEvent(matchingStatus = "success")
+      verifyMatchingStatusInAuditEvent(matchingStatus = "success")
     }
 
     "return OK with failure validation status when provided personal details cannot be matched by Authenticator" in new Setup {

@@ -46,7 +46,7 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
         dataEvent.auditSource shouldBe auditConfig.appName
         dataEvent.auditType shouldBe "MatchingResult"
         dataEvent.tags shouldBe auditTags
-        dataEvent.detail shouldBe auditDetails + ("nino" -> personalDetails.nino.value) + ("postCode" -> "NOT SUPPLIED") + ("matchingStatus" -> matchingStatus) ++ matchingingDetails
+        dataEvent.detail shouldBe auditDetails + ("nino" -> personalDetails.nino.value) + ("postCode" -> "NOT SUPPLIED") ++ matchingingDetails
       }
     }
 

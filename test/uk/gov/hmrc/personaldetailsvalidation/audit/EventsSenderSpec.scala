@@ -84,7 +84,7 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
       (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
         .expects(GAEvent("sos_iv", "personal_detail_validation_result", "failed_matching"), headerCarrier, executionContext)
 
-      val matchResult = MatchFailed("some errors")
+      val matchResult : MatchResult = MatchFailed("some errors")
 
       (auditDataEventFactory.createEvent(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_]))
         .expects(matchResult, personalDetails, headerCarrier, request)
