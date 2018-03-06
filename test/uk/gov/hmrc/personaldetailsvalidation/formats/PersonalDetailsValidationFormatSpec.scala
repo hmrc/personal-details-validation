@@ -24,7 +24,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
-import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsValidation, ValidationId}
+import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.uuid.UUIDProvider
 
@@ -39,14 +39,15 @@ class PersonalDetailsValidationFormatSpec
 
     "allow to serialise SuccessfulPersonalDetailsValidation to JSON" in new Setup {
       forAll { personalDetails: PersonalDetails =>
+        val personalDetailsWithNino = personalDetails.asInstanceOf[PersonalDetailsWithNino]
         toJson(PersonalDetailsValidation.successful(personalDetails)) shouldBe Json.obj(
           "id" -> ValidationId(uuidProvider()),
           "validationStatus" -> "success",
           "personalDetails" -> Json.obj(
-            "firstName" -> personalDetails.firstName,
-            "lastName" -> personalDetails.lastName,
-            "dateOfBirth" -> personalDetails.dateOfBirth,
-            "nino" -> personalDetails.nino
+            "firstName" -> personalDetailsWithNino.firstName,
+            "lastName" -> personalDetailsWithNino.lastName,
+            "dateOfBirth" -> personalDetailsWithNino.dateOfBirth,
+            "nino" -> personalDetailsWithNino.nino
           )
         )
       }
@@ -61,14 +62,15 @@ class PersonalDetailsValidationFormatSpec
 
     "allow to deserialise SuccessfulPersonalDetailsValidation to JSON" in new Setup {
       forAll { personalDetails: PersonalDetails =>
+        val personalDetailsWithNino = personalDetails.asInstanceOf[PersonalDetailsWithNino]
         Json.obj(
           "id" -> ValidationId(uuidProvider()),
           "validationStatus" -> "success",
           "personalDetails" -> Json.obj(
-            "firstName" -> personalDetails.firstName,
-            "lastName" -> personalDetails.lastName,
-            "dateOfBirth" -> personalDetails.dateOfBirth,
-            "nino" -> personalDetails.nino
+            "firstName" -> personalDetailsWithNino.firstName,
+            "lastName" -> personalDetailsWithNino.lastName,
+            "dateOfBirth" -> personalDetailsWithNino.dateOfBirth,
+            "nino" -> personalDetailsWithNino.nino
           )
         ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.successful(personalDetails)
       }

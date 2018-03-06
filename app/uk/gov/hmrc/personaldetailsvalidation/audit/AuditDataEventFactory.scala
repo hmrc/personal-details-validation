@@ -23,7 +23,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory._
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
-import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
+import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.audit.AuditExtensions
 import uk.gov.hmrc.play.audit.model.DataEvent
 
@@ -44,14 +44,14 @@ private[personaldetailsvalidation] class AuditDataEventFactory(auditConfig: Audi
 
   private def createEvent(personalDetails: PersonalDetails, matchingStatus: String)
                          (implicit hc: HeaderCarrier, request: Request[_]): DataEvent = {
-    val nino = personalDetails.nino match {
-      case Some(ninoValue) => ninoValue.value
-      case None => "NOT SUPPLIED"
+    val nino = personalDetails match {
+      case details : PersonalDetailsNino => details.nino.value
+      case _ => "NOT SUPPLIED"
     }
 
-    val postCode = personalDetails.postCode match {
-      case Some(postCodeValue) => postCodeValue
-      case None => "NOT SUPPLIED"
+    val postCode = personalDetails match {
+      case details : PersonalDetailsPostCode  => details.postCode.value
+      case _ => """NOT SUPPLIED"""
     }
 
     DataEvent(
@@ -63,7 +63,7 @@ private[personaldetailsvalidation] class AuditDataEventFactory(auditConfig: Audi
   }
 
   private implicit class MatchResultOps(target: MatchResult) {
-    def toMatchingStatus = target match {
+    def toMatchingStatus: AuditType = target match {
       case MatchSuccessful(_) => "success"
       case MatchFailed => "failed"
     }

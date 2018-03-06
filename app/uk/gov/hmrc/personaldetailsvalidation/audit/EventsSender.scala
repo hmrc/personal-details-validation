@@ -23,7 +23,7 @@ import uk.gov.hmrc.audit.{GAEvent, PlatformAnalyticsConnector}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
-import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
+import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import scala.concurrent.ExecutionContext
@@ -62,8 +62,8 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
 
   private implicit class PersonalDetailsOps(target: PersonalDetails) {
     def hasSameNinoSuffixAs(other: PersonalDetails): Boolean = {
-      (target.nino, other.nino) match {
-        case (Some(first), Some(second)) if first.value == second.value => true
+      (target, other) match {
+        case (first : PersonalDetailsNino, second : PersonalDetailsNino) => first.nino.value == second.nino.value
         case _ => false
       }
     }

@@ -27,7 +27,7 @@ import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.matching.{FuturedMatchingConnector, MatchingConnector}
-import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsValidation, ValidationId}
+import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -52,8 +52,7 @@ private class PersonalDetailsValidator[Interpretation[_] : Monad](matchingConnec
   def validate(personalDetails: PersonalDetails)
               (implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): EitherT[Interpretation, Exception, ValidationId] = {
     for {
-      correctContent <- validateContentRules(personalDetails)
-      matchResult <- doMatch(correctContent)
+      matchResult <- doMatch(personalDetails)
       personalDetailsValidation = matchResult.toPersonalDetailsValidation(optionallyHaving = personalDetails)
       _ <- personalDetailsValidationRepository.create(personalDetailsValidation)
       _ = sendEvents(matchResult, personalDetails)
@@ -62,19 +61,14 @@ private class PersonalDetailsValidator[Interpretation[_] : Monad](matchingConnec
     error => sendErrorEvents(personalDetails); error
   }
 
-  private def validateContentRules(personalDetails: PersonalDetails): EitherT[Interpretation, Exception, PersonalDetails] = {
-    personalDetails match {
-      case bad if (bad.nino.isDefined && bad.postCode.isDefined) => EitherT.leftT[Interpretation, PersonalDetails](new IllegalArgumentException("both nino and postcode supplied"))
-      case bad if (!bad.nino.isDefined && !bad.postCode.isDefined) => EitherT.leftT[Interpretation, PersonalDetails](new IllegalArgumentException("at least nino or postcode needs to be supplioed supplied"))
-      case _ => EitherT.rightT[Interpretation, Exception](personalDetails)
-    }
-  }
-
   private implicit class MatchResultOps(matchResult: MatchResult) {
-    def toPersonalDetailsValidation(optionallyHaving: PersonalDetails): PersonalDetailsValidation = matchResult match {
-      case MatchSuccessful(_) if optionallyHaving.nino.isDefined => PersonalDetailsValidation.successful(optionallyHaving)
-      case MatchSuccessful(person) if optionallyHaving.postCode.isDefined => PersonalDetailsValidation.successful(person.copy(postCode=optionallyHaving.postCode))
-      case MatchFailed => PersonalDetailsValidation.failed()
+    def toPersonalDetailsValidation(optionallyHaving: PersonalDetails): PersonalDetailsValidation = {
+      (matchResult, optionallyHaving) match {
+        case (MatchSuccessful(matchingPerson: PersonalDetailsNino), other: PersonalDetailsWithPostCode) =>
+          PersonalDetailsValidation.successful(other.addNino(matchingPerson.nino))
+        case (MatchSuccessful(_), _) => PersonalDetailsValidation.successful(optionallyHaving)
+        case (MatchFailed, _) => PersonalDetailsValidation.failed()
+      }
     }
   }
 

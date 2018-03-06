@@ -17,8 +17,10 @@
 package uk.gov.hmrc.personaldetailsvalidation.formats
 
 import play.api.libs.json.{Format, Json}
-import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
+import uk.gov.hmrc.personaldetailsvalidation.model._
 
 object PersonalDetailsFormat {
-  implicit val formats: Format[PersonalDetails] = Json.format[PersonalDetails]
+  implicit val withNinoFormats: Format[PersonalDetailsWithNino] = Json.format[PersonalDetailsWithNino]
+  implicit val withPostCodeFormats: Format[PersonalDetailsWithPostCode] = Json.format[PersonalDetailsWithPostCode]
+  implicit val withBothFormats: Format[PersonalDetailsWithNinoAndPostCode] = Json.format[PersonalDetailsWithNinoAndPostCode]
 }

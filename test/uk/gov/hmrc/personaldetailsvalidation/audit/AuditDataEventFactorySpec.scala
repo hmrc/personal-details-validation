@@ -25,13 +25,14 @@ import play.api.test.FakeRequest
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory._
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
+import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.test.UnitSpec
 
 class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
 
   "factory" should {
 
-    val personalDetails = personalDetailsObjects.generateOne
+    val personalDetails : PersonalDetailsWithNino = personalDetailsObjects.generateOne.asInstanceOf[PersonalDetailsWithNino]
 
     val matchResults = Map(MatchSuccessful(personalDetails) -> "success", MatchFailed -> "failed")
 
@@ -42,7 +43,7 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
         dataEvent.auditSource shouldBe auditConfig.appName
         dataEvent.auditType shouldBe "MatchingResult"
         dataEvent.tags shouldBe auditTags
-        dataEvent.detail shouldBe auditDetails + ("nino" -> personalDetails.nino.get.value) + ("postCode" -> "NOT SUPPLIED") + ("matchingStatus" -> matchingStatus)
+        dataEvent.detail shouldBe auditDetails + ("nino" -> personalDetails.nino.value) + ("postCode" -> "NOT SUPPLIED") + ("matchingStatus" -> matchingStatus)
       }
     }
 
@@ -52,11 +53,11 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
       dataEvent.auditSource shouldBe auditConfig.appName
       dataEvent.auditType shouldBe "MatchingResult"
       dataEvent.tags shouldBe auditTags
-      dataEvent.detail shouldBe auditDetails + ("nino" -> personalDetails.nino.get.value) + ("postCode" -> "NOT SUPPLIED") + ("matchingStatus" -> "technicalError")
+      dataEvent.detail shouldBe auditDetails + ("nino" -> personalDetails.nino.value) + ("postCode" -> "NOT SUPPLIED") + ("matchingStatus" -> "technicalError")
     }
 
     "create error data event for user without nino" in new Setup {
-      val adjustedPerson = personalDetails.copy(nino = None, postCode = Some("SE1 9NT"))
+      val adjustedPerson = new PersonalDetailsWithPostCode(personalDetails.firstName, personalDetails.lastName, personalDetails.dateOfBirth, postCode = "SE1 9NT")
       val dataEvent = auditDataFactory.createErrorEvent(adjustedPerson)
 
       dataEvent.auditSource shouldBe auditConfig.appName

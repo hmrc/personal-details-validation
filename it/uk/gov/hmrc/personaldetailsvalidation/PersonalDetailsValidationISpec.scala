@@ -93,7 +93,8 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       (createResponse.json \ "errors").as[List[String]] must contain only(
         "firstName is missing",
         "lastName is missing",
-        "dateOfBirth is missing/invalid"
+        "dateOfBirth is missing/invalid",
+        "at least nino or postcode needs to be supplioed supplied"
       )
     }
 

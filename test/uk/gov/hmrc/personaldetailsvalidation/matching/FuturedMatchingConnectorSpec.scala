@@ -27,6 +27,7 @@ import uk.gov.hmrc.config.HostConfigProvider
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
+import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
@@ -46,7 +47,7 @@ class FuturedMatchingConnectorSpec
         .withPayload(payload)
         .returning(OK, matchingResponsePayload)
 
-      connector.doMatch(personalDetails).value.futureValue shouldBe Right(MatchSuccessful(personalDetails.copy(nino = Some(ninoWithDifferentSuffix))))
+      connector.doMatch(personalDetails).value.futureValue shouldBe Right(MatchSuccessful(personalDetails.copy(nino = ninoWithDifferentSuffix)))
     }
 
     "return MatchFailed when POST to authenticator's /authenticator/match returns UNAUTHORISED" in new Setup {
@@ -88,7 +89,8 @@ class FuturedMatchingConnectorSpec
 
     val nino = Nino("AA000003D")
     val ninoWithDifferentSuffix = Nino("AA000003C")
-    val personalDetails = personalDetailsObjects.generateOne.copy(nino = Some(nino))
+    val generatedPersonalDetails = personalDetailsObjects.generateOne.asInstanceOf[PersonalDetailsWithNino]
+    val personalDetails = generatedPersonalDetails.copy(nino = nino)
     val payload = Json.obj(
       "firstName" -> personalDetails.firstName,
       "lastName" -> personalDetails.lastName,

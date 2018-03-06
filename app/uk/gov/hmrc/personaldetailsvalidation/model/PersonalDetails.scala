@@ -18,11 +18,68 @@ package uk.gov.hmrc.personaldetailsvalidation.model
 
 import java.time.LocalDate
 
+import play.api.libs.json._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.model.NonEmptyString
 
-case class PersonalDetails(firstName: NonEmptyString,
+trait PersonalDetails {
+  def toJson: JsObject
+}
+
+trait PersonalDetailsNino {
+  def nino: Nino
+}
+
+trait PersonalDetailsPostCode {
+  def postCode: NonEmptyString
+}
+
+object PersonalDetails {
+  implicit val implicitPersonalDetailsWrite : Writes[PersonalDetails] = new Writes[PersonalDetails] {
+    override def writes(details: PersonalDetails): JsValue = {
+      details.toJson
+    }
+  }
+}
+
+case class PersonalDetailsWithNino(firstName: NonEmptyString,
                            lastName: NonEmptyString,
                            dateOfBirth: LocalDate,
-                           nino: Option[Nino],
-                           postCode: Option[String])
+                           nino: Nino) extends PersonalDetails with PersonalDetailsNino {
+  lazy val toJson: JsObject = Json.obj(
+    "firstName" -> firstName,
+    "lastName" -> lastName,
+    "dateOfBirth" -> dateOfBirth,
+    "nino" -> nino
+  )
+}
+
+case class PersonalDetailsWithPostCode(firstName: NonEmptyString,
+                                 lastName: NonEmptyString,
+                                 dateOfBirth: LocalDate,
+                                 postCode: NonEmptyString) extends PersonalDetails with PersonalDetailsPostCode {
+  def addNino(nino: Nino): PersonalDetails = {
+    PersonalDetailsWithNinoAndPostCode(firstName, lastName, dateOfBirth, nino, postCode)
+  }
+
+  lazy val toJson: JsObject = Json.obj(
+    "firstName" -> firstName,
+    "lastName" -> lastName,
+    "dateOfBirth" -> dateOfBirth,
+    "postCode" -> postCode.value
+  )
+}
+
+case class PersonalDetailsWithNinoAndPostCode(firstName: NonEmptyString,
+                                              lastName: NonEmptyString,
+                                              dateOfBirth: LocalDate,
+                                              nino: Nino,
+                                              postCode: NonEmptyString) extends PersonalDetails with PersonalDetailsNino {
+  override lazy val toJson: JsObject = Json.obj(
+    "firstName" -> firstName,
+    "lastName" -> lastName,
+    "dateOfBirth" -> dateOfBirth,
+    "nino" -> nino,
+    "postCode" -> postCode.value
+  )
+}

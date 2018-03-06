@@ -79,11 +79,11 @@ class PersonalDetailsValidationResourceControllerSpec
     forAll(ninoTransformationScenarios) { (scenario, originalNinoValue, finalNinoValue) =>
       s"$scenario" in new Setup {
 
-        val requestPersonalDetails = randomPersonalDetails
+        val requestPersonalDetails : PersonalDetailsWithNino = randomPersonalDetails.asInstanceOf[PersonalDetailsWithNino]
         val json = Json.toJson(requestPersonalDetails).as[JsObject] + ("nino" -> JsString(originalNinoValue))
         val requestWithBody: FakeRequest[JsObject] = request.withBody(json)
 
-        val personalDetailsWithUpperCaseNino = requestPersonalDetails.copy(nino = Some(Nino(finalNinoValue)))
+        val personalDetailsWithUpperCaseNino = requestPersonalDetails.copy(nino = Nino(finalNinoValue))
 
         (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
           .expects(personalDetailsWithUpperCaseNino, instanceOf[HeaderCarrier], requestWithBody, instanceOf[MdcLoggingExecutionContext])
@@ -134,7 +134,8 @@ class PersonalDetailsValidationResourceControllerSpec
       (jsonBodyOf(response) \ "errors").as[List[String]] should contain only(
         "firstName is missing",
         "lastName is missing",
-        "dateOfBirth is missing/invalid"
+        "dateOfBirth is missing/invalid",
+        "at least nino or postcode needs to be supplioed supplied"
       )
     }
 
@@ -204,7 +205,7 @@ class PersonalDetailsValidationResourceControllerSpec
 
     "return personal details in response body for SuccessfulPersonalDetailsValidation" in new Setup {
 
-      import formats.PersonalDetailsFormat._
+      import formats.PersonalDetailsInternalFormat.repositoryPersonalDetailsReads
 
       forAll { personalDetailsValidation: SuccessfulPersonalDetailsValidation =>
         (mockRepository.get(_: ValidationId)(_: ExecutionContext))
@@ -251,7 +252,6 @@ class PersonalDetailsValidationResourceControllerSpec
 
   private trait Setup {
     implicit val materializer: Materializer = mock[Materializer]
-    implicit val personalDetailsWrites: Writes[PersonalDetails] = Json.writes[PersonalDetails]
     implicit val uuidProvider: UUIDProvider = stub[UUIDProvider]
     uuidProvider.apply _ when() returns randomUUID()
 

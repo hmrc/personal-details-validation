@@ -25,7 +25,7 @@ import play.api.libs.json.{Format, JsObject, Json}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector._
-import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
+import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -43,7 +43,7 @@ trait MatchingConnector[Interpretation[_]] {
 class FuturedMatchingConnector @Inject()(httpClient: HttpClient, connectorConfig: MatchingConnectorConfig) extends MatchingConnector[Future] {
 
   import connectorConfig.authenticatorBaseUrl
-  import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsFormat._
+  import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsExternalFormat.personalDetailsReads
 
   def doMatch(personalDetails: PersonalDetails)
              (implicit headerCarrier: HeaderCarrier,
@@ -60,13 +60,6 @@ class FuturedMatchingConnector @Inject()(httpClient: HttpClient, connectorConfig
       case OK => Right(MatchSuccessful(response.json.as[PersonalDetails]))
       case UNAUTHORIZED => Right(MatchFailed)
       case other => Left(new BadGatewayException(s"Unexpected response from $method $url with status: '$other' and body: ${response.body}"))
-    }
-  }
-
-  private implicit class PersonalDetailsSerializer(personalDetails: PersonalDetails) {
-    lazy val toJson: JsObject = {
-      implicit val formats: Format[PersonalDetails] = Json.format[PersonalDetails]
-      Json.toJson(personalDetails).as[JsObject]
     }
   }
 }
