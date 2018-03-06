@@ -57,9 +57,7 @@ private class PersonalDetailsValidator[Interpretation[_] : Monad](matchingConnec
       _ <- personalDetailsValidationRepository.create(personalDetailsValidation)
       _ = sendEvents(matchResult, personalDetails)
     } yield personalDetailsValidation.id
-  }.leftMap {
-    error => sendErrorEvents(personalDetails); error
-  }
+  }.leftMap { error => sendErrorEvents(personalDetails); error }
 
   private implicit class MatchResultOps(matchResult: MatchResult) {
     def toPersonalDetailsValidation(optionallyHaving: PersonalDetails): PersonalDetailsValidation = {
@@ -67,7 +65,7 @@ private class PersonalDetailsValidator[Interpretation[_] : Monad](matchingConnec
         case (MatchSuccessful(matchingPerson: PersonalDetailsNino), other: PersonalDetailsWithPostCode) =>
           PersonalDetailsValidation.successful(other.addNino(matchingPerson.nino))
         case (MatchSuccessful(_), _) => PersonalDetailsValidation.successful(optionallyHaving)
-        case (MatchFailed, _) => PersonalDetailsValidation.failed()
+        case (MatchFailed(_), _) => PersonalDetailsValidation.failed()
       }
     }
   }

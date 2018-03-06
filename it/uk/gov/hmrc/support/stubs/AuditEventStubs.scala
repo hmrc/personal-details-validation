@@ -10,13 +10,23 @@ object AuditEventStubs {
 
   def stubAuditEvent() = stubFor(post(url).willReturn(aResponse().withStatus(OK)))
 
-  def verifyAuditEvent(matchingStatus: String) = {
+  def verifyMatchingStatusInAuditEvent(matchingStatus: String) = {
     eventually {
-      verify(postRequestedFor(url)
-        .withRequestBody(matchingJsonPath("$.auditSource", equalTo("personal-details-validation")))
-        .withRequestBody(matchingJsonPath("$.auditType", equalTo("MatchingResult")))
+      verify(matchingResultAuditEventRequestBuilder
         .withRequestBody(matchingJsonPath("$.detail.matchingStatus", equalTo(matchingStatus)))
       )
     }
   }
+
+  def verifyFailureDetailInAuditEvent(failureDetail: String) = {
+    eventually {
+      verify(matchingResultAuditEventRequestBuilder
+        .withRequestBody(matchingJsonPath("$.detail.failureDetail", equalTo(failureDetail)))
+      )
+    }
+  }
+
+  private def matchingResultAuditEventRequestBuilder = postRequestedFor(url)
+    .withRequestBody(matchingJsonPath("$.auditSource", equalTo("personal-details-validation")))
+    .withRequestBody(matchingJsonPath("$.auditType", equalTo("MatchingResult")))
 }

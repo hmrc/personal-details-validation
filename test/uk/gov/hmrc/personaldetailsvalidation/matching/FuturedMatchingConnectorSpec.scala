@@ -50,12 +50,13 @@ class FuturedMatchingConnectorSpec
       connector.doMatch(personalDetails).value.futureValue shouldBe Right(MatchSuccessful(personalDetails.copy(nino = ninoWithDifferentSuffix)))
     }
 
-    "return MatchFailed when POST to authenticator's /authenticator/match returns UNAUTHORISED" in new Setup {
+    "return MatchFailed with errors when POST to authenticator's /authenticator/match returns UNAUTHORISED" in new Setup {
+      val errors = "Last Name does not match CID"
       expectPost(toUrl = "http://host/authenticator/match")
         .withPayload(payload)
-        .returning(UNAUTHORIZED)
+        .returning(UNAUTHORIZED, Json.obj("errors" -> errors))
 
-      connector.doMatch(personalDetails).value.futureValue shouldBe Right(MatchFailed)
+      connector.doMatch(personalDetails).value.futureValue shouldBe Right(MatchFailed(errors))
     }
 
     Set(NO_CONTENT, NOT_FOUND, INTERNAL_SERVER_ERROR) foreach { unexpectedStatus =>

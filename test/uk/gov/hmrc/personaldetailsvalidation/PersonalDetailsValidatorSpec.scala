@@ -72,7 +72,7 @@ class PersonalDetailsValidatorSpec
       "store them as FailedPersonalDetailsValidation for unsuccessful match " +
       "and return the ValidationId" in new Setup {
       val personalDetails = personalDetailsObjects.generateOne
-      val matchResult = MatchFailed
+      val matchResult = MatchFailed("some error")
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)

@@ -58,7 +58,7 @@ class FuturedMatchingConnector @Inject()(httpClient: HttpClient, connectorConfig
   private implicit val matchingResultHttpReads: HttpReads[Either[Exception, MatchResult]] = new HttpReads[Either[Exception, MatchResult]] {
     override def read(method: String, url: String, response: HttpResponse): Either[Exception, MatchResult] = response.status match {
       case OK => Right(MatchSuccessful(response.json.as[PersonalDetails]))
-      case UNAUTHORIZED => Right(MatchFailed)
+      case UNAUTHORIZED => Right(MatchFailed((response.json \ "errors").as[String]))
       case other => Left(new BadGatewayException(s"Unexpected response from $method $url with status: '$other' and body: ${response.body}"))
     }
   }
@@ -71,6 +71,6 @@ object MatchingConnector {
   object MatchResult {
 
     case class MatchSuccessful(matchedPerson: PersonalDetails) extends MatchResult
-    case object MatchFailed extends MatchResult
+    case class MatchFailed(errors: String) extends MatchResult
   }
 }
