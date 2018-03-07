@@ -49,7 +49,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       val validationId = resourceUrl.substring(resourceUrl.lastIndexOf("/") + 1)
       (getResponse.json \ "id").as[String] mustBe validationId
       (getResponse.json \ "validationStatus").as[String] mustBe "success"
-      (getResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetailsBoth)
+      (getResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetailsWithBothNinoAndPostcode)
 
       verifyGAMatchEvent(label = "success")
       verifyMatchingStatusInAuditEvent(matchingStatus = "success")
@@ -96,12 +96,12 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
         "firstName is missing",
         "lastName is missing",
         "dateOfBirth is missing/invalid",
-        "at least nino or postcode needs to be supplioed supplied"
+        "at least nino or postcode needs to be supplied"
       )
     }
 
     "return BAD Request if both nino and postcode are supplied" in new Setup {
-      val createResponse = sendCreateValidationResourceRequest(personalDetailsBoth).futureValue
+      val createResponse = sendCreateValidationResourceRequest(personalDetailsWithBothNinoAndPostcode).futureValue
 
       createResponse.status mustBe BAD_REQUEST
 
@@ -109,11 +109,11 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
     }
 
     "return BAD Request if neither nino or postcode are supplied" in new Setup {
-      val createResponse = sendCreateValidationResourceRequest(invalidPersonalDetailsNeither).futureValue
+      val createResponse = sendCreateValidationResourceRequest(invalidPersonalDetailsWithNeitherPostcodeOrNino).futureValue
 
       createResponse.status mustBe BAD_REQUEST
 
-      (createResponse.json \ "errors").as[List[String]] must contain only "at least nino or postcode needs to be supplioed supplied"
+      (createResponse.json \ "errors").as[List[String]] must contain only "at least nino or postcode needs to be supplied"
     }
   }
 
@@ -152,7 +152,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
         |}
       """.stripMargin
 
-    val personalDetailsBoth =
+    val personalDetailsWithBothNinoAndPostcode =
       """
         |{
         |   "firstName": "Jim",
@@ -163,7 +163,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
         |}
       """.stripMargin
 
-    val invalidPersonalDetailsNeither =
+    val invalidPersonalDetailsWithNeitherPostcodeOrNino =
       """
         |{
         |   "firstName": "Jim",

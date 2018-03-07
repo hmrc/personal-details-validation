@@ -135,7 +135,7 @@ class PersonalDetailsValidationResourceControllerSpec
         "firstName is missing",
         "lastName is missing",
         "dateOfBirth is missing/invalid",
-        "at least nino or postcode needs to be supplioed supplied"
+        "at least nino or postcode needs to be supplied"
       )
     }
 

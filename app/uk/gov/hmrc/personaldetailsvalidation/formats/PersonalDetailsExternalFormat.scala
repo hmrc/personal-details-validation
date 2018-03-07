@@ -45,7 +45,7 @@ object PersonalDetailsExternalFormat {
         } and
           (__ \ "postCode").readNullable[String]
         ).tupled.
-        filter(ValidationError("at least nino or postcode needs to be supplioed supplied")){
+        filter(ValidationError("at least nino or postcode needs to be supplied")){
           case (None, None) => false
           case _ => true
         }.
