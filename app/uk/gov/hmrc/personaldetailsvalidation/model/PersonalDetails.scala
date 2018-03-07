@@ -74,7 +74,9 @@ case class PersonalDetailsWithNinoAndPostCode(firstName: NonEmptyString,
                                               lastName: NonEmptyString,
                                               dateOfBirth: LocalDate,
                                               nino: Nino,
-                                              postCode: NonEmptyString) extends PersonalDetails with PersonalDetailsNino {
+                                              postCode: NonEmptyString) extends PersonalDetails
+                                              with PersonalDetailsNino
+                                              with PersonalDetailsPostCode {
   override lazy val toJson: JsObject = Json.obj(
     "firstName" -> firstName,
     "lastName" -> lastName,

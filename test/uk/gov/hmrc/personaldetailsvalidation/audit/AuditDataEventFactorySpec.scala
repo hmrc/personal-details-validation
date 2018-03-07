@@ -33,6 +33,7 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
   "factory" should {
 
     val personalDetails : PersonalDetailsWithNino = personalDetailsObjects.generateOne.asInstanceOf[PersonalDetailsWithNino]
+    val personalDetailsWithNinoAndPostCode = new PersonalDetailsWithNinoAndPostCode(personalDetails.firstName, personalDetails.lastName, personalDetails.dateOfBirth, personalDetails.nino, "SE1 9NT")
 
     val matchingResultAndDetails = Map(
       MatchSuccessful(personalDetails) -> Map("matchingStatus" -> "success"),
@@ -48,6 +49,30 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
         dataEvent.tags shouldBe auditTags
         dataEvent.detail shouldBe auditDetails + ("nino" -> personalDetails.nino.value) + ("postCode" -> "NOT SUPPLIED") ++ matchingingDetails
       }
+    }
+
+    "create data event for successfull match of postCode and Nino" in new Setup {
+      val matchResult = MatchSuccessful(personalDetailsWithNinoAndPostCode)
+      val dataEvent = auditDataFactory.createEvent(matchResult, personalDetailsWithNinoAndPostCode)
+
+      dataEvent.auditSource shouldBe auditConfig.appName
+      dataEvent.auditType shouldBe "MatchingResult"
+      dataEvent.tags shouldBe auditTags
+      dataEvent.detail shouldBe auditDetails + ("nino" -> personalDetailsWithNinoAndPostCode.nino.value) + ("postCode" -> personalDetailsWithNinoAndPostCode.postCode.value) + ("matchingStatus" -> "success")
+    }
+
+    "create data event for a failed match of postCode and Nino" in new Setup {
+      val matchResult = MatchFailed("Some Error")
+      val dataEvent = auditDataFactory.createEvent(matchResult, personalDetailsWithNinoAndPostCode)
+
+      dataEvent.auditSource shouldBe auditConfig.appName
+      dataEvent.auditType shouldBe "MatchingResult"
+      dataEvent.tags shouldBe auditTags
+      dataEvent.detail shouldBe auditDetails +
+        ("nino" -> personalDetailsWithNinoAndPostCode.nino.value) +
+        ("postCode" -> personalDetailsWithNinoAndPostCode.postCode.value) +
+        ("matchingStatus" -> "failed") +
+        ("failureDetail" -> "Some Error")
     }
 
     "create error data event" in new Setup {
