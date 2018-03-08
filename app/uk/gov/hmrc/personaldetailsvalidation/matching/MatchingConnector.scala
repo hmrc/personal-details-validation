@@ -43,7 +43,7 @@ trait MatchingConnector[Interpretation[_]] {
 class FuturedMatchingConnector @Inject()(httpClient: HttpClient, connectorConfig: MatchingConnectorConfig) extends MatchingConnector[Future] {
 
   import connectorConfig.authenticatorBaseUrl
-  import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsExternalFormat.personalDetailsReads
+  import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsFormat._
 
   def doMatch(personalDetails: PersonalDetails)
              (implicit headerCarrier: HeaderCarrier,

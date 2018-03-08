@@ -36,7 +36,7 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
     with JsonValidation {
 
   import formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
-  import formats.PersonalDetailsExternalFormat.personalDetailsReads
+  import formats.PersonalDetailsFormat._
 
   def create = Action.async(parse.json) { implicit request =>
     withJsonBody[PersonalDetails] { personalDetails =>

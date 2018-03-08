@@ -29,16 +29,15 @@ trait PersonalDetails {
 trait PersonalDetailsNino {
   def nino: Nino
 }
-
-trait PersonalDetailsPostCode {
-  def postCode: NonEmptyString
-}
-
 object PersonalDetails {
   implicit val implicitPersonalDetailsWrite : Writes[PersonalDetails] = new Writes[PersonalDetails] {
     override def writes(details: PersonalDetails): JsValue = {
       details.toJson
     }
+  }
+
+  def replacePostCode(detailsWithPostCode: PersonalDetailsWithPostCode, detailsWithNino : PersonalDetailsNino) = {
+    new PersonalDetailsWithNino(detailsWithPostCode.firstName, detailsWithPostCode.lastName, detailsWithPostCode.dateOfBirth, detailsWithNino.nino)
   }
 }
 
@@ -57,31 +56,11 @@ case class PersonalDetailsWithNino(firstName: NonEmptyString,
 case class PersonalDetailsWithPostCode(firstName: NonEmptyString,
                                  lastName: NonEmptyString,
                                  dateOfBirth: LocalDate,
-                                 postCode: NonEmptyString) extends PersonalDetails with PersonalDetailsPostCode {
-  def addNino(nino: Nino): PersonalDetails = {
-    PersonalDetailsWithNinoAndPostCode(firstName, lastName, dateOfBirth, nino, postCode)
-  }
-
+                                 postCode: NonEmptyString) extends PersonalDetails{
   lazy val toJson: JsObject = Json.obj(
     "firstName" -> firstName,
     "lastName" -> lastName,
     "dateOfBirth" -> dateOfBirth,
-    "postCode" -> postCode.value
-  )
-}
-
-case class PersonalDetailsWithNinoAndPostCode(firstName: NonEmptyString,
-                                              lastName: NonEmptyString,
-                                              dateOfBirth: LocalDate,
-                                              nino: Nino,
-                                              postCode: NonEmptyString) extends PersonalDetails
-                                              with PersonalDetailsNino
-                                              with PersonalDetailsPostCode {
-  override lazy val toJson: JsObject = Json.obj(
-    "firstName" -> firstName,
-    "lastName" -> lastName,
-    "dateOfBirth" -> dateOfBirth,
-    "nino" -> nino,
     "postCode" -> postCode.value
   )
 }

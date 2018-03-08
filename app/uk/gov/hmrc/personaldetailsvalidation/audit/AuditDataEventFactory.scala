@@ -50,7 +50,7 @@ private[personaldetailsvalidation] class AuditDataEventFactory(auditConfig: Audi
     }
 
     val postCode = personalDetails match {
-      case details : PersonalDetailsPostCode  => details.postCode.value
+      case details : PersonalDetailsWithPostCode  => details.postCode.value
       case _ => """NOT SUPPLIED"""
     }
 

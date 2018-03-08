@@ -207,7 +207,7 @@ class PersonalDetailsValidationResourceControllerSpec
 
     "return personal details in response body for SuccessfulPersonalDetailsValidation" in new Setup {
 
-      import formats.PersonalDetailsInternalFormat.repositoryPersonalDetailsReads
+      import formats.PersonalDetailsFormat._
 
       forAll { personalDetailsValidation: SuccessfulPersonalDetailsValidation =>
         (mockRepository.get(_: ValidationId)(_: ExecutionContext))
