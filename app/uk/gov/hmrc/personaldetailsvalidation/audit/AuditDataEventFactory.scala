@@ -23,7 +23,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory._
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
-import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
+import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.audit.AuditExtensions
 import uk.gov.hmrc.play.audit.model.DataEvent
 
@@ -43,15 +43,27 @@ private[personaldetailsvalidation] class AuditDataEventFactory(auditConfig: Audi
                       (implicit hc: HeaderCarrier, request: Request[_]): DataEvent = createEvent(personalDetails, "technicalError")
 
   private def createEvent(personalDetails: PersonalDetails, matchingStatus: String, otherDetails: Map[String, String] = Map.empty)
-                         (implicit hc: HeaderCarrier, request: Request[_]): DataEvent = DataEvent(
-    auditSource = auditConfig.appName,
-    auditType = auditType,
-    tags = auditTagProvider(hc, auditType, request),
-    detail = auditDetailsProvider(hc) + ("nino" -> personalDetails.nino.value) + ("matchingStatus" -> matchingStatus) ++ otherDetails
-  )
+                         (implicit hc: HeaderCarrier, request: Request[_]): DataEvent = {
+    val nino = personalDetails match {
+      case details : PersonalDetailsNino => details.nino.value
+      case _ => "NOT SUPPLIED"
+    }
+
+    val postCode = personalDetails match {
+      case details : PersonalDetailsWithPostCode  => details.postCode.value
+      case _ => """NOT SUPPLIED"""
+    }
+
+    DataEvent(
+      auditSource = auditConfig.appName,
+      auditType = auditType,
+      tags = auditTagProvider(hc, auditType, request),
+      detail = auditDetailsProvider(hc) + ("nino" -> nino) + ("postCode" -> postCode) + ("matchingStatus" -> matchingStatus) ++ otherDetails
+    )
+  }
 
   private implicit class MatchResultOps(target: MatchResult) {
-    def toMatchingStatus = target match {
+    def toMatchingStatus: AuditType = target match {
       case MatchSuccessful(_) => "success"
       case MatchFailed(_) => "failed"
     }

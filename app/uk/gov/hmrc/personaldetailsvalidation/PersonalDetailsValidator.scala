@@ -27,7 +27,7 @@ import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.matching.{FuturedMatchingConnector, MatchingConnector}
-import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsValidation, ValidationId}
+import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -60,9 +60,13 @@ private class PersonalDetailsValidator[Interpretation[_] : Monad](matchingConnec
   }.leftMap { error => sendErrorEvents(personalDetails); error }
 
   private implicit class MatchResultOps(matchResult: MatchResult) {
-    def toPersonalDetailsValidation(optionallyHaving: PersonalDetails): PersonalDetailsValidation = matchResult match {
-      case MatchSuccessful(_) => PersonalDetailsValidation.successful(optionallyHaving)
-      case MatchFailed(_) => PersonalDetailsValidation.failed()
+    def toPersonalDetailsValidation(optionallyHaving: PersonalDetails): PersonalDetailsValidation = {
+      (matchResult, optionallyHaving) match {
+        case (MatchSuccessful(matchingPerson: PersonalDetailsNino), other: PersonalDetailsWithPostCode) =>
+          PersonalDetailsValidation.successful(PersonalDetails.replacePostCode(other, matchingPerson))
+        case (MatchSuccessful(_), _) => PersonalDetailsValidation.successful(optionallyHaving)
+        case (MatchFailed(_), _) => PersonalDetailsValidation.failed()
+      }
     }
   }
 

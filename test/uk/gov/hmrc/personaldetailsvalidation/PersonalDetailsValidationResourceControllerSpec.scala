@@ -79,7 +79,7 @@ class PersonalDetailsValidationResourceControllerSpec
     forAll(ninoTransformationScenarios) { (scenario, originalNinoValue, finalNinoValue) =>
       s"$scenario" in new Setup {
 
-        val requestPersonalDetails = randomPersonalDetails
+        val requestPersonalDetails : PersonalDetailsWithNino = randomPersonalDetails.asInstanceOf[PersonalDetailsWithNino]
         val json = Json.toJson(requestPersonalDetails).as[JsObject] + ("nino" -> JsString(originalNinoValue))
         val requestWithBody: FakeRequest[JsObject] = request.withBody(json)
 
@@ -135,7 +135,7 @@ class PersonalDetailsValidationResourceControllerSpec
         "firstName is missing",
         "lastName is missing",
         "dateOfBirth is missing/invalid",
-        "nino is missing"
+        "at least nino or postcode needs to be supplied"
       )
     }
 
@@ -148,6 +148,8 @@ class PersonalDetailsValidationResourceControllerSpec
       ("dateOfBirth is in invalid iso format", Json.obj("dateOfBirth" -> JsString("31/12/2018")), List("dateOfBirth is missing/invalid. Reasons: error.expected.date.isoformat")),
       ("dateOfBirth is an invalid date", Json.obj("dateOfBirth" -> JsString("2018-11-31")), List("dateOfBirth is missing/invalid. Reasons: error.expected.date.isoformat")),
       ("nino is invalid", Json.obj("nino" -> JsString(" 1234 ")), List("invalid nino format")),
+      ("nino and postCode both supplied", Json.obj("postCode" -> JsString("SE1 9NT")), List("both nino and postcode supplied")),
+      ("at least one of nino or postCode supplied", Json.obj("nino" -> JsNull), List("at least nino or postcode needs to be supplied")),
       ("multiple data invalid", Json.obj("nino" -> JsString(" 1234 "), "firstName" -> JsString("")), List("firstName is blank/empty", "invalid nino format"))
     )
 
@@ -252,7 +254,6 @@ class PersonalDetailsValidationResourceControllerSpec
 
   private trait Setup {
     implicit val materializer: Materializer = mock[Materializer]
-    implicit val personalDetailsWrites: Writes[PersonalDetails] = Json.writes[PersonalDetails]
     implicit val uuidProvider: UUIDProvider = stub[UUIDProvider]
     uuidProvider.apply _ when() returns randomUUID()
 

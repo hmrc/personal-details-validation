@@ -23,9 +23,9 @@ import uk.gov.hmrc.personaldetailsvalidation.model._
 
 object PersonalDetailsValidationFormat {
 
-  import PersonalDetailsFormat._
   import TinyTypesFormats._
   import model.ValidationStatus._
+  import formats.PersonalDetailsFormat._
 
   implicit val personalDetailsValidationFormats: Format[PersonalDetailsValidation] = {
 
@@ -49,7 +49,7 @@ object PersonalDetailsValidationFormat {
     }
 
     val writes: Writes[PersonalDetailsValidation] = Writes[PersonalDetailsValidation] {
-      case SuccessfulPersonalDetailsValidation(id, personalDetails) => Json.obj(
+      case SuccessfulPersonalDetailsValidation(id, personalDetails: PersonalDetails) => Json.obj(
         "id" -> id,
         "validationStatus" -> Success.value,
         "personalDetails" -> personalDetails

@@ -35,6 +35,26 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       verifyMatchingStatusInAuditEvent(matchingStatus = "success")
     }
 
+    "return OK with success validation status when provided personal details, that contain postcode, can be matched by Authenticator. Include nino in response" in new Setup {
+
+      AuthenticatorStub.expecting(personalDetailsWithPostCode).respondWithOK()
+
+      val createResponse = sendCreateValidationResourceRequest(personalDetailsWithPostCode).futureValue
+      createResponse.status mustBe CREATED
+      val Some(resourceUrl) = createResponse.header(LOCATION)
+
+      val getResponse = wsUrl(resourceUrl).get().futureValue
+      getResponse.status mustBe OK
+
+      val validationId = resourceUrl.substring(resourceUrl.lastIndexOf("/") + 1)
+      (getResponse.json \ "id").as[String] mustBe validationId
+      (getResponse.json \ "validationStatus").as[String] mustBe "success"
+      (getResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetails)
+
+      verifyGAMatchEvent(label = "success")
+      verifyMatchingStatusInAuditEvent(matchingStatus = "success")
+    }
+
     "return OK with failure validation status when provided personal details cannot be matched by Authenticator" in new Setup {
 
       val failureDetail = "Last Name does not match CID"
@@ -76,8 +96,24 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
         "firstName is missing",
         "lastName is missing",
         "dateOfBirth is missing/invalid",
-        "nino is missing"
+        "at least nino or postcode needs to be supplied"
       )
+    }
+
+    "return BAD Request if both nino and postcode are supplied" in new Setup {
+      val createResponse = sendCreateValidationResourceRequest(personalDetailsWithBothNinoAndPostcode).futureValue
+
+      createResponse.status mustBe BAD_REQUEST
+
+      (createResponse.json \ "errors").as[List[String]] must contain only "both nino and postcode supplied"
+    }
+
+    "return BAD Request if neither nino or postcode are supplied" in new Setup {
+      val createResponse = sendCreateValidationResourceRequest(invalidPersonalDetailsWithNeitherPostcodeOrNino).futureValue
+
+      createResponse.status mustBe BAD_REQUEST
+
+      (createResponse.json \ "errors").as[List[String]] must contain only "at least nino or postcode needs to be supplied"
     }
   }
 
@@ -102,6 +138,36 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
         |   "firstName": "Jim",
         |   "lastName": "Ferguson",
         |   "nino": "AA000003D",
+        |   "dateOfBirth": "1948-04-23"
+        |}
+      """.stripMargin
+
+    val personalDetailsWithPostCode =
+      """
+        |{
+        |   "firstName": "Jim",
+        |   "lastName": "Ferguson",
+        |   "postCode": "SE1 9NT",
+        |   "dateOfBirth": "1948-04-23"
+        |}
+      """.stripMargin
+
+    val personalDetailsWithBothNinoAndPostcode =
+      """
+        |{
+        |   "firstName": "Jim",
+        |   "lastName": "Ferguson",
+        |   "nino": "AA000003D",
+        |   "postCode": "SE1 9NT",
+        |   "dateOfBirth": "1948-04-23"
+        |}
+      """.stripMargin
+
+    val invalidPersonalDetailsWithNeitherPostcodeOrNino =
+      """
+        |{
+        |   "firstName": "Jim",
+        |   "lastName": "Ferguson",
         |   "dateOfBirth": "1948-04-23"
         |}
       """.stripMargin

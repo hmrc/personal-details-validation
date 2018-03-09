@@ -18,10 +18,10 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import javax.inject.{Inject, Singleton}
 
+import play.api.libs.json._
 import akka.Done
 import cats.data.EitherT
 import com.google.inject.ImplementedBy
-import play.api.libs.json.JsObject
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Descending
@@ -32,7 +32,7 @@ import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.mongoEntity
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat._
 import uk.gov.hmrc.personaldetailsvalidation.formats.TinyTypesFormats._
-import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, ValidationId}
+import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.json.ops._
 
 import scala.concurrent.ExecutionContext.Implicits.global

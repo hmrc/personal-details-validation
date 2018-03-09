@@ -17,7 +17,7 @@
 package generators
 
 import org.scalacheck.Gen
-import uk.gov.hmrc.personaldetailsvalidation.model.{FailedPersonalDetailsValidation, PersonalDetails, PersonalDetailsValidation, SuccessfulPersonalDetailsValidation}
+import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.audit.model.DataEvent
 
 object ObjectGenerators extends ValueGenerators {
@@ -27,7 +27,7 @@ object ObjectGenerators extends ValueGenerators {
     lastName <- nonEmptyStrings
     dateOfBirth <- localDates
     nino <- ninos
-  } yield PersonalDetails(firstName, lastName, dateOfBirth, nino)
+  } yield PersonalDetailsWithNino(firstName, lastName, dateOfBirth, nino)
 
   implicit val successfulPersonalDetailsValidationObjects: Gen[SuccessfulPersonalDetailsValidation] = for {
     id <- validationIds

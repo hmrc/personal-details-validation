@@ -27,7 +27,7 @@ import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
-import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
+import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.DataEvent
 import uk.gov.hmrc.play.test.UnitSpec
@@ -84,7 +84,7 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
       (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
         .expects(GAEvent("sos_iv", "personal_detail_validation_result", "failed_matching"), headerCarrier, executionContext)
 
-      val matchResult = MatchFailed("some errors")
+      val matchResult : MatchResult = MatchFailed("some errors")
 
       (auditDataEventFactory.createEvent(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_]))
         .expects(matchResult, personalDetails, headerCarrier, request)
@@ -118,7 +118,8 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
   trait Setup {
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
     implicit val request = FakeRequest()
-    val personalDetails = personalDetailsObjects.generateOne.copy(nino = Nino("AA000003D"))
+    val generatedPerson = personalDetailsObjects.generateOne.asInstanceOf[PersonalDetailsWithNino]
+    val personalDetails = generatedPerson.copy(nino = Nino("AA000003D"))
     val dataEvent = dataEvents.generateOne
 
     val platformAnalyticsConnector = mock[PlatformAnalyticsConnector]

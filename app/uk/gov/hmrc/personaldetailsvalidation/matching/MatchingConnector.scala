@@ -21,11 +21,11 @@ import javax.inject.{Inject, Singleton}
 import cats.data.EitherT
 import com.google.inject.ImplementedBy
 import play.api.http.Status._
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{Format, JsObject, Json}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector._
-import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
+import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -61,15 +61,6 @@ class FuturedMatchingConnector @Inject()(httpClient: HttpClient, connectorConfig
       case UNAUTHORIZED => Right(MatchFailed((response.json \ "errors").as[String]))
       case other => Left(new BadGatewayException(s"Unexpected response from $method $url with status: '$other' and body: ${response.body}"))
     }
-  }
-
-  private implicit class PersonalDetailsSerializer(personalDetails: PersonalDetails) {
-    lazy val toJson: JsObject = Json.obj(
-      "firstName" -> personalDetails.firstName,
-      "lastName" -> personalDetails.lastName,
-      "dateOfBirth" -> personalDetails.dateOfBirth,
-      "nino" -> personalDetails.nino
-    )
   }
 }
 

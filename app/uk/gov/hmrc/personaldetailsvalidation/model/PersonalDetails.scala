@@ -18,10 +18,49 @@ package uk.gov.hmrc.personaldetailsvalidation.model
 
 import java.time.LocalDate
 
+import play.api.libs.json._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.model.NonEmptyString
 
-case class PersonalDetails(firstName: NonEmptyString,
+trait PersonalDetails {
+  def toJson: JsObject
+}
+
+trait PersonalDetailsNino {
+  def nino: Nino
+}
+object PersonalDetails {
+  implicit val implicitPersonalDetailsWrite : Writes[PersonalDetails] = new Writes[PersonalDetails] {
+    override def writes(details: PersonalDetails): JsValue = {
+      details.toJson
+    }
+  }
+
+  def replacePostCode(detailsWithPostCode: PersonalDetailsWithPostCode, detailsWithNino : PersonalDetailsNino) = {
+    new PersonalDetailsWithNino(detailsWithPostCode.firstName, detailsWithPostCode.lastName, detailsWithPostCode.dateOfBirth, detailsWithNino.nino)
+  }
+}
+
+case class PersonalDetailsWithNino(firstName: NonEmptyString,
                            lastName: NonEmptyString,
                            dateOfBirth: LocalDate,
-                           nino: Nino)
+                           nino: Nino) extends PersonalDetails with PersonalDetailsNino {
+  lazy val toJson: JsObject = Json.obj(
+    "firstName" -> firstName,
+    "lastName" -> lastName,
+    "dateOfBirth" -> dateOfBirth,
+    "nino" -> nino
+  )
+}
+
+case class PersonalDetailsWithPostCode(firstName: NonEmptyString,
+                                 lastName: NonEmptyString,
+                                 dateOfBirth: LocalDate,
+                                 postCode: NonEmptyString) extends PersonalDetails{
+  lazy val toJson: JsObject = Json.obj(
+    "firstName" -> firstName,
+    "lastName" -> lastName,
+    "dateOfBirth" -> dateOfBirth,
+    "postCode" -> postCode.value
+  )
+}
