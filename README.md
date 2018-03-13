@@ -16,11 +16,25 @@ Manages personal details validation.
 Validates the given Personal details data and returns a url to a GET endpoint to retrieve the validation results.
 
 **Request format**
+
+There are two possible formats that can be used: -
+
 ```
 {
    "firstName": "Jim",
    "lastName": "Ferguson",
    "nino": "AA000003D",
+   "dateOfBirth": "1948-04-23"
+}
+```
+
+or
+
+```
+{
+   "firstName": "Jim",
+   "lastName": "Ferguson",
+   "postCode": "SE1 9NT",
    "dateOfBirth": "1948-04-23"
 }
 ```
@@ -37,9 +51,14 @@ Example of BAD REQUEST response:
 {
   "errors": [
     "firstName is missing",
+    "firstName is blank/empty",
     "lastName is missing",
-    "dateOfBirth is missing",
-    "nino is missing"
+    "lastName is blank/empty",
+    "dateOfBirth is missing/invalid",
+    "dateOfBirth is missing/invalid. Reasons: error.expected.date.isoformat",
+    "invalid nino format",
+    "at least nino or postcode needs to be supplied",
+    "both nino and postcode supplied"
   ]
 }
 ```
