@@ -30,6 +30,7 @@ import scala.util.Try
 object PersonalDetailsFormat {
   implicit val withNinoFormats: Format[PersonalDetailsWithNino] = Json.format[PersonalDetailsWithNino]
   implicit val withPostCodeFormats: Format[PersonalDetailsWithPostCode] = Json.format[PersonalDetailsWithPostCode]
+  private val postCodeValidation = """^([A-Za-z][A-HJ-Ya-hj-y]?[0-9][A-Za-z0-9]?|[A-Za-z][A-HJ-Ya-hj-y][A-Za-z])\s?[0-9][ABDEFGHJLNPQRSTUWXYZabdefghjlnpqrstuwxyz]{2}$""".r
 
   implicit val personalDetailsReads: Reads[PersonalDetails] = (
     (__ \ "firstName").readOrError[String]("firstName is missing").filter(ValidationError("firstName is blank/empty"))(_.trim.nonEmpty) and
@@ -46,7 +47,11 @@ object PersonalDetailsFormat {
         case Some(nino) => Some(Nino(nino))
         case _ => None
       } and
-        (__ \ "postCode").readNullable[String]
+        (__ \ "postCode").readNullable[String].filter(ValidationError("invalid postcode format")){
+          case postCode if !postCode.isDefined => true
+          case postCode if !postCodeValidation.findFirstIn(postCode.get).isDefined => false
+          case _ => true
+        }
       ).tupled.
       filter(ValidationError("at least nino or postcode needs to be supplied")){
         case (None, None) => false

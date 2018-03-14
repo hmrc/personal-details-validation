@@ -20,9 +20,11 @@ import java.util.UUID.randomUUID
 
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
+import generators.{ObjectGenerators, PostCodeGenerator}
+import org.scalacheck.Gen._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
-import play.api.libs.json.Json
+import play.api.libs.json.{JsResultException, Json}
 import play.api.libs.json.Json.toJson
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.test.UnitSpec
@@ -36,6 +38,81 @@ class PersonalDetailsValidationFormatSpec
   import TinyTypesFormats._
 
   "format" should {
+    "correctly parse valid postcodes" in new Setup {
+      import PersonalDetailsFormat._
+      forAll(PostCodeGenerator.postCode) { postCode =>
+        val personalDetails : PersonalDetailsWithNino = ObjectGenerators.personalDetailsObjects.generateOne.asInstanceOf[PersonalDetailsWithNino]
+        val personalDetailsWithPostCodeJson = new PersonalDetailsWithPostCode(
+          personalDetails.firstName,
+          personalDetails.lastName,
+          personalDetails.dateOfBirth,
+          postCode
+        ).toJson.toString()
+        Json.parse(personalDetailsWithPostCodeJson).as[PersonalDetails]
+      }
+    }
+
+    "correctly fail to parse valid postcodes that do not start at the beginning of the field" in new Setup {
+      import PersonalDetailsFormat._
+      forAll(PostCodeGenerator.postCode) { postCode =>
+        val personalDetails : PersonalDetailsWithNino = ObjectGenerators.personalDetailsObjects.generateOne.asInstanceOf[PersonalDetailsWithNino]
+        val personalDetailsWithPostCodeJson = new PersonalDetailsWithPostCode(
+          personalDetails.firstName,
+          personalDetails.lastName,
+          personalDetails.dateOfBirth,
+          " " + postCode
+        ).toJson.toString()
+        an [JsResultException] should be thrownBy
+          Json.parse(personalDetailsWithPostCodeJson).as[PersonalDetails]
+      }
+    }
+
+    "correctly fail to parse valid postcodes that do not end the field" in new Setup {
+      import PersonalDetailsFormat._
+      forAll(PostCodeGenerator.postCode) { postCode =>
+        val personalDetails : PersonalDetailsWithNino = ObjectGenerators.personalDetailsObjects.generateOne.asInstanceOf[PersonalDetailsWithNino]
+        val personalDetailsWithPostCodeJson = new PersonalDetailsWithPostCode(
+          personalDetails.firstName,
+          personalDetails.lastName,
+          personalDetails.dateOfBirth,
+          postCode + " "
+        ).toJson.toString()
+        an [JsResultException] should be thrownBy
+          Json.parse(personalDetailsWithPostCodeJson).as[PersonalDetails]
+      }
+    }
+
+    "correctly fail to parse the field if it contains multiple postcode" in new Setup {
+      import PersonalDetailsFormat._
+      forAll(PostCodeGenerator.postCode) { postCode =>
+        val secondPostCode = PostCodeGenerator.postCode.generateOne
+        val personalDetails : PersonalDetailsWithNino = ObjectGenerators.personalDetailsObjects.generateOne.asInstanceOf[PersonalDetailsWithNino]
+        val personalDetailsWithPostCodeJson = new PersonalDetailsWithPostCode(
+          personalDetails.firstName,
+          personalDetails.lastName,
+          personalDetails.dateOfBirth,
+          postCode + " " + secondPostCode
+        ).toJson.toString()
+        an [JsResultException] should be thrownBy
+          Json.parse(personalDetailsWithPostCodeJson).as[PersonalDetails]
+      }
+    }
+
+    "fail validation for invalid postcodes" in new Setup {
+      import PersonalDetailsFormat._
+      val invalidPostCode = listOfN[Char](7, frequency((1,choose(65.toChar, 90.toChar)), (1, choose(97.toChar, 122.toChar)))).map(_.mkString)
+      forAll(invalidPostCode) { invalidPostCode: String =>
+        val personalDetails : PersonalDetailsWithNino = ObjectGenerators.personalDetailsObjects.generateOne.asInstanceOf[PersonalDetailsWithNino]
+        val personalDetailsWithPostCodeJson = new PersonalDetailsWithPostCode(
+          personalDetails.firstName,
+          personalDetails.lastName,
+          personalDetails.dateOfBirth,
+          invalidPostCode.mkString
+        ).toJson.toString()
+        an [JsResultException] should be thrownBy
+          Json.parse(personalDetailsWithPostCodeJson).as[PersonalDetails]
+      }
+    }
 
     "allow to serialise SuccessfulPersonalDetailsValidation to JSON" in new Setup {
       forAll { personalDetails: PersonalDetails =>
