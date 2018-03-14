@@ -122,6 +122,20 @@ class PersonalDetailsValidationResourceControllerSpec
       controller.create(requestWithBody).failed.futureValue shouldBe badGatewayException
     }
 
+    "return BAD_REQUEST if postcode is supplied in an incorrect format" in new Setup {
+      val personalDetailsWithNino = randomPersonalDetails.asInstanceOf[PersonalDetailsWithNino]
+      val personalDetails = new PersonalDetailsWithPostCode(
+        personalDetailsWithNino.firstName,
+        personalDetailsWithNino.lastName,
+        personalDetailsWithNino.dateOfBirth,
+        "INVALID POSTCODE"
+      )
+
+      val response = controller.create(request.withBody(personalDetails.toJson))
+
+      status(response) shouldBe BAD_REQUEST
+    }
+
     "return BAD_REQUEST if mandatory fields are missing" in new Setup {
       val response = controller.create(request.withBody(JsNull))
 
