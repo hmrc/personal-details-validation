@@ -32,13 +32,8 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
 
   "factory" should {
 
-    val personalDetails : PersonalDetailsWithNino = personalDetailsObjects.generateOne.asInstanceOf[PersonalDetailsWithNino]
-    val personalDetailsWithPostCode : PersonalDetailsWithPostCode = new PersonalDetailsWithPostCode(
-      personalDetails.firstName,
-      personalDetails.lastName,
-      personalDetails.dateOfBirth,
-      "SE1 9NT"
-    )
+    val personalDetails : PersonalDetailsWithNino = personalDetailsWithNinoObjects.generateOne
+    val personalDetailsWithPostCode : PersonalDetailsWithPostCode = personalDetailsWithPostCodeObjects.generateOne
 
     val matchingResultAndDetails = Map(
       MatchSuccessful(personalDetails) -> Map("matchingStatus" -> "success"),

@@ -118,7 +118,7 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
   trait Setup {
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
     implicit val request = FakeRequest()
-    val generatedPerson = personalDetailsObjects.generateOne.asInstanceOf[PersonalDetailsWithNino]
+    val generatedPerson = personalDetailsWithNinoObjects.generateOne
     val personalDetails = generatedPerson.copy(nino = Nino("AA000003D"))
     val dataEvent = dataEvents.generateOne
 

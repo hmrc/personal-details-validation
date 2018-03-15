@@ -90,7 +90,7 @@ class FuturedMatchingConnectorSpec
 
     val nino = Nino("AA000003D")
     val ninoWithDifferentSuffix = Nino("AA000003C")
-    val generatedPersonalDetails = personalDetailsObjects.generateOne.asInstanceOf[PersonalDetailsWithNino]
+    val generatedPersonalDetails = personalDetailsWithNinoObjects.generateOne
     val personalDetails = generatedPersonalDetails.copy(nino = nino)
     val payload = Json.obj(
       "firstName" -> personalDetails.firstName,

@@ -48,8 +48,8 @@ object PersonalDetailsFormat {
         case _ => None
       } and
         (__ \ "postCode").readNullable[String].filter(ValidationError("invalid postcode format")){
-          case postCode if !postCode.isDefined => true
-          case postCode if !postCodeValidation.findFirstIn(postCode.get).isDefined => false
+          case None => true
+          case Some(postCode) if !postCodeValidation.findFirstIn(postCode.trim).isDefined => false
           case _ => true
         }
       ).tupled.
@@ -64,7 +64,7 @@ object PersonalDetailsFormat {
     )((firstName, lastName, dateOfBirth, ninoOrPostCode) => {
     ninoOrPostCode match {
       case (Some(nino), None) => PersonalDetailsWithNino(firstName, lastName, dateOfBirth, nino)
-      case (None, Some(postCode)) => PersonalDetailsWithPostCode(firstName, lastName, dateOfBirth, postCode)
+      case (None, Some(postCode)) => PersonalDetailsWithPostCode(firstName, lastName, dateOfBirth, postCode.trim)
       case _ => throw new IllegalArgumentException("Validation should catch this case")
     }
   })
