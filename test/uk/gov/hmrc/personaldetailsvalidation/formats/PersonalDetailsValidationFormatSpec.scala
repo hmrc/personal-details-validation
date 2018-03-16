@@ -20,9 +20,10 @@ import java.util.UUID.randomUUID
 
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
+import org.scalacheck.Gen
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
-import play.api.libs.json.Json
+import play.api.libs.json.{JsResultException, Json}
 import play.api.libs.json.Json.toJson
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.test.UnitSpec
@@ -35,12 +36,60 @@ class PersonalDetailsValidationFormatSpec
   import PersonalDetailsValidationFormat._
   import TinyTypesFormats._
 
+  implicit val stringsOfAtLeast2Characters: Gen[String] = for {
+    length <- Gen.chooseNum(2, 10)
+    chars <- Gen.listOfN(length, Gen.alphaNumChar)
+  } yield chars.mkString
+
   "format" should {
+    "correctly parse valid postcodes" in new Setup {
+      import PersonalDetailsFormat._
+      forAll { personalDetailsWithPostCode : PersonalDetailsWithPostCode =>
+        Json.parse(personalDetailsWithPostCode.toJson.toString()).as[PersonalDetails]
+      }
+    }
+
+    "correctly fail to parse valid postcodes that do not start at the beginning of the field" in new Setup {
+      import PersonalDetailsFormat._
+      forAll { (personalDetailsWithPostCode : PersonalDetailsWithPostCode, randomString : String) =>
+        val adjustedPostCode = randomString + personalDetailsWithPostCode.postCode.value
+        an [JsResultException] should be thrownBy
+          Json.parse(personalDetailsWithPostCode.copy(postCode = adjustedPostCode).toJson.toString()).as[PersonalDetails]
+      }
+    }
+
+    "correctly fail to parse valid postcodes that do not end the field" in new Setup {
+      import PersonalDetailsFormat._
+      forAll { (personalDetailsWithPostCode : PersonalDetailsWithPostCode, randomString : String) =>
+        val adjustedPostCode = personalDetailsWithPostCode.postCode.value + randomString
+        an [JsResultException] should be thrownBy
+          Json.parse(personalDetailsWithPostCode.copy(postCode = adjustedPostCode).toJson.toString()).as[PersonalDetails]
+      }
+    }
+
+    "correctly fail to parse the field if it contains multiple postcodes" in new Setup {
+      import PersonalDetailsFormat._
+      forAll { (firstPersonalDetailsWithPostCode : PersonalDetailsWithPostCode, secondPersonalDetailsWithPostCode : PersonalDetailsWithPostCode, randomString : String) =>
+        val adjustedPostCode =
+          firstPersonalDetailsWithPostCode.postCode.value +
+          randomString +
+          secondPersonalDetailsWithPostCode.postCode.value
+        an [JsResultException] should be thrownBy
+          Json.parse(firstPersonalDetailsWithPostCode.copy(postCode = adjustedPostCode).toJson.toString()).as[PersonalDetails]
+      }
+    }
+
+    "fail validation for invalid postcodes" in new Setup {
+      import PersonalDetailsFormat._
+      forAll { (invalidPostCode: String, personalDetailsWithPostCode: PersonalDetailsWithPostCode) =>
+        an [JsResultException] should be thrownBy
+          Json.parse(personalDetailsWithPostCode.copy(postCode = invalidPostCode).toJson.toString()).as[PersonalDetails]
+      }
+    }
 
     "allow to serialise SuccessfulPersonalDetailsValidation to JSON" in new Setup {
-      forAll { personalDetails: PersonalDetails =>
-        val personalDetailsWithNino = personalDetails.asInstanceOf[PersonalDetailsWithNino]
-        toJson(PersonalDetailsValidation.successful(personalDetails)) shouldBe Json.obj(
+      forAll { personalDetailsWithNino: PersonalDetailsWithNino =>
+        toJson(PersonalDetailsValidation.successful(personalDetailsWithNino)) shouldBe Json.obj(
           "id" -> ValidationId(uuidProvider()),
           "validationStatus" -> "success",
           "personalDetails" -> Json.obj(
@@ -61,8 +110,8 @@ class PersonalDetailsValidationFormatSpec
     }
 
     "allow to deserialise SuccessfulPersonalDetailsValidation to JSON" in new Setup {
-      forAll { personalDetails: PersonalDetails =>
-        val personalDetailsWithNino = personalDetails.asInstanceOf[PersonalDetailsWithNino]
+      forAll { personalDetails: PersonalDetailsWithNino =>
+        val personalDetailsWithNino = personalDetails
         Json.obj(
           "id" -> ValidationId(uuidProvider()),
           "validationStatus" -> "success",

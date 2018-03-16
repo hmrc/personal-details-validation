@@ -19,19 +19,29 @@ package generators
 import org.scalacheck.Gen
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.audit.model.DataEvent
+import PostCodeGenerator._
 
 object ObjectGenerators extends ValueGenerators {
 
-  implicit val personalDetailsObjects: Gen[PersonalDetails] = for {
+  implicit val personalDetailsWithNinoObjects: Gen[PersonalDetailsWithNino] = for {
     firstName <- nonEmptyStrings
     lastName <- nonEmptyStrings
     dateOfBirth <- localDates
     nino <- ninos
   } yield PersonalDetailsWithNino(firstName, lastName, dateOfBirth, nino)
 
+  implicit val personalDetailsWithPostCodeObjects: Gen[PersonalDetailsWithPostCode] = for {
+    firstName <- nonEmptyStrings
+    lastName <- nonEmptyStrings
+    dateOfBirth <- localDates
+    postCode <- postCode
+  } yield PersonalDetailsWithPostCode(firstName, lastName, dateOfBirth, postCode)
+
+  implicit val personalDetailsObjects: Gen[PersonalDetails] = personalDetailsWithNinoObjects.map(_.asInstanceOf[PersonalDetails])
+
   implicit val successfulPersonalDetailsValidationObjects: Gen[SuccessfulPersonalDetailsValidation] = for {
     id <- validationIds
-    personalDetails <- personalDetailsObjects
+    personalDetails <- personalDetailsWithNinoObjects
   } yield SuccessfulPersonalDetailsValidation(id, personalDetails)
 
   implicit val failedPersonalDetailsValidationObjects: Gen[FailedPersonalDetailsValidation] =
