@@ -16,11 +16,9 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import javax.inject.{Inject, Singleton}
-
 import cats.implicits._
+import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json.toJson
-import play.api.libs.json._
 import play.api.mvc.{Action, Result}
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
@@ -35,14 +33,14 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
   extends BaseController
     with JsonValidation {
 
-  import formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
   import formats.PersonalDetailsFormat._
+  import formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
 
   def create = Action.async(parse.json) { implicit request =>
     withJsonBody[PersonalDetails] { personalDetails =>
 
-      def handleMatchingDone(validationId: ValidationId) =
-        Future.successful(Created.withHeaders(LOCATION -> routes.PersonalDetailsValidationResourceController.get(validationId).url))
+      def handleMatchingDone(personalDetailsValidation: PersonalDetailsValidation) =
+        Future.successful(Created(toJson(personalDetailsValidation)).withHeaders(LOCATION -> routes.PersonalDetailsValidationResourceController.get(personalDetailsValidation.id).url))
 
       def handleException(exception: Exception): Future[Result] = Future.failed(exception)
 
