@@ -50,7 +50,7 @@ Examples of OK response body:
 * Successful validation
 ```
 {
-  "validationId": "502f90f7-13ab-44c4-a4fa-474da0f0fe03",
+  "id": "502f90f7-13ab-44c4-a4fa-474da0f0fe03",
   "validationStatus": "success",
   "personalDetails": {
     "firstName": "Jim",
@@ -64,7 +64,7 @@ Examples of OK response body:
 * Failed validation
 ```
 {
-  "validationId": "502f90f7-13ab-44c4-a4fa-474da0f0fe03",
+  "id": "502f90f7-13ab-44c4-a4fa-474da0f0fe03",
   "validationStatus": "failure"
 }
 ```
@@ -101,7 +101,7 @@ Examples of OK responses:
 * Successful validation
 ```
 {
-  "validationId": "502f90f7-13ab-44c4-a4fa-474da0f0fe03",
+  "id": "502f90f7-13ab-44c4-a4fa-474da0f0fe03",
   "validationStatus": "success",
   "personalDetails": {
     "firstName": "Jim",
@@ -115,7 +115,7 @@ Examples of OK responses:
 * Failed validation
 ```
 {
-  "validationId": "502f90f7-13ab-44c4-a4fa-474da0f0fe03",
+  "id": "502f90f7-13ab-44c4-a4fa-474da0f0fe03",
   "validationStatus": "failure"
 }
 ```
