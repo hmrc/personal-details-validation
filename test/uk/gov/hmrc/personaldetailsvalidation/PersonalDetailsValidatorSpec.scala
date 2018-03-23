@@ -65,7 +65,7 @@ class PersonalDetailsValidatorSpec
         .expects(personalDetailsValidation, executionContext)
         .returning(EitherT.rightT[Id, Exception](Done))
 
-      validator.validate(personalDetails).value shouldBe Right(personalDetailsValidation.id)
+      validator.validate(personalDetails).value shouldBe Right(personalDetailsValidation)
     }
 
     "match the given personal details with matching service, " +
@@ -87,7 +87,7 @@ class PersonalDetailsValidatorSpec
         .expects(personalDetailsValidation, executionContext)
         .returning(EitherT.rightT[Id, Exception](Done))
 
-      validator.validate(personalDetails).value shouldBe Right(personalDetailsValidation.id)
+      validator.validate(personalDetails).value shouldBe Right(personalDetailsValidation)
     }
 
     "return matching error when the call to match fails" in new Setup {

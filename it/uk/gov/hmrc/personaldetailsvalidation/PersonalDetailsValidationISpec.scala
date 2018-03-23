@@ -21,12 +21,17 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
 
       val createResponse = sendCreateValidationResourceRequest(personalDetails).futureValue
       createResponse.status mustBe CREATED
+
       val Some(resourceUrl) = createResponse.header(LOCATION)
+      val validationId = resourceUrl.substring(resourceUrl.lastIndexOf("/") + 1)
+
+      (createResponse.json \ "id").as[String] mustBe validationId
+      (createResponse.json \ "validationStatus").as[String] mustBe "success"
+      (createResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetails)
 
       val getResponse = wsUrl(resourceUrl).get().futureValue
       getResponse.status mustBe OK
 
-      val validationId = resourceUrl.substring(resourceUrl.lastIndexOf("/") + 1)
       (getResponse.json \ "id").as[String] mustBe validationId
       (getResponse.json \ "validationStatus").as[String] mustBe "success"
       (getResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetails)
@@ -63,11 +68,15 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       val createResponse = sendCreateValidationResourceRequest(personalDetails).futureValue
       createResponse.status mustBe CREATED
       val Some(resourceUrl) = createResponse.header(LOCATION)
+      val validationId = resourceUrl.substring(resourceUrl.lastIndexOf("/") + 1)
+
+      (createResponse.json \ "id").as[String] mustBe validationId
+      (createResponse.json \ "validationStatus").as[String] mustBe "failure"
+      (createResponse.json \ "personalDetails") mustBe a[JsUndefined]
 
       val getResponse = wsUrl(resourceUrl).get().futureValue
       getResponse.status mustBe OK
 
-      val validationId = resourceUrl.substring(resourceUrl.lastIndexOf("/") + 1)
       (getResponse.json \ "id").as[String] mustBe validationId
       (getResponse.json \ "validationStatus").as[String] mustBe "failure"
       (getResponse.json \ "personalDetails") mustBe a[JsUndefined]

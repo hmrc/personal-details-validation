@@ -50,13 +50,13 @@ private class PersonalDetailsValidator[Interpretation[_] : Monad](matchingConnec
   import matchingConnector._
 
   def validate(personalDetails: PersonalDetails)
-              (implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): EitherT[Interpretation, Exception, ValidationId] = {
+              (implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): EitherT[Interpretation, Exception, PersonalDetailsValidation] = {
     for {
       matchResult <- doMatch(personalDetails)
       personalDetailsValidation = matchResult.toPersonalDetailsValidation(optionallyHaving = personalDetails)
       _ <- personalDetailsValidationRepository.create(personalDetailsValidation)
       _ = sendEvents(matchResult, personalDetails)
-    } yield personalDetailsValidation.id
+    } yield personalDetailsValidation
   }.leftMap { error => sendErrorEvents(personalDetails); error }
 
   private implicit class MatchResultOps(matchResult: MatchResult) {

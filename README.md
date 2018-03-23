@@ -46,6 +46,29 @@ or
 |OK         | Regardless of validation results. Response contains `Location` header pointing to an endpoint to retrieve the results.|
 |BAD REQUEST| When the given payload is invalid.|
 
+Examples of OK response body:
+* Successful validation
+```
+{
+  "id": "502f90f7-13ab-44c4-a4fa-474da0f0fe03",
+  "validationStatus": "success",
+  "personalDetails": {
+    "firstName": "Jim",
+    "lastName": "Ferguson",
+    "nino": "AA000003D",
+    "dateOfBirth": "1948-04-23"
+  }
+}
+```
+
+* Failed validation
+```
+{
+  "id": "502f90f7-13ab-44c4-a4fa-474da0f0fe03",
+  "validationStatus": "failure"
+}
+```
+
 Example of BAD REQUEST response:
  ```
 {
@@ -78,7 +101,7 @@ Examples of OK responses:
 * Successful validation
 ```
 {
-  "validationId": "502f90f7-13ab-44c4-a4fa-474da0f0fe03",
+  "id": "502f90f7-13ab-44c4-a4fa-474da0f0fe03",
   "validationStatus": "success",
   "personalDetails": {
     "firstName": "Jim",
@@ -92,7 +115,7 @@ Examples of OK responses:
 * Failed validation
 ```
 {
-  "validationId": "502f90f7-13ab-44c4-a4fa-474da0f0fe03",
+  "id": "502f90f7-13ab-44c4-a4fa-474da0f0fe03",
   "validationStatus": "failure"
 }
 ```
