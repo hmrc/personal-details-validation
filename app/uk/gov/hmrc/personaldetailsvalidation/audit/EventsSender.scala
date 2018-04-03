@@ -49,9 +49,10 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
   }
 
   private def sendGASuffixMatchingEvent(matchResult: MatchResult, externalPerson: PersonalDetails)
-                                       (implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = matchResult match {
-    case MatchSuccessful(matchedPerson) if externalPerson.hasSameNinoSuffixAs(matchedPerson) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_same_as_cid"))
-    case MatchSuccessful(_) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_different_from_cid"))
+                                       (implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = (matchResult, externalPerson) match {
+    case (MatchSuccessful(matchedPerson : PersonalDetailsWithNino), _) if externalPerson.hasSameNinoSuffixAs(matchedPerson) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_same_as_cid"))
+    case (MatchSuccessful(_), _ : PersonalDetailsWithNino) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_different_from_cid"))
+    case (MatchSuccessful(_), _ : PersonalDetailsWithPostCode) => platformAnalyticsConnector.sendEvent(gaEvent("success_postcode_suffix"))
     case _ =>
   }
 

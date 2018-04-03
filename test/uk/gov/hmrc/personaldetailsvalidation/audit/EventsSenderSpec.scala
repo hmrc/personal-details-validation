@@ -79,6 +79,27 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
       sender.sendEvents(matchResult, personalDetails)
     }
 
+    "send success MatchResultEvent and suffix event when postcode matches between external person and matched person" in new Setup {
+      val matchedPersonDetails = new PersonalDetailsWithPostCode(personalDetails.firstName, personalDetails.lastName, personalDetails.dateOfBirth, "SE1 9NT")
+
+      (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success"), headerCarrier, executionContext)
+
+      (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_postcode_suffix"), headerCarrier, executionContext)
+
+      val matchResult = MatchSuccessful(personalDetails)
+
+      (auditDataEventFactory.createEvent(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_]))
+        .expects(matchResult, matchedPersonDetails, headerCarrier, request)
+        .returning(dataEvent)
+
+      (auditConnector.sendEvent(_: DataEvent)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(dataEvent, headerCarrier, executionContext)
+
+      sender.sendEvents(matchResult, matchedPersonDetails)
+    }
+
     "send failure MatchResultEvent" in new Setup {
 
       (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
@@ -94,6 +115,24 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
         .expects(dataEvent, headerCarrier, executionContext)
 
       sender.sendEvents(matchResult, personalDetails)
+    }
+
+    "send failure MatchResultEvent with postcode" in new Setup {
+      val matchedPersonDetails = new PersonalDetailsWithPostCode(personalDetails.firstName, personalDetails.lastName, personalDetails.dateOfBirth, "SE1 9NT")
+
+      (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "failed_matching"), headerCarrier, executionContext)
+
+      val matchResult : MatchResult = MatchFailed("some errors")
+
+      (auditDataEventFactory.createEvent(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_]))
+        .expects(matchResult, matchedPersonDetails, headerCarrier, request)
+        .returning(dataEvent)
+
+      (auditConnector.sendEvent(_: DataEvent)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(dataEvent, headerCarrier, executionContext)
+
+      sender.sendEvents(matchResult, matchedPersonDetails)
     }
   }
 
