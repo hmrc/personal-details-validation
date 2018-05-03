@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.audit
 
+import java.time.LocalDate
+
 import generators.Generators.Implicits._
 import generators.Generators.nonEmptyMap
 import generators.ObjectGenerators._
@@ -32,8 +34,8 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
 
   "factory" should {
 
-    val personalDetails : PersonalDetailsWithNino = personalDetailsWithNinoObjects.generateOne
-    val personalDetailsWithPostCode : PersonalDetailsWithPostCode = personalDetailsWithPostCodeObjects.generateOne
+    val personalDetails: PersonalDetailsWithNino = personalDetailsWithNinoObjects.generateOne
+    val personalDetailsWithPostCode: PersonalDetailsWithPostCode = personalDetailsWithPostCodeObjects.generateOne
 
     val matchingResultAndDetails = Map(
       MatchSuccessful(personalDetails) -> Map("matchingStatus" -> "success"),
@@ -47,7 +49,11 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
         dataEvent.auditSource shouldBe auditConfig.appName
         dataEvent.auditType shouldBe "MatchingResult"
         dataEvent.tags shouldBe auditTags
-        dataEvent.detail shouldBe auditDetails + ("nino" -> personalDetails.nino.value) + ("postCode" -> "NOT SUPPLIED") ++ matchingingDetails
+        dataEvent.detail shouldBe auditDetails +
+          ("nino" -> personalDetails.nino.value) +
+          ("postCode" -> "NOT SUPPLIED") +
+          ("age" -> currentAgeFromDateOfBirth(personalDetails.dateOfBirth)) ++
+          matchingingDetails
       }
     }
 
@@ -61,6 +67,7 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
       dataEvent.detail shouldBe auditDetails +
         ("nino" -> "NOT SUPPLIED") +
         ("postCode" -> personalDetailsWithPostCode.postCode.value) +
+        ("age" -> currentAgeFromDateOfBirth(personalDetailsWithPostCode.dateOfBirth)) +
         ("matchingStatus" -> "failed") +
         ("failureDetail" -> "Some Error")
     }
@@ -71,7 +78,11 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
       dataEvent.auditSource shouldBe auditConfig.appName
       dataEvent.auditType shouldBe "MatchingResult"
       dataEvent.tags shouldBe auditTags
-      dataEvent.detail shouldBe auditDetails + ("nino" -> personalDetails.nino.value) + ("postCode" -> "NOT SUPPLIED") + ("matchingStatus" -> "technicalError")
+      dataEvent.detail shouldBe auditDetails +
+        ("nino" -> personalDetails.nino.value) +
+        ("postCode" -> "NOT SUPPLIED") +
+        ("age" -> currentAgeFromDateOfBirth(personalDetails.dateOfBirth)) +
+        ("matchingStatus" -> "technicalError")
     }
 
     "create error data event for user without nino" in new Setup {
@@ -81,7 +92,11 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
       dataEvent.auditSource shouldBe auditConfig.appName
       dataEvent.auditType shouldBe "MatchingResult"
       dataEvent.tags shouldBe auditTags
-      dataEvent.detail shouldBe auditDetails + ("nino" -> "NOT SUPPLIED") + ("postCode" -> "SE1 9NT") + ("matchingStatus" -> "technicalError")
+      dataEvent.detail shouldBe auditDetails +
+        ("nino" -> "NOT SUPPLIED") +
+        ("postCode" -> "SE1 9NT") +
+        ("age" -> currentAgeFromDateOfBirth(adjustedPerson.dateOfBirth)) +
+        ("matchingStatus" -> "technicalError")
     }
   }
 
@@ -103,6 +118,10 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
 
     val auditDataFactory = new AuditDataEventFactory(auditConfig, auditTagsProvider, auditDetailsProvider)
 
+    def currentAgeFromDateOfBirth(dateOfBirth: LocalDate): String = {
+      if (LocalDate.now.getDayOfYear >= dateOfBirth.getDayOfYear - 1) (LocalDate.now.getYear - dateOfBirth.getYear).toString
+      else (LocalDate.now.getYear - dateOfBirth.getYear - 1).toString
+    }
   }
 
 }

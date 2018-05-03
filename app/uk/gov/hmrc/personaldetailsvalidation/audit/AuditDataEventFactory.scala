@@ -17,6 +17,7 @@
 package uk.gov.hmrc.personaldetailsvalidation.audit
 
 import javax.inject.{Inject, Singleton}
+import java.time.LocalDate
 
 import play.api.mvc.Request
 import uk.gov.hmrc.http.HeaderCarrier
@@ -45,12 +46,18 @@ private[personaldetailsvalidation] class AuditDataEventFactory(auditConfig: Audi
   private def createEvent(personalDetails: PersonalDetails, matchingStatus: String, otherDetails: Map[String, String] = Map.empty)
                          (implicit hc: HeaderCarrier, request: Request[_]): DataEvent = {
     val nino = personalDetails match {
-      case details : PersonalDetailsNino => details.nino.value
+      case details: PersonalDetailsNino => details.nino.value
       case _ => "NOT SUPPLIED"
     }
 
     val postCode = personalDetails match {
-      case details : PersonalDetailsWithPostCode  => details.postCode.value
+      case details: PersonalDetailsWithPostCode => details.postCode.value
+      case _ => """NOT SUPPLIED"""
+    }
+
+    val age = personalDetails match {
+      case details: PersonalDetailsWithNino => currentAgeFromDateOfBirth(details.dateOfBirth).toString
+      case details: PersonalDetailsWithPostCode => currentAgeFromDateOfBirth(details.dateOfBirth).toString
       case _ => """NOT SUPPLIED"""
     }
 
@@ -58,8 +65,13 @@ private[personaldetailsvalidation] class AuditDataEventFactory(auditConfig: Audi
       auditSource = auditConfig.appName,
       auditType = auditType,
       tags = auditTagProvider(hc, auditType, request),
-      detail = auditDetailsProvider(hc) + ("nino" -> nino) + ("postCode" -> postCode) + ("matchingStatus" -> matchingStatus) ++ otherDetails
+      detail = auditDetailsProvider(hc) + ("nino" -> nino) + ("postCode" -> postCode) + ("age" -> age) + ("matchingStatus" -> matchingStatus) ++ otherDetails
     )
+  }
+
+  private def currentAgeFromDateOfBirth(dateOfBirth: LocalDate): String = {
+    if (LocalDate.now.getDayOfYear >= dateOfBirth.getDayOfYear - 1) (LocalDate.now.getYear - dateOfBirth.getYear).toString
+    else (LocalDate.now.getYear - dateOfBirth.getYear - 1).toString
   }
 
   private implicit class MatchResultOps(target: MatchResult) {
