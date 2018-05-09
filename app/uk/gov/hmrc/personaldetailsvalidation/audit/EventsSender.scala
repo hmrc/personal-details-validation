@@ -34,12 +34,22 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
                                                                 auditDataFactory: AuditDataEventFactory) {
 
   def sendEvents(matchResult: MatchResult, personalDetails: PersonalDetails)(implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): Unit = {
-    sendGAMatchResultEvent(matchResult, personalDetails)
+    sendGAMatchResultEvent(matchResult)
+    sendGAMatchResultForNinoOrPostcodeEvent(matchResult, personalDetails)
     sendGASuffixMatchingEvent(matchResult, personalDetails)
     auditConnector.sendEvent(auditDataFactory.createEvent(matchResult, personalDetails))
   }
 
-  private def sendGAMatchResultEvent(matchResult: MatchResult, personalDetails: PersonalDetails)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+  private def sendGAMatchResultEvent(matchResult: MatchResult)(implicit hc: HeaderCarrier, ec: ExecutionContext) = {
+    val label = matchResult match {
+      case MatchSuccessful(_) => "success"
+      case MatchFailed(_) => "failed_matching"
+    }
+
+    platformAnalyticsConnector.sendEvent(gaEvent(label))
+  }
+
+  private def sendGAMatchResultForNinoOrPostcodeEvent(matchResult: MatchResult, personalDetails: PersonalDetails)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
     val label = (matchResult, personalDetails) match {
       case (MatchSuccessful(_),  _ : PersonalDetailsWithNino) => "success_withNINO"
       case (MatchSuccessful(_),  _ : PersonalDetailsWithPostCode) => "success_withPOSTCODE"
