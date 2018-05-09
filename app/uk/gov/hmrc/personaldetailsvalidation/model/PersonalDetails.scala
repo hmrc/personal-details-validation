@@ -29,6 +29,11 @@ trait PersonalDetails {
 trait PersonalDetailsNino {
   def nino: Nino
 }
+
+trait PersonalDetailsPostCode {
+  def postCode: NonEmptyString
+}
+
 object PersonalDetails {
   implicit val implicitPersonalDetailsWrite : Writes[PersonalDetails] = new Writes[PersonalDetails] {
     override def writes(details: PersonalDetails): JsValue = {
@@ -56,11 +61,32 @@ case class PersonalDetailsWithNino(firstName: NonEmptyString,
 case class PersonalDetailsWithPostCode(firstName: NonEmptyString,
                                  lastName: NonEmptyString,
                                  dateOfBirth: LocalDate,
-                                 postCode: NonEmptyString) extends PersonalDetails{
+                                 postCode: NonEmptyString) extends PersonalDetails with PersonalDetailsPostCode {
+  def addNino(nino: Nino): PersonalDetails = {
+    PersonalDetailsWithNinoAndPostCode(firstName, lastName, dateOfBirth, nino, postCode)
+  }
+
   lazy val toJson: JsObject = Json.obj(
     "firstName" -> firstName,
     "lastName" -> lastName,
     "dateOfBirth" -> dateOfBirth,
     "postCode" -> postCode.value
+  )
+}
+
+case class PersonalDetailsWithNinoAndPostCode(firstName: NonEmptyString,
+                                              lastName: NonEmptyString,
+                                              dateOfBirth: LocalDate,
+                                              nino: Nino,
+                                              postCode: NonEmptyString)
+  extends PersonalDetails
+    with PersonalDetailsNino
+    with PersonalDetailsPostCode {
+  lazy val toJson: JsObject = Json.obj(
+    "firstName" -> firstName,
+    "lastName" -> lastName,
+    "dateOfBirth" -> dateOfBirth,
+    "postCode" -> postCode.value,
+    "nino" -> nino
   )
 }

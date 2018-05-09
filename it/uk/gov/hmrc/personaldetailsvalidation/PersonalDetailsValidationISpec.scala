@@ -54,7 +54,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       val validationId = resourceUrl.substring(resourceUrl.lastIndexOf("/") + 1)
       (getResponse.json \ "id").as[String] mustBe validationId
       (getResponse.json \ "validationStatus").as[String] mustBe "success"
-      (getResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetails)
+      (getResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetailsWithBothNinoAndPostcode)
 
       verifyGAMatchEvent(label = "success")
       verifyMatchingStatusInAuditEvent(matchingStatus = "success")
