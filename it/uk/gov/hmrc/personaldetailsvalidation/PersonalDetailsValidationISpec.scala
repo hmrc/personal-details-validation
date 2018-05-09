@@ -37,6 +37,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       (getResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetails)
 
       verifyGAMatchEvent(label = "success")
+      verifyGAMatchEvent(label = "success_withNINO")
       verifyMatchingStatusInAuditEvent(matchingStatus = "success")
     }
 
@@ -57,6 +58,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       (getResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetails)
 
       verifyGAMatchEvent(label = "success")
+      verifyGAMatchEvent(label = "success_withPOSTCODE")
       verifyMatchingStatusInAuditEvent(matchingStatus = "success")
     }
 
@@ -82,6 +84,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       (getResponse.json \ "personalDetails") mustBe a[JsUndefined]
 
       verifyGAMatchEvent(label = "failed_matching")
+      verifyGAMatchEvent(label = "failed_matching_withNINO")
       verifyMatchingStatusInAuditEvent(matchingStatus = "failed")
       verifyFailureDetailInAuditEvent(failureDetail = failureDetail)
     }

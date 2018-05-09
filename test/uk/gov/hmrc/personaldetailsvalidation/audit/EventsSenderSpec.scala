@@ -44,6 +44,9 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
         .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success"), headerCarrier, executionContext)
 
       (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_withNINO"), headerCarrier, executionContext)
+
+      (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
         .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_nino_suffix_same_as_cid"), headerCarrier, executionContext)
 
       val matchResult = MatchSuccessful(personalDetails)
@@ -63,6 +66,9 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
 
       (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
         .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success"), headerCarrier, executionContext)
+
+      (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_withNINO"), headerCarrier, executionContext)
 
       (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
         .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_nino_suffix_different_from_cid"), headerCarrier, executionContext)
@@ -86,6 +92,9 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
         .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success"), headerCarrier, executionContext)
 
       (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_withPOSTCODE"), headerCarrier, executionContext)
+
+      (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
         .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_postcode_suffix"), headerCarrier, executionContext)
 
       val matchResult = MatchSuccessful(personalDetails)
@@ -105,6 +114,9 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
       (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
         .expects(GAEvent("sos_iv", "personal_detail_validation_result", "failed_matching"), headerCarrier, executionContext)
 
+      (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "failed_matching_withNINO"), headerCarrier, executionContext)
+
       val matchResult : MatchResult = MatchFailed("some errors")
 
       (auditDataEventFactory.createEvent(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_]))
@@ -122,6 +134,9 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
 
       (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
         .expects(GAEvent("sos_iv", "personal_detail_validation_result", "failed_matching"), headerCarrier, executionContext)
+
+      (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "failed_matching_withPOSTCODE"), headerCarrier, executionContext)
 
       val matchResult : MatchResult = MatchFailed("some errors")
 
