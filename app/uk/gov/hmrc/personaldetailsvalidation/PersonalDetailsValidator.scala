@@ -63,7 +63,7 @@ private class PersonalDetailsValidator[Interpretation[_] : Monad](matchingConnec
     def toPersonalDetailsValidation(optionallyHaving: PersonalDetails): PersonalDetailsValidation = {
       (matchResult, optionallyHaving) match {
         case (MatchSuccessful(matchingPerson: PersonalDetailsNino), other: PersonalDetailsWithPostCode) =>
-          PersonalDetailsValidation.successful(PersonalDetails.replacePostCode(other, matchingPerson))
+          PersonalDetailsValidation.successful(other.addNino(matchingPerson.nino))
         case (MatchSuccessful(_), _) => PersonalDetailsValidation.successful(optionallyHaving)
         case (MatchFailed(_), _) => PersonalDetailsValidation.failed()
       }

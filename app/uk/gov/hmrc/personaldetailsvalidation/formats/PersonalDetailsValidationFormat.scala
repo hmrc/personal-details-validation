@@ -25,7 +25,7 @@ object PersonalDetailsValidationFormat {
 
   import TinyTypesFormats._
   import model.ValidationStatus._
-  import formats.PersonalDetailsFormat._
+  import PersonalDetailsInternalFormat.repositoryPersonalDetailsReads
 
   implicit val personalDetailsValidationFormats: Format[PersonalDetailsValidation] = {
 
