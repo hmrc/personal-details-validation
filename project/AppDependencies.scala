@@ -8,9 +8,9 @@ private object AppDependencies {
 
   private val compile = Seq(
     "org.typelevel" %% "cats-core" % "1.0.1",
-    "uk.gov.hmrc" %% "bootstrap-play-25" % "1.5.0",
-    "uk.gov.hmrc" %% "play-reactivemongo" % "6.1.0",
-    "uk.gov.hmrc" %% "domain" % "5.0.0",
+    "uk.gov.hmrc" %% "bootstrap-play-25" % "1.6.0",
+    "uk.gov.hmrc" %% "play-reactivemongo" % "6.2.0",
+    "uk.gov.hmrc" %% "domain" % "5.1.0",
     "uk.gov.hmrc" %% "valuetype" % "1.1.0",
     ws
   )
@@ -21,7 +21,7 @@ private object AppDependencies {
     "org.scalamock" %% "scalamock" % "4.0.0" % "test",
     "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.1" % "it",
     "uk.gov.hmrc" %% "hmrctest" % "3.0.0" % scope,
-    "uk.gov.hmrc" %% "reactivemongo-test" % "3.0.0" % "test",
+    "uk.gov.hmrc" %% "reactivemongo-test" % "3.1.0" % "test",
     "com.github.tomakehurst" % "wiremock" % "2.12.0" % "it"
   )
 }
