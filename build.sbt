@@ -12,7 +12,8 @@ lazy val playSettings: Seq[Setting[_]] = Seq(
 )
 
 lazy val microservice = Project(appName, file("."))
-  .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin): _*)
+  .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory): _*)
+  .settings(majorVersion := 0)
   .settings(scalaSettings: _*)
   .settings(playSettings: _*)
   .settings(publishingSettings: _*)
