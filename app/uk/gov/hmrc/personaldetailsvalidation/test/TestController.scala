@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,16 +18,16 @@ package uk.gov.hmrc.personaldetailsvalidation.test
 
 import java.time.LocalDate
 import java.util.UUID
-import javax.inject.{Inject, Singleton}
 
-import play.api.libs.json.{Format, Json}
+import javax.inject.{Inject, Singleton}
+import play.api.libs.json.{Format, JsValue, Json}
 import play.api.mvc.Action
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.personaldetailsvalidation.FuturedPersonalDetailsValidationRepository
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsWithNino, SuccessfulPersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
-import uk.gov.hmrc.play.json.JsonValidation
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.play.json.JsonValidation
 
 import scala.concurrent.Future
 
@@ -36,7 +36,7 @@ class TestController @Inject()(personalDetailsValidationRepository: FuturedPerso
   extends BaseController
     with JsonValidation {
 
-  def upsertTestValidation = Action.async(parse.json) { implicit request =>
+  def upsertTestValidation: Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[PersonalDetailsTestValidationData] { personalDetails =>
       val personData = PersonalDetailsWithNino(firstName = "NA - Test Data", lastName = "NA - Test Data", dateOfBirth = LocalDate.now(), nino = personalDetails.nino)
       val validationData = SuccessfulPersonalDetailsValidation(ValidationId(personalDetails.validationId), personData)
@@ -45,7 +45,7 @@ class TestController @Inject()(personalDetailsValidationRepository: FuturedPerso
     }
   }
 
-  implicit val prvtdFormat : Format[PersonalDetailsTestValidationData] = Json.format[PersonalDetailsTestValidationData]
+  implicit val prvtdFormat: Format[PersonalDetailsTestValidationData] = Json.format[PersonalDetailsTestValidationData]
 }
 
-case class PersonalDetailsTestValidationData(validationId : UUID, nino: Nino)
+case class PersonalDetailsTestValidationData(validationId: UUID, nino: Nino)

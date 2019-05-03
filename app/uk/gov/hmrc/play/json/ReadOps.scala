@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,8 @@ package uk.gov.hmrc.play.json
 
 import play.api.libs.json._
 
-private [json] trait ReadOps {
+private[json] trait ReadOps {
+
   implicit class JsPathOps(path: JsPath) extends JsPath {
     def readOrError[T](error: => String)(implicit r: Reads[T]): Reads[T] = new Reads[T] {
       override def reads(json: JsValue): JsResult[T] = path.readNullable.reads(json) match {
@@ -28,4 +29,5 @@ private [json] trait ReadOps {
       }
     }
   }
+
 }

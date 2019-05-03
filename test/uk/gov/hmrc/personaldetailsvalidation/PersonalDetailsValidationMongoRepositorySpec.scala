@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,8 +31,8 @@ import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Descending
 import reactivemongo.bson.BSONDocument
 import uk.gov.hmrc.datetime.CurrentTimeProvider
-import uk.gov.hmrc.mongo.MongoSpecSupport
-import uk.gov.hmrc.personaldetailsvalidation.model.ValidationId
+import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
+import uk.gov.hmrc.personaldetailsvalidation.model.{SuccessfulPersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.uuid.UUIDProvider
 
@@ -60,14 +60,14 @@ class PersonalDetailsValidationMongoRepositorySpec
     }
 
     "convert exception into Either.Left" in new Setup {
-      val personalDetailsValidation = successfulPersonalDetailsValidationObjects.generateOne
+      val personalDetailsValidation: SuccessfulPersonalDetailsValidation = successfulPersonalDetailsValidationObjects.generateOne
       repository.create(personalDetailsValidation).value.futureValue shouldBe Right(Done)
       repository.create(personalDetailsValidation).value.futureValue shouldBe a[Left[_, _]]
     }
 
     "add 'createdAt' field with current time when persisting the document" in new Setup {
-      val personalDetailsValidation = successfulPersonalDetailsValidationObjects.generateOne
-      val validationId = personalDetailsValidation.id.value.toString
+      val personalDetailsValidation: SuccessfulPersonalDetailsValidation = successfulPersonalDetailsValidationObjects.generateOne
+      val validationId: String = personalDetailsValidation.id.value.toString
 
       repository.create(personalDetailsValidation).value.futureValue shouldBe Right(Done)
 
@@ -93,9 +93,9 @@ class PersonalDetailsValidationMongoRepositorySpec
     implicit val ttlSeconds: Long = 100
     await(mongo().drop())
 
-    implicit val currentTimeProvider = stub[CurrentTimeProvider]
+    implicit val currentTimeProvider: CurrentTimeProvider = stub[CurrentTimeProvider]
 
-    val config = new PersonalDetailsValidationMongoRepositoryConfig(mock[Configuration]) {
+    val config: PersonalDetailsValidationMongoRepositoryConfig = new PersonalDetailsValidationMongoRepositoryConfig(mock[Configuration]) {
       override lazy val collectionTtl: Duration = Duration.ofSeconds(ttlSeconds)
     }
 
@@ -104,7 +104,8 @@ class PersonalDetailsValidationMongoRepositorySpec
     currentTimeProvider.apply _ when() returns currentTime
 
     val repository = new PersonalDetailsValidationMongoRepository(config, new ReactiveMongoComponent {
-      override val mongoConnector = mongoConnectorForTest
+      override val mongoConnector: MongoConnector = mongoConnectorForTest
     })
   }
+
 }

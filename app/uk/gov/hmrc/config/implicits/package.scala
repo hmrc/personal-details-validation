@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ package object implicits {
   import ops._
 
   implicit def stringValueFinder(key: String)(configuration: Configuration): Option[String] = configuration.getString(key)
+
   implicit def intValueFinder(key: String)(configuration: Configuration): Option[Int] = configuration.getInt(key)
 
   implicit def hostFinder(key: String)(configuration: Configuration): Option[Host] = for {
@@ -42,6 +43,5 @@ package object implicits {
     val durationValue = configuration.loadMandatory[String](key)
     Some(Duration.parse(durationValue))
   }
-
 
 }

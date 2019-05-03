@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,11 +17,10 @@
 package uk.gov.hmrc.config
 
 import javax.inject.{Inject, Singleton}
-
 import play.api.Configuration
-import uk.gov.hmrc.http.Host
-import uk.gov.hmrc.config.ops._
 import uk.gov.hmrc.config.implicits._
+import uk.gov.hmrc.config.ops._
+import uk.gov.hmrc.http.Host
 
 
 @Singleton

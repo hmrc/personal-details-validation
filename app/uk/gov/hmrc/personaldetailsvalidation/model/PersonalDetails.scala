@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,21 +35,21 @@ trait PersonalDetailsPostCode {
 }
 
 object PersonalDetails {
-  implicit val implicitPersonalDetailsWrite : Writes[PersonalDetails] = new Writes[PersonalDetails] {
+  implicit val implicitPersonalDetailsWrite: Writes[PersonalDetails] = new Writes[PersonalDetails] {
     override def writes(details: PersonalDetails): JsValue = {
       details.toJson
     }
   }
 
-  def replacePostCode(detailsWithPostCode: PersonalDetailsWithPostCode, detailsWithNino : PersonalDetailsNino) = {
-    new PersonalDetailsWithNino(detailsWithPostCode.firstName, detailsWithPostCode.lastName, detailsWithPostCode.dateOfBirth, detailsWithNino.nino)
+  def replacePostCode(detailsWithPostCode: PersonalDetailsWithPostCode, detailsWithNino: PersonalDetailsNino): PersonalDetailsWithNino = {
+    PersonalDetailsWithNino(detailsWithPostCode.firstName, detailsWithPostCode.lastName, detailsWithPostCode.dateOfBirth, detailsWithNino.nino)
   }
 }
 
 case class PersonalDetailsWithNino(firstName: NonEmptyString,
-                           lastName: NonEmptyString,
-                           dateOfBirth: LocalDate,
-                           nino: Nino) extends PersonalDetails with PersonalDetailsNino {
+                                   lastName: NonEmptyString,
+                                   dateOfBirth: LocalDate,
+                                   nino: Nino) extends PersonalDetails with PersonalDetailsNino {
   lazy val toJson: JsObject = Json.obj(
     "firstName" -> firstName,
     "lastName" -> lastName,
@@ -59,9 +59,9 @@ case class PersonalDetailsWithNino(firstName: NonEmptyString,
 }
 
 case class PersonalDetailsWithPostCode(firstName: NonEmptyString,
-                                 lastName: NonEmptyString,
-                                 dateOfBirth: LocalDate,
-                                 postCode: NonEmptyString) extends PersonalDetails with PersonalDetailsPostCode {
+                                       lastName: NonEmptyString,
+                                       dateOfBirth: LocalDate,
+                                       postCode: NonEmptyString) extends PersonalDetails with PersonalDetailsPostCode {
   def addNino(nino: Nino): PersonalDetails = {
     PersonalDetailsWithNinoAndPostCode(firstName, lastName, dateOfBirth, nino, postCode)
   }

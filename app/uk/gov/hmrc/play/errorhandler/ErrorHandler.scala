@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,11 +17,10 @@
 package uk.gov.hmrc.play.errorhandler
 
 import javax.inject.{Inject, Singleton}
-
 import play.api.Configuration
 import play.api.http.Status._
-import play.api.mvc.RequestHeader
 import play.api.mvc.Results.NotFound
+import play.api.mvc.{RequestHeader, Result}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.bootstrap.http.JsonErrorHandler
 import uk.gov.hmrc.play.pathbinders.PathBinders.Errors.NOT_A_VALID_UUID
@@ -30,7 +29,7 @@ import scala.concurrent.Future
 
 @Singleton
 class ErrorHandler @Inject()(configuration: Configuration, auditConnector: AuditConnector) extends JsonErrorHandler(configuration, auditConnector) {
-  override def onClientError(request: RequestHeader, statusCode: Int, message: String) = {
+  override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = {
     if (statusCode == BAD_REQUEST && message.endsWith(NOT_A_VALID_UUID)) {
       Future.successful(NotFound)
     } else {

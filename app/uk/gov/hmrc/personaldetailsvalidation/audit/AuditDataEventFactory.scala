@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.audit
 
-import javax.inject.{Inject, Singleton}
 import java.time.LocalDate
 
+import javax.inject.{Inject, Singleton}
 import play.api.mvc.Request
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory._
@@ -80,7 +80,7 @@ private[personaldetailsvalidation] class AuditDataEventFactory(auditConfig: Audi
       case MatchFailed(_) => "failed"
     }
 
-    def otherDetails = target match {
+    def otherDetails: Map[AuditType, String] = target match {
       case MatchSuccessful(_) => Map.empty[String, String]
       case MatchFailed(errors) => Map("failureDetail" -> errors)
     }

@@ -4,7 +4,7 @@ import uk.gov.hmrc.support.wiremock.WiremockConfiguration._
 
 trait WiremockedServiceSupport {
 
-  val wiremockedServices = List[String]()
+  val wiremockedServices: List[String] = List[String]()
 
   lazy val wiremockedServicesConfiguration: Map[String, Any] = {
     val servicesConfig = wiremockedServices.foldLeft(Map.empty[String, Any]) { (result, service) =>
