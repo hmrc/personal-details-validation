@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,8 +25,8 @@ import scala.concurrent.Future
 trait JsonValidation {
   self: BaseController =>
 
-  override protected def withJsonBody[T](f: (T) => Future[Result])
-                                        (implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]) =
+  override protected def withJsonBody[T](f: T => Future[Result])
+                                        (implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]): Future[Result] =
     request.body.validate[T] match {
       case JsSuccess(payload, _) => f(payload)
       case JsError(errs) =>

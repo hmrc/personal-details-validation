@@ -15,18 +15,18 @@ object AuthenticatorStub {
     def respondWithOK(): Unit = {
       stubFor(
         mappingBuilder.willReturn(
-            aResponse()
-              .withStatus(OK)
-              .withBody(
-                """{
-                  | "firstName":"Jim",
-                  | "lastName":"Ferguson",
-                  | "dateOfBirth":"1948-04-23",
-                  | "nino":"AA000003D",
-                  | "saUtr":"1097133333"
-                  |}
-                  | """.stripMargin)
-          )
+          aResponse()
+            .withStatus(OK)
+            .withBody(
+              """{
+                | "firstName":"Jim",
+                | "lastName":"Ferguson",
+                | "dateOfBirth":"1948-04-23",
+                | "nino":"AA000003D",
+                | "saUtr":"1097133333"
+                |}
+                | """.stripMargin)
+        )
       )
     }
 
@@ -38,6 +38,5 @@ object AuthenticatorStub {
       )
     }
   }
-
 
 }

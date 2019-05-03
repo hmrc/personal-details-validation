@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,29 +19,29 @@ package uk.gov.hmrc.personaldetailsvalidation.formats
 import java.time.LocalDate
 
 import play.api.data.validation.ValidationError
-import play.api.libs.json.{Reads, __}
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.personaldetailsvalidation.model._
-import play.api.libs.functional.syntax._
 
 import scala.util.Try
 
 object PersonalDetailsInternalFormat {
-  implicit val repositoryPersonalDetailsReads : Reads[PersonalDetails] = (
+  implicit val repositoryPersonalDetailsReads: Reads[PersonalDetails] = (
     (__ \ "firstName").read[String] and
       (__ \ "lastName").read[String] and
       (__ \ "dateOfBirth").read[LocalDate] and
       (
-        (__ \ "nino").readNullable[String].filter(ValidationError("invalid nino format")){
+        (__ \ "nino").readNullable[String].filter(ValidationError("invalid nino format")) {
           case Some(nino) => Try(Nino(nino)).isSuccess
           case _ => true
-        }.map{
+        }.map {
           case Some(nino) => Some(Nino(nino))
           case _ => None
         } and
           (__ \ "postCode").readNullable[String]
         ).tupled
-    )((firstName, lastName, dateOfBirth, ninoOrPostCode) => {
+    ) ((firstName, lastName, dateOfBirth, ninoOrPostCode) => {
     ninoOrPostCode match {
       case (Some(nino), None) => PersonalDetailsWithNino(firstName, lastName, dateOfBirth, nino)
       case (None, Some(postCode)) => PersonalDetailsWithPostCode(firstName, lastName, dateOfBirth, postCode)

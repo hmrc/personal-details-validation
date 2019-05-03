@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 package setups
 
+import akka.actor.ActorSystem
+import com.typesafe.config.Config
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.Matchers._
 import play.api.Configuration
@@ -28,8 +30,8 @@ import uk.gov.hmrc.play.http.ws.WSHttp
 import scala.concurrent.Future
 
 trait HttpClientStubSetup extends MockFactory {
-  private val configuration = mock[Configuration]
-  (configuration.getString(_: String, _: Option[Set[String]]))
+  private val configurationMock = mock[Configuration]
+  (configurationMock.getString(_: String, _: Option[Set[String]]))
     .expects("appName", None)
     .returning(Some("personal-details-validation"))
 
@@ -80,6 +82,10 @@ trait HttpClientStubSetup extends MockFactory {
     }
 
     def assertInvocation() = if (!invoked) fail("stub was not invoked")
+
+    override protected def actorSystem: ActorSystem = ActorSystem()
+
+    override protected def configuration: Option[Config] = Option(configurationMock.underlying)
   }
 
   val httpClient: HttpClientStub = new HttpClientStub()

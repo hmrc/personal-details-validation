@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,10 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import javax.inject.{Inject, Singleton}
-
 import cats.Monad
 import cats.data.EitherT
 import cats.implicits._
+import javax.inject.{Inject, Singleton}
 import play.api.mvc.Request
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
@@ -46,8 +45,8 @@ private class PersonalDetailsValidator[Interpretation[_] : Monad](matchingConnec
                                                                   matchingEventsSender: EventsSender)
                                                                  (implicit uuidProvider: UUIDProvider) {
 
-  import matchingEventsSender._
   import matchingConnector._
+  import matchingEventsSender._
 
   def validate(personalDetails: PersonalDetails)
               (implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): EitherT[Interpretation, Exception, PersonalDetailsValidation] = {

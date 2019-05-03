@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package uk.gov.hmrc.personaldetailsvalidation.audit
 
 import javax.inject.{Inject, Singleton}
-
 import play.api.mvc.Request
 import uk.gov.hmrc.audit.{GAEvent, PlatformAnalyticsConnector}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -40,7 +39,7 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
     auditConnector.sendEvent(auditDataFactory.createEvent(matchResult, personalDetails))
   }
 
-  private def sendGAMatchResultEvent(matchResult: MatchResult)(implicit hc: HeaderCarrier, ec: ExecutionContext) = {
+  private def sendGAMatchResultEvent(matchResult: MatchResult)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
     val label = matchResult match {
       case MatchSuccessful(_) => "success"
       case MatchFailed(_) => "failed_matching"
@@ -51,10 +50,10 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
 
   private def sendGAMatchResultForNinoOrPostcodeEvent(matchResult: MatchResult, personalDetails: PersonalDetails)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
     val label = (matchResult, personalDetails) match {
-      case (MatchSuccessful(_),  _ : PersonalDetailsWithNino) => "success_withNINO"
-      case (MatchSuccessful(_),  _ : PersonalDetailsWithPostCode) => "success_withPOSTCODE"
-      case (MatchFailed(_), _ : PersonalDetailsWithNino) => "failed_matching_withNINO"
-      case (MatchFailed(_), _ : PersonalDetailsWithPostCode) => "failed_matching_withPOSTCODE"
+      case (MatchSuccessful(_), _: PersonalDetailsWithNino) => "success_withNINO"
+      case (MatchSuccessful(_), _: PersonalDetailsWithPostCode) => "success_withPOSTCODE"
+      case (MatchFailed(_), _: PersonalDetailsWithNino) => "failed_matching_withNINO"
+      case (MatchFailed(_), _: PersonalDetailsWithPostCode) => "failed_matching_withPOSTCODE"
     }
 
     platformAnalyticsConnector.sendEvent(gaEvent(label))
@@ -62,9 +61,9 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
 
   private def sendGASuffixMatchingEvent(matchResult: MatchResult, externalPerson: PersonalDetails)
                                        (implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = (matchResult, externalPerson) match {
-    case (MatchSuccessful(matchedPerson : PersonalDetailsWithNino), _) if externalPerson.hasSameNinoSuffixAs(matchedPerson) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_same_as_cid"))
-    case (MatchSuccessful(_), _ : PersonalDetailsWithNino) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_different_from_cid"))
-    case (MatchSuccessful(_), _ : PersonalDetailsWithPostCode) => platformAnalyticsConnector.sendEvent(gaEvent("success_postcode_suffix"))
+    case (MatchSuccessful(matchedPerson: PersonalDetailsWithNino), _) if externalPerson.hasSameNinoSuffixAs(matchedPerson) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_same_as_cid"))
+    case (MatchSuccessful(_), _: PersonalDetailsWithNino) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_different_from_cid"))
+    case (MatchSuccessful(_), _: PersonalDetailsWithPostCode) => platformAnalyticsConnector.sendEvent(gaEvent("success_postcode_suffix"))
     case _ =>
   }
 
@@ -76,7 +75,7 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
   private implicit class PersonalDetailsOps(target: PersonalDetails) {
     def hasSameNinoSuffixAs(other: PersonalDetails): Boolean = {
       (target, other) match {
-        case (first : PersonalDetailsNino, second : PersonalDetailsNino) => first.nino.value == second.nino.value
+        case (first: PersonalDetailsNino, second: PersonalDetailsNino) => first.nino.value == second.nino.value
         case _ => false
       }
     }

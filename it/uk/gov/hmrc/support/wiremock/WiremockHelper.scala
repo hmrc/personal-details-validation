@@ -2,6 +2,7 @@ package uk.gov.hmrc.support.wiremock
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig
 
 object WiremockConfiguration {
@@ -13,15 +14,15 @@ trait WiremockHelper {
 
   import WiremockConfiguration._
 
-  val wmConfig = wireMockConfig().port(wiremockPort)
+  val wmConfig: WireMockConfiguration = wireMockConfig().port(wiremockPort)
   val wireMockServer = new WireMockServer(wmConfig)
 
-  def startWiremock() = {
+  def startWiremock(): Unit = {
     wireMockServer.start()
     WireMock.configureFor(wiremockHost, wiremockPort)
   }
 
-  def stopWiremock() = wireMockServer.stop()
+  def stopWiremock(): Unit = wireMockServer.stop()
 
-  def resetWiremock() = WireMock.reset()
+  def resetWiremock(): Unit = WireMock.reset()
 }

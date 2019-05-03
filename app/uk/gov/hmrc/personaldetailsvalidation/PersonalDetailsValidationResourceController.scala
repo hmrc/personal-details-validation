@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,9 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import cats.implicits._
 import javax.inject.{Inject, Singleton}
+import play.api.libs.json.JsValue
 import play.api.libs.json.Json.toJson
-import play.api.mvc.{Action, Result}
+import play.api.mvc.{Action, AnyContent, Result}
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
@@ -36,10 +37,10 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
   import formats.PersonalDetailsFormat._
   import formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
 
-  def create = Action.async(parse.json) { implicit request =>
+  def create: Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[PersonalDetails] { personalDetails =>
 
-      def handleMatchingDone(personalDetailsValidation: PersonalDetailsValidation) =
+      def handleMatchingDone(personalDetailsValidation: PersonalDetailsValidation): Future[Result] =
         Future.successful(Created(toJson(personalDetailsValidation)).withHeaders(LOCATION -> routes.PersonalDetailsValidationResourceController.get(personalDetailsValidation.id).url))
 
       def handleException(exception: Exception): Future[Result] = Future.failed(exception)
@@ -48,7 +49,7 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
     }
   }
 
-  def get(id: ValidationId) = Action.async { implicit request =>
+  def get(id: ValidationId): Action[AnyContent] = Action.async { implicit request =>
     personalDetailsValidationRepository.get(id).map {
       case Some(validation) => Ok(toJson(validation))
       case None => NotFound

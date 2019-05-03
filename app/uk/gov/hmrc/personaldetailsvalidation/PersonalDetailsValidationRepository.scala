@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,12 +16,11 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import javax.inject.{Inject, Singleton}
-
-import play.api.libs.json._
 import akka.Done
 import cats.data.EitherT
 import com.google.inject.ImplementedBy
+import javax.inject.{Inject, Singleton}
+import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Descending
@@ -52,7 +51,8 @@ private trait PersonalDetailsValidationRepository[Interpretation[_]] {
 private trait FuturedPersonalDetailsValidationRepository extends PersonalDetailsValidationRepository[Future]
 
 @Singleton
-private class PersonalDetailsValidationMongoRepository @Inject()(config: PersonalDetailsValidationMongoRepositoryConfig, mongoComponent: ReactiveMongoComponent)(implicit currentTimeProvider: CurrentTimeProvider)
+private class PersonalDetailsValidationMongoRepository @Inject()(config: PersonalDetailsValidationMongoRepositoryConfig,
+                                                                 mongoComponent: ReactiveMongoComponent)(implicit currentTimeProvider: CurrentTimeProvider)
   extends ReactiveRepository[PersonalDetailsValidation, ValidationId](
     collectionName = "personal-details-validation",
     mongo = mongoComponent.mongoConnector.db,

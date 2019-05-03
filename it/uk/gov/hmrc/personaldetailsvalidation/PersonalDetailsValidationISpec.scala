@@ -5,11 +5,14 @@ import java.util.UUID.randomUUID
 import play.api.http.ContentTypes.JSON
 import play.api.http.Status._
 import play.api.libs.json.{JsUndefined, JsValue, Json}
+import play.api.libs.ws.WSResponse
 import play.mvc.Http.HeaderNames.{CONTENT_TYPE, LOCATION}
 import uk.gov.hmrc.support.BaseIntegrationSpec
 import uk.gov.hmrc.support.stubs.AuditEventStubs._
 import uk.gov.hmrc.support.stubs.AuthenticatorStub
 import uk.gov.hmrc.support.stubs.PlatformAnalyticsStub._
+
+import scala.concurrent.Future
 
 class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
 
@@ -19,17 +22,17 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
 
       AuthenticatorStub.expecting(personalDetails).respondWithOK()
 
-      val createResponse = sendCreateValidationResourceRequest(personalDetails).futureValue
+      val createResponse: WSResponse = sendCreateValidationResourceRequest(personalDetails).futureValue
       createResponse.status mustBe CREATED
 
       val Some(resourceUrl) = createResponse.header(LOCATION)
-      val validationId = resourceUrl.substring(resourceUrl.lastIndexOf("/") + 1)
+      val validationId: String = resourceUrl.substring(resourceUrl.lastIndexOf("/") + 1)
 
       (createResponse.json \ "id").as[String] mustBe validationId
       (createResponse.json \ "validationStatus").as[String] mustBe "success"
       (createResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetails)
 
-      val getResponse = wsUrl(resourceUrl).get().futureValue
+      val getResponse: WSResponse = wsUrl(resourceUrl).get().futureValue
       getResponse.status mustBe OK
 
       (getResponse.json \ "id").as[String] mustBe validationId
@@ -45,14 +48,14 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
 
       AuthenticatorStub.expecting(personalDetailsWithPostCode).respondWithOK()
 
-      val createResponse = sendCreateValidationResourceRequest(personalDetailsWithPostCode).futureValue
+      val createResponse: WSResponse = sendCreateValidationResourceRequest(personalDetailsWithPostCode).futureValue
       createResponse.status mustBe CREATED
       val Some(resourceUrl) = createResponse.header(LOCATION)
 
-      val getResponse = wsUrl(resourceUrl).get().futureValue
+      val getResponse: WSResponse = wsUrl(resourceUrl).get().futureValue
       getResponse.status mustBe OK
 
-      val validationId = resourceUrl.substring(resourceUrl.lastIndexOf("/") + 1)
+      val validationId: String = resourceUrl.substring(resourceUrl.lastIndexOf("/") + 1)
       (getResponse.json \ "id").as[String] mustBe validationId
       (getResponse.json \ "validationStatus").as[String] mustBe "success"
       (getResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetailsWithBothNinoAndPostcode)
@@ -67,16 +70,16 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       val failureDetail = "Last Name does not match CID"
       AuthenticatorStub.expecting(personalDetails).respondWith(UNAUTHORIZED, Some(Json.obj("errors" -> failureDetail)))
 
-      val createResponse = sendCreateValidationResourceRequest(personalDetails).futureValue
+      val createResponse: WSResponse = sendCreateValidationResourceRequest(personalDetails).futureValue
       createResponse.status mustBe CREATED
       val Some(resourceUrl) = createResponse.header(LOCATION)
-      val validationId = resourceUrl.substring(resourceUrl.lastIndexOf("/") + 1)
+      val validationId: String = resourceUrl.substring(resourceUrl.lastIndexOf("/") + 1)
 
       (createResponse.json \ "id").as[String] mustBe validationId
       (createResponse.json \ "validationStatus").as[String] mustBe "failure"
       (createResponse.json \ "personalDetails") mustBe a[JsUndefined]
 
-      val getResponse = wsUrl(resourceUrl).get().futureValue
+      val getResponse: WSResponse = wsUrl(resourceUrl).get().futureValue
       getResponse.status mustBe OK
 
       (getResponse.json \ "id").as[String] mustBe validationId
@@ -92,7 +95,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
     "return BAD_GATEWAY when Authenticator returns an unexpected status code" in new Setup {
       AuthenticatorStub.expecting(personalDetails).respondWith(NO_CONTENT)
 
-      val createResponse = sendCreateValidationResourceRequest(personalDetails).futureValue
+      val createResponse: WSResponse = sendCreateValidationResourceRequest(personalDetails).futureValue
       createResponse.status mustBe BAD_GATEWAY
 
       verifyGAMatchEvent("technical_error_matching")
@@ -100,7 +103,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
     }
 
     "return BAD Request if mandatory fields are missing" in new Setup {
-      val createResponse = sendCreateValidationResourceRequest("{}").futureValue
+      val createResponse: WSResponse = sendCreateValidationResourceRequest("{}").futureValue
 
       createResponse.status mustBe BAD_REQUEST
 
@@ -113,7 +116,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
     }
 
     "return BAD Request if both nino and postcode are supplied" in new Setup {
-      val createResponse = sendCreateValidationResourceRequest(personalDetailsWithBothNinoAndPostcode).futureValue
+      val createResponse: WSResponse = sendCreateValidationResourceRequest(personalDetailsWithBothNinoAndPostcode).futureValue
 
       createResponse.status mustBe BAD_REQUEST
 
@@ -121,7 +124,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
     }
 
     "return BAD Request if neither nino or postcode are supplied" in new Setup {
-      val createResponse = sendCreateValidationResourceRequest(invalidPersonalDetailsWithNeitherPostcodeOrNino).futureValue
+      val createResponse: WSResponse = sendCreateValidationResourceRequest(invalidPersonalDetailsWithNeitherPostcodeOrNino).futureValue
 
       createResponse.status mustBe BAD_REQUEST
 
@@ -144,7 +147,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
 
   private trait Setup {
 
-    val personalDetails =
+    val personalDetails: String =
       """
         |{
         |   "firstName": "Jim",
@@ -154,7 +157,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
         |}
       """.stripMargin
 
-    val personalDetailsWithPostCode =
+    val personalDetailsWithPostCode: String =
       """
         |{
         |   "firstName": "Jim",
@@ -164,7 +167,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
         |}
       """.stripMargin
 
-    val personalDetailsWithBothNinoAndPostcode =
+    val personalDetailsWithBothNinoAndPostcode: String =
       """
         |{
         |   "firstName": "Jim",
@@ -175,7 +178,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
         |}
       """.stripMargin
 
-    val invalidPersonalDetailsWithNeitherPostcodeOrNino =
+    val invalidPersonalDetailsWithNeitherPostcodeOrNino: String =
       """
         |{
         |   "firstName": "Jim",
@@ -184,9 +187,10 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
         |}
       """.stripMargin
 
-    def sendCreateValidationResourceRequest(body: String) =
+    def sendCreateValidationResourceRequest(body: String): Future[WSResponse] =
       wsUrl("/personal-details-validation")
         .withHeaders(CONTENT_TYPE -> JSON)
         .post(body)
   }
+
 }

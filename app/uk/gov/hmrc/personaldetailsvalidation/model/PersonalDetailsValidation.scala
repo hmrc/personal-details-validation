@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,9 @@ sealed trait ValidationStatus extends StringValue {
 }
 
 object ValidationStatus extends StringOptions[ValidationStatus] {
+
   private[personaldetailsvalidation] case object Success extends ValidationStatus
+
   private[personaldetailsvalidation] case object Failure extends ValidationStatus
 
   override val all: Seq[ValidationStatus] = Seq(Success, Failure)

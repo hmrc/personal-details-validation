@@ -11,11 +11,29 @@ lazy val playSettings: Seq[Setting[_]] = Seq(
   )
 )
 
+lazy val scoverageSettings: Seq[Def.Setting[_ >: String with Double with Boolean]] = {
+  import scoverage._
+
+  Seq(
+    ScoverageKeys.coverageExcludedPackages :=
+      """<empty>;
+        |Reverse.*;
+        |.*BuildInfo.*;
+        |.*config.*;
+        |.*Routes.*;
+        |.*RoutesPrefix.*;""".stripMargin,
+
+    ScoverageKeys.coverageMinimum := 80,
+    ScoverageKeys.coverageFailOnMinimum := false,
+    ScoverageKeys.coverageHighlighting := true
+  )
+}
+
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory): _*)
   .settings(majorVersion := 0)
   .settings(scalaSettings: _*)
-  .settings(playSettings: _*)
+  .settings(playSettings ++ scoverageSettings: _*)
   .settings(publishingSettings: _*)
   .settings(defaultSettings(): _*)
   .settings(
@@ -28,8 +46,8 @@ lazy val microservice = Project(appName, file("."))
   .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)
   .settings(
     Keys.fork in IntegrationTest := false,
-    unmanagedSourceDirectories in IntegrationTest := (baseDirectory in IntegrationTest)(base => Seq(base / "it")).value,
-    unmanagedResourceDirectories in IntegrationTest := (baseDirectory in IntegrationTest)(base => Seq(base / "it" / "resources")).value,
+    unmanagedSourceDirectories in IntegrationTest := (baseDirectory in IntegrationTest) (base => Seq(base / "it")).value,
+    unmanagedResourceDirectories in IntegrationTest := (baseDirectory in IntegrationTest) (base => Seq(base / "it" / "resources")).value,
     addTestReportOption(IntegrationTest, "int-test-reports"),
     testGrouping in IntegrationTest := oneForkedJvmPerTest((definedTests in IntegrationTest).value),
     parallelExecution in IntegrationTest := false

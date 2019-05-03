@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,14 +17,14 @@
 package uk.gov.hmrc.personaldetailsvalidation
 
 import java.time.Duration
-import javax.inject.{Inject, Singleton}
 
+import javax.inject.{Inject, Singleton}
 import play.api.Configuration
 import uk.gov.hmrc.config.implicits._
 import uk.gov.hmrc.config.ops._
 
 @Singleton
-private class PersonalDetailsValidationMongoRepositoryConfig @Inject()(configuration: Configuration)  {
+private class PersonalDetailsValidationMongoRepositoryConfig @Inject()(configuration: Configuration) {
 
   lazy val collectionTtl: Duration = Duration.from(configuration.loadMandatory[Duration]("mongodb.collections.personal-details-validation.ttl"))
 
