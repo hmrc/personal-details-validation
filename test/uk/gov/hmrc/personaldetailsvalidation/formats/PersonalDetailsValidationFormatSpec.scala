@@ -25,8 +25,8 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import play.api.libs.json.{JsResultException, Json}
 import play.api.libs.json.Json.toJson
+import support.UnitSpec
 import uk.gov.hmrc.personaldetailsvalidation.model._
-import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.uuid.UUIDProvider
 
 class PersonalDetailsValidationFormatSpec

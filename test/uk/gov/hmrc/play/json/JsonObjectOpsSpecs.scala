@@ -21,8 +21,8 @@ import java.time.ZoneOffset.UTC
 
 import org.scalamock.scalatest.MockFactory
 import play.api.libs.json.Json
+import support.UnitSpec
 import uk.gov.hmrc.datetime.CurrentTimeProvider
-import uk.gov.hmrc.play.test.UnitSpec
 
 class JsonObjectOpsSpecs extends UnitSpec with MockFactory {
 

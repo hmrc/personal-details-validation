@@ -18,8 +18,9 @@ package mongo
 
 import org.scalatest.Matchers
 import reactivemongo.api.indexes.Index
+import support.UnitSpec
 import uk.gov.hmrc.mongo.MongoSpecSupport
-import uk.gov.hmrc.play.test.UnitSpec
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 trait MongoIndexVerifier extends Matchers {

@@ -24,11 +24,11 @@ import generators.ObjectGenerators._
 import org.scalamock.scalatest.MockFactory
 import play.api.Configuration
 import play.api.test.FakeRequest
+import support.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory._
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.model._
-import uk.gov.hmrc.play.test.UnitSpec
 
 class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
 

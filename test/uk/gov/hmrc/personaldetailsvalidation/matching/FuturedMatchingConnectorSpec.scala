@@ -23,14 +23,14 @@ import org.scalatest.concurrent.ScalaFutures
 import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
 import setups.HttpClientStubSetup
+import support.UnitSpec
 import uk.gov.hmrc.config.HostConfigProvider
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.model._
-import uk.gov.hmrc.play.test.UnitSpec
 
-import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
+import scala.concurrent.ExecutionContext.Implicits.{global ⇒ executionContext}
 
 class FuturedMatchingConnectorSpec
   extends UnitSpec

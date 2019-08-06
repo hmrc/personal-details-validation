@@ -17,9 +17,9 @@
 package uk.gov.hmrc.personaldetailsvalidation.matching
 
 import org.scalamock.scalatest.MockFactory
+import support.UnitSpec
 import uk.gov.hmrc.config.HostConfigProvider
 import uk.gov.hmrc.http.Host
-import uk.gov.hmrc.play.test.UnitSpec
 
 class MatchingConnectorConfigSpec
   extends UnitSpec
