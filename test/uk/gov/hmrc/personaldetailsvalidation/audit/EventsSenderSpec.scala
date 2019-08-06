@@ -22,6 +22,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
 import play.api.mvc.Request
 import play.api.test.FakeRequest
+import support.UnitSpec
 import uk.gov.hmrc.audit.{GAEvent, PlatformAnalyticsConnector}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
@@ -30,10 +31,9 @@ import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchRes
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.DataEvent
-import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
+import scala.concurrent.ExecutionContext.Implicits.{global ⇒ executionContext}
 
 class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
 

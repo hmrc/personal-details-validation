@@ -18,8 +18,8 @@ package uk.gov.hmrc.config
 
 import play.api.Configuration
 import setups.ConfigSetup
+import support.UnitSpec
 import uk.gov.hmrc.http.Host
-import uk.gov.hmrc.play.test.UnitSpec
 
 class HostConfigProviderSpecs extends UnitSpec {
 

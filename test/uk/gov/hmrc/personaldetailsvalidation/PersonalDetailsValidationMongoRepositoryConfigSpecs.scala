@@ -21,7 +21,7 @@ import java.time.format.DateTimeParseException
 
 import play.api.Configuration
 import setups.ConfigSetup
-import uk.gov.hmrc.play.test.UnitSpec
+import support.UnitSpec
 
 class PersonalDetailsValidationMongoRepositoryConfigSpecs extends UnitSpec {
 

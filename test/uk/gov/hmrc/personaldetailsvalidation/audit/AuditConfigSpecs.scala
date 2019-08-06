@@ -18,7 +18,7 @@ package uk.gov.hmrc.personaldetailsvalidation.audit
 
 import play.api.Configuration
 import setups.ConfigSetup
-import uk.gov.hmrc.play.test.UnitSpec
+import support.UnitSpec
 
 class AuditConfigSpecs extends UnitSpec {
 

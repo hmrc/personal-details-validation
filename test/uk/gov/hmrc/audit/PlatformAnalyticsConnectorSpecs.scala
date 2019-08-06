@@ -22,9 +22,9 @@ import play.api.LoggerLike
 import play.api.libs.json.Json
 import play.api.test.Helpers._
 import setups.HttpClientStubSetup
+import support.UnitSpec
 import uk.gov.hmrc.config.HostConfigProvider
 import uk.gov.hmrc.http.{HeaderCarrier, Upstream5xxResponse}
-import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.random.RandomIntProvider
 
 import scala.concurrent.ExecutionContext.Implicits.global

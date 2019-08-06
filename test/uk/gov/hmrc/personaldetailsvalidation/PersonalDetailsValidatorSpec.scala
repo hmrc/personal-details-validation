@@ -26,17 +26,17 @@ import generators.ObjectGenerators._
 import org.scalamock.scalatest.MockFactory
 import play.api.mvc.Request
 import play.api.test.FakeRequest
+import support.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsValidation}
-import uk.gov.hmrc.play.test.UnitSpec
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
+import scala.concurrent.ExecutionContext.Implicits.{global ⇒ executionContext}
 
 class PersonalDetailsValidatorSpec
   extends UnitSpec
