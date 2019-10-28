@@ -27,6 +27,6 @@ private object AppDependencies {
     "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.0" % "it",
     "uk.gov.hmrc" %% "service-integration-test" % "0.9.0-play-25" % scope,
     "uk.gov.hmrc" %% "reactivemongo-test" % "4.13.0-play-25" % "test",
-    "com.github.tomakehurst" % "wiremock" % "2.12.0" % "it"
+    "com.github.tomakehurst" % "wiremock" % "2.25.1" % "it"
   )
 }
