@@ -19,11 +19,14 @@ private object AppDependencies {
     "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
     "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
     "org.scalamock" %% "scalamock" % "4.0.0" % "test",
+    "com.itv" %% "scalapact-circe-0-9" % "2.2.5" % "test, it",
+    "com.itv" %% "scalapact-http4s-0-16-2" % "2.2.5" % "test, it",
+    "com.itv" %% "scalapact-scalatest" % "2.2.5" % "test, it",
     "org.scalatest" %% "scalatest" % "3.0.0" % scope,
     "org.pegdown" % "pegdown" % "1.6.0" % scope,
     "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.0" % "it",
     "uk.gov.hmrc" %% "service-integration-test" % "0.9.0-play-25" % scope,
     "uk.gov.hmrc" %% "reactivemongo-test" % "4.13.0-play-25" % "test",
-    "com.github.tomakehurst" % "wiremock" % "2.12.0" % "it"
+    "com.github.tomakehurst" % "wiremock" % "2.25.1" % "it"
   )
 }
