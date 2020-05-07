@@ -169,6 +169,17 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
     }
   }
 
+  "sendEBeginEvents" should {
+
+    "send begin event" in new Setup {
+
+      (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "begin"), headerCarrier, executionContext)
+
+      sender.sendBeginEvent()
+    }
+  }
+
   trait Setup {
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
     implicit val request = FakeRequest()
