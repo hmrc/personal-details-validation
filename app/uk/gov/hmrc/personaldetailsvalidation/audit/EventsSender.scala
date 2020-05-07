@@ -72,6 +72,10 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
     auditConnector.sendEvent(auditDataFactory.createErrorEvent(personalDetails))
   }
 
+  def sendBeginEvent()(implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): Unit = {
+    platformAnalyticsConnector.sendEvent(gaEvent("begin"))
+  }
+
   private implicit class PersonalDetailsOps(target: PersonalDetails) {
     def hasSameNinoSuffixAs(other: PersonalDetails): Boolean = {
       (target, other) match {

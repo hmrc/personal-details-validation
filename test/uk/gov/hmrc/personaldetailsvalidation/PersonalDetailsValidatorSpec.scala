@@ -59,6 +59,9 @@ class PersonalDetailsValidatorSpec
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, personalDetails, headerCarrier, request, executionContext)
 
+      (matchingEventsSender.sendBeginEvent()(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(headerCarrier, request, executionContext)
+
       val personalDetailsValidation = PersonalDetailsValidation.successful(personalDetails)
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
@@ -81,6 +84,9 @@ class PersonalDetailsValidatorSpec
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, personalDetails, headerCarrier, request, executionContext)
 
+      (matchingEventsSender.sendBeginEvent()(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(headerCarrier, request, executionContext)
+
       val personalDetailsValidation = PersonalDetailsValidation.failed()
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
@@ -101,6 +107,9 @@ class PersonalDetailsValidatorSpec
       (matchingEventsSender.sendErrorEvents(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(personalDetails, headerCarrier, request, executionContext)
 
+      (matchingEventsSender.sendBeginEvent()(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(headerCarrier, request, executionContext)
+
       validator.validate(personalDetails).value shouldBe Left(exception)
     }
 
@@ -108,6 +117,9 @@ class PersonalDetailsValidatorSpec
       val personalDetails = personalDetailsObjects.generateOne
 
       val matchResult = MatchSuccessful(personalDetails)
+
+      (matchingEventsSender.sendBeginEvent()(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(headerCarrier, request, executionContext)
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)

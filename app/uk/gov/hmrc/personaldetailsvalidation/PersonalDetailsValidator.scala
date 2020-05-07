@@ -50,6 +50,7 @@ private class PersonalDetailsValidator[Interpretation[_] : Monad](matchingConnec
 
   def validate(personalDetails: PersonalDetails)
               (implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): EitherT[Interpretation, Exception, PersonalDetailsValidation] = {
+    sendBeginEvent()
     for {
       matchResult <- doMatch(personalDetails)
       personalDetailsValidation = matchResult.toPersonalDetailsValidation(optionallyHaving = personalDetails)
