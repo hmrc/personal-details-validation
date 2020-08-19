@@ -27,16 +27,18 @@ import org.scalamock.scalatest.MockFactory
 import play.api.mvc.Request
 import play.api.test.FakeRequest
 import support.UnitSpec
+import uk.gov.hmrc.config.AppConfig
+import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
-import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsValidation}
+import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsValidation, PersonalDetailsWithNino}
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.ExecutionContext.Implicits.{global ⇒ executionContext}
+import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
 
 class PersonalDetailsValidatorSpec
   extends UnitSpec
@@ -55,6 +57,7 @@ class PersonalDetailsValidatorSpec
         .expects(personalDetails, headerCarrier, executionContext)
         .returning(EitherT.rightT[Id, Exception](matchResult))
 
+      (mockAppConfig.returnNinoFromCid _).expects().returning(false).repeat(2)
 
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, personalDetails, headerCarrier, request, executionContext)
@@ -71,6 +74,68 @@ class PersonalDetailsValidatorSpec
       validator.validate(personalDetails).value shouldBe Right(personalDetailsValidation)
     }
 
+    "match the given personal details with matching service, with a different suffix, " +
+      "store them as SuccessfulPersonalDetailsValidation for successful match " +
+      "and return the ValidationId" in new Setup {
+      val personalDetails : PersonalDetailsWithNino = (personalDetailsObjects.generateOne).asInstanceOf[PersonalDetailsWithNino]
+
+      val enteredNino = adjustedNino(personalDetails.nino)
+      val enteredPersonalDetails = personalDetails.copy(nino = enteredNino)
+
+      val matchResult = MatchSuccessful(personalDetails)
+
+      (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(enteredPersonalDetails, headerCarrier, executionContext)
+        .returning(EitherT.rightT[Id, Exception](matchResult))
+
+      (mockAppConfig.returnNinoFromCid _).expects().returning(false).repeat(2)
+
+      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(matchResult, enteredPersonalDetails, headerCarrier, request, executionContext)
+
+      (matchingEventsSender.sendBeginEvent()(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(headerCarrier, request, executionContext)
+
+      val personalDetailsValidation = PersonalDetailsValidation.successful(enteredPersonalDetails)
+
+      (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
+        .expects(personalDetailsValidation, executionContext)
+        .returning(EitherT.rightT[Id, Exception](Done))
+
+      validator.validate(enteredPersonalDetails).value shouldBe Right(personalDetailsValidation)
+    }
+
+    "match the given personal details with matching service, with a different suffix, " +
+      "store the returned Nino as SuccessfulPersonalDetailsValidation for successful match " +
+      "and return the ValidationId" in new Setup {
+      val personalDetails : PersonalDetailsWithNino = (personalDetailsObjects.generateOne).asInstanceOf[PersonalDetailsWithNino]
+
+      val enteredNino = adjustedNino(personalDetails.nino)
+      val enteredPersonalDetails = personalDetails.copy(nino = enteredNino)
+
+      val matchResult = MatchSuccessful(personalDetails)
+
+      (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(enteredPersonalDetails, headerCarrier, executionContext)
+        .returning(EitherT.rightT[Id, Exception](matchResult))
+
+      (mockAppConfig.returnNinoFromCid _).expects().returning(true).repeat(2)
+
+      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(matchResult, personalDetails, headerCarrier, request, executionContext)
+
+      (matchingEventsSender.sendBeginEvent()(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(headerCarrier, request, executionContext)
+
+      val personalDetailsValidation = PersonalDetailsValidation.successful(personalDetails)
+
+      (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
+        .expects(personalDetailsValidation, executionContext)
+        .returning(EitherT.rightT[Id, Exception](Done))
+
+      validator.validate(enteredPersonalDetails).value shouldBe Right(personalDetailsValidation)
+    }
+
     "match the given personal details with matching service, " +
       "store them as FailedPersonalDetailsValidation for unsuccessful match " +
       "and return the ValidationId" in new Setup {
@@ -80,6 +145,8 @@ class PersonalDetailsValidatorSpec
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
         .returning(EitherT.rightT[Id, Exception](matchResult))
+
+      (mockAppConfig.returnNinoFromCid _).expects().returning(false)
 
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, personalDetails, headerCarrier, request, executionContext)
@@ -125,6 +192,8 @@ class PersonalDetailsValidatorSpec
         .expects(personalDetails, headerCarrier, executionContext)
         .returning(EitherT.rightT[Id, Exception](matchResult))
 
+      (mockAppConfig.returnNinoFromCid _).expects().returning(false)
+
       val personalDetailsValidation = PersonalDetailsValidation.successful(personalDetails)
 
       val exception = new RuntimeException("error")
@@ -145,11 +214,21 @@ class PersonalDetailsValidatorSpec
 
     val matchingConnector = mock[MatchingConnector[Id]]
     val matchingEventsSender = mock[EventsSender]
+    val mockAppConfig = mock[AppConfig]
 
     val repository = mock[PersonalDetailsValidationRepository[Id]]
     implicit val uuidProvider: UUIDProvider = stub[UUIDProvider]
     uuidProvider.apply _ when() returns randomUUID()
 
-    val validator = new PersonalDetailsValidator(matchingConnector, repository, matchingEventsSender)
+    def adjustedNino(nino: Nino) : Nino = {
+      val ninoPrefix = nino.nino.substring(0, 8)
+      val ninoSuffix = nino.nino.charAt(8)
+
+      val newSuffix : Char = chooseOneOf("ABCD".toList.filter(_ != ninoSuffix)).generateOne
+
+      Nino(s"$ninoPrefix$newSuffix")
+    }
+
+    val validator = new PersonalDetailsValidator(matchingConnector, repository, matchingEventsSender, mockAppConfig)
   }
 }

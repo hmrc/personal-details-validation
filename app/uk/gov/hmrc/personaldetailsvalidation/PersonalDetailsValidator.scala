@@ -21,6 +21,7 @@ import cats.data.EitherT
 import cats.implicits._
 import javax.inject.{Inject, Singleton}
 import play.api.mvc.Request
+import uk.gov.hmrc.config.AppConfig
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
@@ -34,16 +35,28 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.language.higherKinds
 
 @Singleton
-private class FuturedPersonalDetailsValidator @Inject()(matchingConnector: FuturedMatchingConnector,
-                                                        personalDetailsValidationRepository: PersonalDetailsValidationMongoRepository,
-                                                        matchingEventsSender: EventsSender)
-                                                       (implicit uuidProvider: UUIDProvider) extends
-  PersonalDetailsValidator[Future](matchingConnector, personalDetailsValidationRepository, matchingEventsSender)
+class FuturedPersonalDetailsValidator @Inject()(
+  matchingConnector: FuturedMatchingConnector,
+  personalDetailsValidationRepository: PersonalDetailsValidationMongoRepository,
+  matchingEventsSender: EventsSender,
+  appConfig: AppConfig
+)(
+  implicit uuidProvider: UUIDProvider
+) extends PersonalDetailsValidator[Future](
+  matchingConnector,
+  personalDetailsValidationRepository,
+  matchingEventsSender,
+  appConfig
+)
 
-private class PersonalDetailsValidator[Interpretation[_] : Monad](matchingConnector: MatchingConnector[Interpretation],
-                                                                  personalDetailsValidationRepository: PersonalDetailsValidationRepository[Interpretation],
-                                                                  matchingEventsSender: EventsSender)
-                                                                 (implicit uuidProvider: UUIDProvider) {
+class PersonalDetailsValidator[Interpretation[_] : Monad](
+  matchingConnector: MatchingConnector[Interpretation],
+  personalDetailsValidationRepository: PersonalDetailsValidationRepository[Interpretation],
+  matchingEventsSender: EventsSender,
+  appConfig: AppConfig)
+(
+  implicit uuidProvider: UUIDProvider
+) {
 
   import matchingConnector._
   import matchingEventsSender._
@@ -53,21 +66,29 @@ private class PersonalDetailsValidator[Interpretation[_] : Monad](matchingConnec
     sendBeginEvent()
     for {
       matchResult <- doMatch(personalDetails)
-      personalDetailsValidation = matchResult.toPersonalDetailsValidation(optionallyHaving = personalDetails)
+      personalDetailsValidation = toPersonalDetailsValidation(matchResult, personalDetails)
       _ <- personalDetailsValidationRepository.create(personalDetailsValidation)
-      _ = sendEvents(matchResult, personalDetails)
+      _ = sendEvents(matchResult, eventDetailsToSend(matchResult, personalDetails))
     } yield personalDetailsValidation
   }.leftMap { error => sendErrorEvents(personalDetails); error }
 
-  private implicit class MatchResultOps(matchResult: MatchResult) {
-    def toPersonalDetailsValidation(optionallyHaving: PersonalDetails): PersonalDetailsValidation = {
-      (matchResult, optionallyHaving) match {
-        case (MatchSuccessful(matchingPerson: PersonalDetailsNino), other: PersonalDetailsWithPostCode) =>
-          PersonalDetailsValidation.successful(other.addNino(matchingPerson.nino))
-        case (MatchSuccessful(_), _) => PersonalDetailsValidation.successful(optionallyHaving)
-        case (MatchFailed(_), _) => PersonalDetailsValidation.failed()
+  def eventDetailsToSend(matchResult: MatchResult, originalDetails: PersonalDetails): PersonalDetails = {
+    if (appConfig.returnNinoFromCid)
+      matchResult match {
+        case MatchSuccessful(personalDetails) => personalDetails
+        case _ => originalDetails
       }
-    }
+    else
+      originalDetails
   }
 
+  def toPersonalDetailsValidation(matchResult: MatchResult, optionallyHaving: PersonalDetails): PersonalDetailsValidation = {
+    (matchResult, optionallyHaving) match {
+      case (MatchSuccessful(matchingPerson: PersonalDetailsNino), other: PersonalDetailsWithPostCode) =>
+        PersonalDetailsValidation.successful(other.addNino(matchingPerson.nino))
+      case (MatchSuccessful(matchingPerson), _) if appConfig.returnNinoFromCid => PersonalDetailsValidation.successful(matchingPerson)
+      case (MatchSuccessful(_), _) => PersonalDetailsValidation.successful(optionallyHaving)
+      case (MatchFailed(_), _) => PersonalDetailsValidation.failed()
+    }
+  }
 }
