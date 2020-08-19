@@ -71,6 +71,8 @@ trait Generators {
 
     implicit def generatorOfOps[T](generator: Gen[T]): GenOps[T] = GenOps(generator)
 
+    implicit def chooseOneOf[T](items: List[T]): Gen[T] = Gen.oneOf(items)
+
     case class GenOps[T](generator: Gen[T]) {
 
       lazy val toGenOfOption: Gen[Option[T]] = optional(generator)
