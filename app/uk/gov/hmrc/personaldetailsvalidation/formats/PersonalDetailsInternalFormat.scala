@@ -32,7 +32,7 @@ object PersonalDetailsInternalFormat {
       (__ \ "lastName").read[String] and
       (__ \ "dateOfBirth").read[LocalDate] and
       (
-        (__ \ "nino").readNullable[String].filter(ValidationError("invalid nino format")) {
+        (__ \ "nino").readNullable[String].filter(JsonValidationError("invalid nino format")) {
           case Some(nino) => Try(Nino(nino)).isSuccess
           case _ => true
         }.map {

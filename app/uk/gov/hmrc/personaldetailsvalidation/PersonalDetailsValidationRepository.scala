@@ -70,7 +70,7 @@ private class PersonalDetailsValidationMongoRepository @Inject()(config: Persona
 
     val document = domainFormatImplicit.writes(personalDetailsValidation).as[JsObject].withCreatedTimeStamp()
 
-    EitherT(collection.insert(document).map(_ => Right(Done))
+    EitherT(collection.insert(ordered = false).one(document).map(_ => Right(Done))
       .recover {
         case ex: Exception => Left(ex)
       })

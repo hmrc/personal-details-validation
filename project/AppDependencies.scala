@@ -8,9 +8,9 @@ private object AppDependencies {
 
   private val compile = Seq(
     "org.typelevel" %% "cats-core" % "1.0.1",
-    "uk.gov.hmrc" %% "bootstrap-play-25" % "4.11.0",
-    "uk.gov.hmrc" %% "simple-reactivemongo" % "7.30.0-play-25",
-    "uk.gov.hmrc" %% "domain" % "5.6.0-play-25",
+    "uk.gov.hmrc" %% "bootstrap-play-26" % "1.15.0",
+    "uk.gov.hmrc" %% "simple-reactivemongo" % "7.30.0-play-26",
+    "uk.gov.hmrc" %% "domain" % "5.9.0-play-26",
     "uk.gov.hmrc" %% "valuetype" % "1.1.0",
     ws
   )
@@ -24,9 +24,9 @@ private object AppDependencies {
     "com.itv" %% "scalapact-scalatest" % "2.2.5" % "test, it",
     "org.scalatest" %% "scalatest" % "3.0.0" % scope,
     "org.pegdown" % "pegdown" % "1.6.0" % scope,
-    "org.scalatestplus.play" %% "scalatestplus-play" % "2.0.0" % "it",
-    "uk.gov.hmrc" %% "service-integration-test" % "0.9.0-play-25" % scope,
-    "uk.gov.hmrc" %% "reactivemongo-test" % "4.21.0-play-25" % "test",
-    "com.github.tomakehurst" % "wiremock" % "2.25.1" % "it"
+    "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2" % "it",
+    "uk.gov.hmrc" %% "service-integration-test" % "0.12.0-play-26" % scope,
+    "uk.gov.hmrc" %% "reactivemongo-test" % "4.21.0-play-26" % "test",
+    "com.github.tomakehurst" % "wiremock-jre8" % "2.27.2" % "it"
   )
 }

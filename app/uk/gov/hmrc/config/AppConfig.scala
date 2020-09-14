@@ -21,5 +21,5 @@ import play.api.Configuration
 
 @Singleton
 class AppConfig @Inject() (config: Configuration) {
-  def returnNinoFromCid = config.getBoolean("feature.return-nino-from-cid").getOrElse(false)
+  def returnNinoFromCid: Boolean = config.getOptional[Boolean]("feature.return-nino-from-cid").getOrElse(false)
 }

@@ -189,7 +189,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
 
     def sendCreateValidationResourceRequest(body: String): Future[WSResponse] =
       wsUrl("/personal-details-validation")
-        .withHeaders(CONTENT_TYPE -> JSON)
+        .addHttpHeaders(CONTENT_TYPE -> JSON)
         .post(body)
   }
 

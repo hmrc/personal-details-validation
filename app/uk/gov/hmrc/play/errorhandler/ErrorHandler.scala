@@ -22,13 +22,16 @@ import play.api.http.Status._
 import play.api.mvc.Results.NotFound
 import play.api.mvc.{RequestHeader, Result}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.bootstrap.config.HttpAuditEvent
 import uk.gov.hmrc.play.bootstrap.http.JsonErrorHandler
 import uk.gov.hmrc.play.pathbinders.PathBinders.Errors.NOT_A_VALID_UUID
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class ErrorHandler @Inject()(configuration: Configuration, auditConnector: AuditConnector) extends JsonErrorHandler(configuration, auditConnector) {
+class ErrorHandler @Inject()(auditConnector: AuditConnector, httpAuditEvent: HttpAuditEvent, configuration: Configuration)
+                            (implicit ec: ExecutionContext)
+  extends JsonErrorHandler(auditConnector, httpAuditEvent, configuration) {
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = {
     if (statusCode == BAD_REQUEST && message.endsWith(NOT_A_VALID_UUID)) {
       Future.successful(NotFound)
