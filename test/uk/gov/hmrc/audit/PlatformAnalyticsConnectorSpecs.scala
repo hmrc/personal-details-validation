@@ -28,7 +28,6 @@ import uk.gov.hmrc.config.HostConfigProvider
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.random.RandomIntProvider
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.language.postfixOps
 import scala.reflect.ClassTag
 import scala.util.Random
@@ -90,7 +89,7 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with AsyncMockFactory {
 
       logger.when('error)(*,*,*)
 
-      connector.sendEvent(gaEvent)(headerCarrier.copy(gaUserId = Option(gaUserId)), global)
+      connector.sendEvent(gaEvent)(headerCarrier.copy(gaUserId = Option(gaUserId)), executionContext)
 
       logger.verify('error)(
         argAssert { (message: () => String) =>

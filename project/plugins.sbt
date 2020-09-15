@@ -4,14 +4,9 @@ resolvers += Resolver.url("hmrc-sbt-plugin-releases",
 
 resolvers += "HMRC Releases" at "https://dl.bintray.com/hmrc/releases"
 
-resolvers += "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/"
+resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 
-libraryDependencies ++= Seq(
-  "com.itv" %% "scalapact-argonaut-6-2"  % "2.2.5",
-  "com.itv" %% "scalapact-http4s-0-16-2" % "2.2.5"
-)
-
-addSbtPlugin("com.itv" % "sbt-scalapact" % "2.2.5")
+addSbtPlugin("com.itv" % "sbt-scalapact" % "2.3.16")
 
 addSbtPlugin("uk.gov.hmrc" % "sbt-auto-build" % "2.9.0")
 

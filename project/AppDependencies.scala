@@ -11,7 +11,6 @@ private object AppDependencies {
     "uk.gov.hmrc" %% "bootstrap-play-26" % "1.15.0",
     "uk.gov.hmrc" %% "simple-reactivemongo" % "7.30.0-play-26",
     "uk.gov.hmrc" %% "domain" % "5.9.0-play-26",
-    "uk.gov.hmrc" %% "valuetype" % "1.1.0",
     ws
   )
 
@@ -19,10 +18,10 @@ private object AppDependencies {
     "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
     "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
     "org.scalamock" %% "scalamock" % "4.0.0" % "test",
-    "com.itv" %% "scalapact-circe-0-9" % "2.2.5" % "test, it",
-    "com.itv" %% "scalapact-http4s-0-16-2" % "2.2.5" % "test, it",
-    "com.itv" %% "scalapact-scalatest" % "2.2.5" % "test, it",
-    "org.scalatest" %% "scalatest" % "3.0.0" % scope,
+    "com.itv" %% "scalapact-circe-0-9" % "2.3.16" % "test, it",
+    "com.itv" %% "scalapact-http4s-0-18" % "2.3.16" % "test, it",
+    "com.itv" %% "scalapact-scalatest" % "2.3.16" % "test, it",
+    "org.scalatest" %% "scalatest" % "3.0.5" % scope,
     "org.pegdown" % "pegdown" % "1.6.0" % scope,
     "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2" % "it",
     "uk.gov.hmrc" %% "service-integration-test" % "0.12.0-play-26" % scope,

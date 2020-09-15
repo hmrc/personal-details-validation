@@ -30,7 +30,6 @@ import uk.gov.hmrc.personaldetailsvalidation.matching.{FuturedMatchingConnector,
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.uuid.UUIDProvider
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.higherKinds
 
@@ -41,7 +40,7 @@ class FuturedPersonalDetailsValidator @Inject()(
   matchingEventsSender: EventsSender,
   appConfig: AppConfig
 )(
-  implicit uuidProvider: UUIDProvider
+  implicit uuidProvider: UUIDProvider, ec: ExecutionContext
 ) extends PersonalDetailsValidator[Future](
   matchingConnector,
   personalDetailsValidationRepository,
