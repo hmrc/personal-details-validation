@@ -18,7 +18,7 @@ private object AppDependencies {
   private def test(scope: String = "test,it") = Seq(
     "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
     "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
-    "org.scalamock" %% "scalamock" % "4.0.0" % "test",
+    "org.scalamock" %% "scalamock" % "4.1.0" % "test",
     "com.itv" %% "scalapact-circe-0-9" % "2.3.16" % "test, it",
     "com.itv" %% "scalapact-http4s-0-18" % "2.3.16" % "test, it",
     "com.itv" %% "scalapact-scalatest" % "2.3.16" % "test, it",
