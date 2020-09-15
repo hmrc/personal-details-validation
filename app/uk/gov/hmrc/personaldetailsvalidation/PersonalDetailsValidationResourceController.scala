@@ -50,7 +50,7 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
     }
   }
 
-  def get(id: ValidationId): Action[AnyContent] = Action.async { implicit request =>
+  def get(id: ValidationId): Action[AnyContent] = Action.async {
     personalDetailsValidationRepository.get(id).map {
       case Some(validation) => Ok(toJson(validation))
       case None => NotFound

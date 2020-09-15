@@ -16,8 +16,6 @@
 
 package uk.gov.voa.valuetype
 
-import scala.language.implicitConversions
-
 trait Options[T, VT <: ValueType[T]] extends TypeName {
 
   def all: Seq[VT]

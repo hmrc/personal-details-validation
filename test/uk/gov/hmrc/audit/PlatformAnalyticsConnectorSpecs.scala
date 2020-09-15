@@ -28,7 +28,6 @@ import uk.gov.hmrc.config.HostConfigProvider
 import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.random.RandomIntProvider
 
-import scala.language.postfixOps
 import scala.reflect.ClassTag
 import scala.util.Random
 

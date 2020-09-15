@@ -37,6 +37,13 @@ lazy val microservice = Project(appName, file("."))
   .settings(publishingSettings: _*)
   .settings(defaultSettings(): _*)
   .settings(
+    scalacOptions ++= Seq(
+      "-deprecation",
+      "-feature",
+      "-language:implicitConversions",
+      "-language:reflectiveCalls",
+      "-language:postfixOps"
+    ),
     scalaVersion := "2.12.12",
     libraryDependencies ++= AppDependencies(),
     retrieveManaged := true,
