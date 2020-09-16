@@ -20,18 +20,19 @@ import cats.implicits._
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.JsValue
 import play.api.libs.json.Json.toJson
-import play.api.mvc.{Action, AnyContent, Result}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.personaldetailsvalidation.model._
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 import uk.gov.hmrc.play.json.JsonValidation
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class PersonalDetailsValidationResourceController @Inject()(personalDetailsValidationRepository: FuturedPersonalDetailsValidationRepository,
-                                                            personalDetailsValidator: FuturedPersonalDetailsValidator)
-  extends BaseController
+                                                            personalDetailsValidator: FuturedPersonalDetailsValidator,
+                                                            cc: ControllerComponents)
+                                                           (implicit ec: ExecutionContext)
+  extends BackendController(cc)
     with JsonValidation {
 
   import formats.PersonalDetailsFormat._
@@ -49,7 +50,7 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
     }
   }
 
-  def get(id: ValidationId): Action[AnyContent] = Action.async { implicit request =>
+  def get(id: ValidationId): Action[AnyContent] = Action.async {
     personalDetailsValidationRepository.get(id).map {
       case Some(validation) => Ok(toJson(validation))
       case None => NotFound

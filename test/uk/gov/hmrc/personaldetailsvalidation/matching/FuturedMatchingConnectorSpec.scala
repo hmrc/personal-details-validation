@@ -28,9 +28,10 @@ import uk.gov.hmrc.config.HostConfigProvider
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
-import uk.gov.hmrc.personaldetailsvalidation.model._
 
-import scala.concurrent.ExecutionContext.Implicits.{global ⇒ executionContext}
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.language.postfixOps
 
 class FuturedMatchingConnectorSpec
   extends UnitSpec
@@ -47,7 +48,8 @@ class FuturedMatchingConnectorSpec
         .withPayload(payload)
         .returning(OK, matchingResponsePayload)
 
-      connector.doMatch(personalDetails).value.futureValue shouldBe Right(MatchSuccessful(personalDetails.copy(nino = ninoWithDifferentSuffix)))
+      connector.doMatch(personalDetails)
+        .value.futureValue shouldBe Right(MatchSuccessful(personalDetails.copy(nino = ninoWithDifferentSuffix)))
     }
 
     "return MatchFailed with errors when POST to authenticator's /authenticator/match returns UNAUTHORISED" in new Setup {
@@ -86,6 +88,7 @@ class FuturedMatchingConnectorSpec
   }
 
   private trait Setup extends HttpClientStubSetup {
+
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
     val nino = Nino("AA000003D")
@@ -102,6 +105,9 @@ class FuturedMatchingConnectorSpec
     private val connectorConfig = new MatchingConnectorConfig(mock[HostConfigProvider]) {
       override lazy val authenticatorBaseUrl = "http://host/authenticator"
     }
+
     val connector = new FuturedMatchingConnector(httpClient, connectorConfig)
+
+    implicit val patienceConfig: PatienceConfig = PatienceConfig(timeout = 5 seconds, interval = 100 millis)
   }
 }

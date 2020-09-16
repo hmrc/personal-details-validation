@@ -18,7 +18,6 @@ package uk.gov.hmrc.personaldetailsvalidation.formats
 
 import java.time.LocalDate
 
-import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.domain.Nino
@@ -32,7 +31,7 @@ object PersonalDetailsInternalFormat {
       (__ \ "lastName").read[String] and
       (__ \ "dateOfBirth").read[LocalDate] and
       (
-        (__ \ "nino").readNullable[String].filter(ValidationError("invalid nino format")) {
+        (__ \ "nino").readNullable[String].filter(JsonValidationError("invalid nino format")) {
           case Some(nino) => Try(Nino(nino)).isSuccess
           case _ => true
         }.map {

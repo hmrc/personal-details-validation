@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.config
+package uk.gov.voa.valuetype.constraints
 
-import javax.inject.{Inject, Singleton}
-import play.api.Configuration
+import uk.gov.voa.valuetype.StringValue
 
-@Singleton
-class AppConfig @Inject() (config: Configuration) {
-  def returnNinoFromCid: Boolean = config.getOptional[Boolean]("feature.return-nino-from-cid").getOrElse(false)
+trait NonEmpty {
+
+  self: StringValue =>
+
+  require(value.length > 0, s"$typeName cannot be empty")
+
 }

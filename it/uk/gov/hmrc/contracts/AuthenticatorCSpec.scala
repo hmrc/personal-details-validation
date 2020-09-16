@@ -2,21 +2,25 @@ package uk.gov.hmrc.contracts
 
 import java.time.LocalDate
 
-import uk.gov.hmrc.support.BaseIntegrationSpec
-import com.itv.scalapact.ScalaPactForger.{POST, bodyRegexRule, bodyTypeRule, forgePact, interaction}
+import com.itv.scalapact.ScalaPactForger
+import com.itv.scalapact.ScalaPactForger.{bodyRegexRule, bodyTypeRule, forgePact, interaction}
+import com.itv.scalapact.http._
+import com.itv.scalapact.json._
 import play.api.http.Status.UNAUTHORIZED
 import play.api.libs.json.Json
+import play.api.test.Helpers._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.matching.FuturedMatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetailsWithNino
+import uk.gov.hmrc.support.BaseIntegrationSpec
 import uk.gov.hmrc.support.stubs.AuthenticatorStub
-import play.api.test.Helpers._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class AuthenticatorCSpec extends BaseIntegrationSpec {
+
   implicit val hc = HeaderCarrier()
 
   "Authenticator Service" should {
@@ -32,7 +36,7 @@ class AuthenticatorCSpec extends BaseIntegrationSpec {
           interaction
             .description("successfully match user")
             .uponReceiving(
-              method = POST,
+              method = ScalaPactForger.POST,
               path = "/authenticator/match",
               query = None,
               headers = Map("Content-Type" -> "application/json"),
@@ -52,7 +56,7 @@ class AuthenticatorCSpec extends BaseIntegrationSpec {
                 bodyRegexRule("nino", "^[A-CEGHJ-PR-TW-Z]{1}[A-CEGHJ-NPR-TW-Z]{1}[0-9]{6}[A-DFM]{0,1}$")
             )
         )
-        .runConsumerTest { mockConfig =>
+        .runConsumerTest { _ =>
           authConnector.doMatch(jimFerguson).value.futureValue mustBe Right(MatchSuccessful(jimFerguson))
         }
     }
@@ -71,7 +75,7 @@ class AuthenticatorCSpec extends BaseIntegrationSpec {
           interaction
             .description("fail to find the user in CID")
             .uponReceiving(
-              method = POST,
+              method = ScalaPactForger.POST,
               path = "/authenticator/match",
               query = None,
               headers = Map("Content-Type" -> "application/json"),

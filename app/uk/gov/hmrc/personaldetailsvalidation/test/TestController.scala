@@ -21,19 +21,20 @@ import java.util.UUID
 
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{Format, JsValue, Json}
-import play.api.mvc.Action
+import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.personaldetailsvalidation.FuturedPersonalDetailsValidationRepository
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsWithNino, SuccessfulPersonalDetailsValidation, ValidationId}
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext._
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 import uk.gov.hmrc.play.json.JsonValidation
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class TestController @Inject()(personalDetailsValidationRepository: FuturedPersonalDetailsValidationRepository)
-  extends BaseController
+class TestController @Inject()(personalDetailsValidationRepository: FuturedPersonalDetailsValidationRepository,
+                              cc: ControllerComponents)
+                              (implicit ec: ExecutionContext)
+  extends BackendController(cc)
     with JsonValidation {
 
   def upsertTestValidation: Action[JsValue] = Action.async(parse.json) { implicit request =>

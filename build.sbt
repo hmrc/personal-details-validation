@@ -33,14 +33,21 @@ lazy val microservice = Project(appName, file("."))
   .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory): _*)
   .settings(majorVersion := 0)
   .settings(scalaSettings: _*)
+  .disablePlugins(JUnitXmlReportPlugin)
   .settings(playSettings ++ scoverageSettings: _*)
   .settings(publishingSettings: _*)
   .settings(defaultSettings(): _*)
   .settings(
+    scalacOptions ++= Seq(
+      "-deprecation",
+      "-feature",
+      "-language:implicitConversions",
+      "-language:reflectiveCalls",
+      "-language:postfixOps"
+    ),
+    scalaVersion := "2.12.12",
     libraryDependencies ++= AppDependencies(),
-    retrieveManaged := true,
-    evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
-    routesGenerator := InjectedRoutesGenerator
+    retrieveManaged := true
   )
   .configs(IntegrationTest)
   .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)

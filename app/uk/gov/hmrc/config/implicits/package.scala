@@ -25,9 +25,9 @@ package object implicits {
 
   import ops._
 
-  implicit def stringValueFinder(key: String)(configuration: Configuration): Option[String] = configuration.getString(key)
+  implicit def stringValueFinder(key: String)(configuration: Configuration): Option[String] = configuration.getOptional[String](key)
 
-  implicit def intValueFinder(key: String)(configuration: Configuration): Option[Int] = configuration.getInt(key)
+  implicit def intValueFinder(key: String)(configuration: Configuration): Option[Int] = configuration.getOptional[Int](key)
 
   implicit def hostFinder(key: String)(configuration: Configuration): Option[Host] = for {
     servicesKey <- Some("microservice.services")

@@ -34,7 +34,6 @@ import uk.gov.hmrc.personaldetailsvalidation.formats.TinyTypesFormats._
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.json.ops._
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.higherKinds
 
@@ -70,7 +69,7 @@ private class PersonalDetailsValidationMongoRepository @Inject()(config: Persona
 
     val document = domainFormatImplicit.writes(personalDetailsValidation).as[JsObject].withCreatedTimeStamp()
 
-    EitherT(collection.insert(document).map(_ => Right(Done))
+    EitherT(collection.insert(ordered = false).one(document).map(_ => Right(Done))
       .recover {
         case ex: Exception => Left(ex)
       })

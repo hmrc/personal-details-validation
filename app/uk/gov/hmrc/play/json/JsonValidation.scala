@@ -18,12 +18,12 @@ package uk.gov.hmrc.play.json
 
 import play.api.libs.json._
 import play.api.mvc.{Request, Result}
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
 
 import scala.concurrent.Future
 
 trait JsonValidation {
-  self: BaseController =>
+  self: BackendController =>
 
   override protected def withJsonBody[T](f: T => Future[Result])
                                         (implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]): Future[Result] =

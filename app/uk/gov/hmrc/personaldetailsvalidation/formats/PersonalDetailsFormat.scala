@@ -18,7 +18,6 @@ package uk.gov.hmrc.personaldetailsvalidation.formats
 
 import java.time.LocalDate
 
-import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import uk.gov.hmrc.domain.Nino
@@ -33,31 +32,31 @@ object PersonalDetailsFormat {
   private val postCodeValidation = """^([A-Za-z][A-HJ-Ya-hj-y]?[0-9][A-Za-z0-9]?|[A-Za-z][A-HJ-Ya-hj-y][A-Za-z])\s?[0-9][ABDEFGHJLNPQRSTUWXYZabdefghjlnpqrstuwxyz]{2}$""".r
 
   implicit val personalDetailsReads: Reads[PersonalDetails] = (
-    (__ \ "firstName").readOrError[String]("firstName is missing").filter(ValidationError("firstName is blank/empty"))(_.trim.nonEmpty) and
-      (__ \ "lastName").readOrError[String]("lastName is missing").filter(ValidationError("lastName is blank/empty"))(_.trim.nonEmpty) and
+    (__ \ "firstName").readOrError[String]("firstName is missing").filter(JsonValidationError("firstName is blank/empty"))(_.trim.nonEmpty) and
+      (__ \ "lastName").readOrError[String]("lastName is missing").filter(JsonValidationError("lastName is blank/empty"))(_.trim.nonEmpty) and
       (__ \ "dateOfBirth").readOrError[LocalDate]("dateOfBirth is missing/invalid") and
       (
         (__ \ "nino").readNullable[String].map {
           case Some(nino) => Some(nino.toUpperCase.replaceAll("""\s""", ""))
           case _ => None
-        }.filter(ValidationError("invalid nino format")) {
+        }.filter(JsonValidationError("invalid nino format")) {
           case Some(nino) => Try(Nino(nino)).isSuccess
           case _ => true
         }.map {
           case Some(nino) => Some(Nino(nino))
           case _ => None
         } and
-          (__ \ "postCode").readNullable[String].filter(ValidationError("invalid postcode format")) {
+          (__ \ "postCode").readNullable[String].filter(JsonValidationError("invalid postcode format")) {
             case None => true
             case Some(postCode) if postCodeValidation.findFirstIn(postCode.trim).isEmpty => false
             case _ => true
           }
         ).tupled.
-        filter(ValidationError("at least nino or postcode needs to be supplied")) {
+        filter(JsonValidationError("at least nino or postcode needs to be supplied")) {
           case (None, None) => false
           case _ => true
         }.
-        filter(ValidationError("both nino and postcode supplied")) {
+        filter(JsonValidationError("both nino and postcode supplied")) {
           case (Some(_), Some(_)) => false
           case _ => true
         }

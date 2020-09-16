@@ -33,17 +33,16 @@ import play.api.libs.json._
 import play.api.mvc.Request
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import scalamock.MockArgumentMatchers
+import support.UnitSpec
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
+import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
 import uk.gov.hmrc.personaldetailsvalidation.model._
-import uk.gov.hmrc.play.http.logging.MdcLoggingExecutionContext
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
-import scalamock.MockArgumentMatchers
-import support.UnitSpec
-import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
 
 class PersonalDetailsValidationResourceControllerSpec
   extends UnitSpec
@@ -63,7 +62,7 @@ class PersonalDetailsValidationResourceControllerSpec
         val requestWithBody = request.withBody(toJson(personalDetails))
 
         (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-          .expects(personalDetails, instanceOf[HeaderCarrier], requestWithBody, instanceOf[MdcLoggingExecutionContext])
+          .expects(personalDetails, instanceOf[HeaderCarrier], requestWithBody, *)
           .returns(EitherT.rightT[Future, Exception](personalDetailsValidation))
 
         val response = controller.create(requestWithBody)
@@ -88,7 +87,7 @@ class PersonalDetailsValidationResourceControllerSpec
         val personalDetailsWithUpperCaseNino = requestPersonalDetails.copy(nino = Nino(finalNinoValue))
 
         (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-          .expects(personalDetailsWithUpperCaseNino, instanceOf[HeaderCarrier], requestWithBody, instanceOf[MdcLoggingExecutionContext])
+          .expects(personalDetailsWithUpperCaseNino, instanceOf[HeaderCarrier], requestWithBody, *)
           .returns(EitherT.rightT[Future, Exception](personalDetailsValidation))
 
         val response = controller.create(requestWithBody)
@@ -103,7 +102,7 @@ class PersonalDetailsValidationResourceControllerSpec
         val personalDetailsValidation = personalDetailsValidationObjects.generateOne
 
         (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-          .expects(personalDetails, instanceOf[HeaderCarrier], requestWithBody, instanceOf[MdcLoggingExecutionContext])
+          .expects(personalDetails, instanceOf[HeaderCarrier], requestWithBody, *)
           .returns(EitherT.rightT[Future, Exception](personalDetailsValidation))
 
         val response = controller.create(requestWithBody)
@@ -117,7 +116,7 @@ class PersonalDetailsValidationResourceControllerSpec
         val requestWithBody = request.withBody(toJson(personalDetails))
 
         (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-          .expects(personalDetails, instanceOf[HeaderCarrier], requestWithBody, instanceOf[MdcLoggingExecutionContext])
+          .expects(personalDetails, instanceOf[HeaderCarrier], requestWithBody, *)
           .returns(EitherT.rightT[Future, Exception](personalDetailsValidation))
 
         val response = controller.create(requestWithBody)
@@ -132,7 +131,7 @@ class PersonalDetailsValidationResourceControllerSpec
       val requestWithBody: FakeRequest[JsValue] = request.withBody(toJson(personalDetails))
 
       (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(personalDetails, instanceOf[HeaderCarrier], requestWithBody, instanceOf[MdcLoggingExecutionContext])
+        .expects(personalDetails, instanceOf[HeaderCarrier], requestWithBody, *)
         .returns(EitherT.leftT[Future, PersonalDetailsValidation](badGatewayException))
 
       controller.create(requestWithBody).failed.futureValue shouldBe badGatewayException
@@ -203,7 +202,7 @@ class PersonalDetailsValidationResourceControllerSpec
       val validationId = ValidationId()
 
       (mockRepository.get(_: ValidationId)(_: ExecutionContext))
-        .expects(validationId, instanceOf[MdcLoggingExecutionContext])
+        .expects(validationId, *)
         .returns(Future.successful(None))
 
       val response = controller.get(validationId)(request).futureValue
@@ -214,7 +213,7 @@ class PersonalDetailsValidationResourceControllerSpec
     "return OK http status code if repository returns personal details validation" in new Setup {
       forAll { personalDetailsValidation: PersonalDetailsValidation =>
         (mockRepository.get(_: ValidationId)(_: ExecutionContext))
-          .expects(personalDetailsValidation.id, instanceOf[MdcLoggingExecutionContext])
+          .expects(personalDetailsValidation.id, *)
           .returns(Future.successful(Some(personalDetailsValidation)))
 
         val response = controller.get(personalDetailsValidation.id)(request).futureValue
@@ -226,7 +225,7 @@ class PersonalDetailsValidationResourceControllerSpec
     "return personalDetailsValidation id in response body" in new Setup {
       forAll { personalDetailsValidation: PersonalDetailsValidation =>
         (mockRepository.get(_: ValidationId)(_: ExecutionContext))
-          .expects(personalDetailsValidation.id, instanceOf[MdcLoggingExecutionContext])
+          .expects(personalDetailsValidation.id, *)
           .returns(Future.successful(Some(personalDetailsValidation)))
 
         val response = controller.get(personalDetailsValidation.id)(request).futureValue
@@ -241,7 +240,7 @@ class PersonalDetailsValidationResourceControllerSpec
 
       forAll { personalDetailsValidation: SuccessfulPersonalDetailsValidation =>
         (mockRepository.get(_: ValidationId)(_: ExecutionContext))
-          .expects(personalDetailsValidation.id, instanceOf[MdcLoggingExecutionContext])
+          .expects(personalDetailsValidation.id, *)
           .returns(Future.successful(Some(personalDetailsValidation)))
 
         val response = controller.get(personalDetailsValidation.id)(request).futureValue
@@ -254,7 +253,7 @@ class PersonalDetailsValidationResourceControllerSpec
 
       forAll { personalDetailsValidation: FailedPersonalDetailsValidation =>
         (mockRepository.get(_: ValidationId)(_: ExecutionContext))
-          .expects(personalDetailsValidation.id, instanceOf[MdcLoggingExecutionContext])
+          .expects(personalDetailsValidation.id, *)
           .returns(Future.successful(Some(personalDetailsValidation)))
 
         val response = controller.get(personalDetailsValidation.id)(request).futureValue
@@ -272,7 +271,7 @@ class PersonalDetailsValidationResourceControllerSpec
     forAll(validationStatusScenarios) { (personalDetailsValidation, status) =>
       s"return validationStatus as $status if repository returned ${personalDetailsValidation.getClass.getSimpleName}" in new Setup {
         (mockRepository.get(_: ValidationId)(_: ExecutionContext))
-          .expects(personalDetailsValidation.id, instanceOf[MdcLoggingExecutionContext])
+          .expects(personalDetailsValidation.id, *)
           .returns(Future.successful(Some(personalDetailsValidation)))
 
         val response = controller.get(personalDetailsValidation.id)(request).futureValue
@@ -290,7 +289,7 @@ class PersonalDetailsValidationResourceControllerSpec
     val request = FakeRequest()
     val mockRepository = mock[FuturedPersonalDetailsValidationRepository]
     val mockValidator = mock[FuturedPersonalDetailsValidator]
-    val controller = new PersonalDetailsValidationResourceController(mockRepository, mockValidator)
+    val controller = new PersonalDetailsValidationResourceController(mockRepository, mockValidator, stubControllerComponents())
   }
 
 }

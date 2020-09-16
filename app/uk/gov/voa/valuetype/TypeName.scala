@@ -14,12 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.config
+package uk.gov.voa.valuetype
 
-import javax.inject.{Inject, Singleton}
-import play.api.Configuration
+trait TypeName {
 
-@Singleton
-class AppConfig @Inject() (config: Configuration) {
-  def returnNinoFromCid: Boolean = config.getOptional[Boolean]("feature.return-nino-from-cid").getOrElse(false)
+  lazy val typeName = getClass.getSimpleName.foldLeft("" -> false) { case ((name, wasDollarFound), char) =>
+    if (wasDollarFound) name -> true
+    else char match {
+      case c if c == '$' => name -> true
+      case c => s"$name$char" -> false
+    }
+  }._1
+
 }

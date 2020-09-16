@@ -27,6 +27,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import play.api.Configuration
 import play.modules.reactivemongo.ReactiveMongoComponent
+import reactivemongo.api.ReadConcern
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Descending
 import reactivemongo.bson.BSONDocument
@@ -71,7 +72,10 @@ class PersonalDetailsValidationMongoRepositorySpec
 
       repository.create(personalDetailsValidation).value.futureValue shouldBe Right(Done)
 
-      bsonCollection(repository.collection.name)().count(selector = Some(BSONDocument("_id" -> validationId, "createdAt" -> currentTime.atZone(UTC).toInstant.toEpochMilli))).futureValue shouldBe 1
+      bsonCollection(repository.collection.name)().count(
+        selector = Some(BSONDocument("_id" -> validationId, "createdAt" -> currentTime.atZone(UTC).toInstant.toEpochMilli)),
+        limit = None, skip = 0, hint = None, readConcern = ReadConcern.Local
+      ).futureValue shouldBe 1
     }
   }
 
@@ -83,7 +87,10 @@ class PersonalDetailsValidationMongoRepositorySpec
 
   "repository" should {
     "create ttl on collection" in new Setup {
-      val expectedIndex = Index(Seq("createdAt" -> Descending), name = Some("personal-details-validation-ttl-index"), options = BSONDocument("expireAfterSeconds" -> ttlSeconds))
+      val expectedIndex: Index =
+        Index(Seq("createdAt" -> Descending),
+          name = Some("personal-details-validation-ttl-index"),
+          options = BSONDocument("expireAfterSeconds" -> ttlSeconds))
       verify(expectedIndex).on(repository.collection.name)
     }
   }

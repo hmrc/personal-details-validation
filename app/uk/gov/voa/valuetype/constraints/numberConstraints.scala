@@ -14,12 +14,26 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.config
+package uk.gov.voa.valuetype.constraints
 
-import javax.inject.{Inject, Singleton}
-import play.api.Configuration
+import uk.gov.voa.valuetype.{IntValue, LongValue, ValueType}
 
-@Singleton
-class AppConfig @Inject() (config: Configuration) {
-  def returnNinoFromCid: Boolean = config.getOptional[Boolean]("feature.return-nino-from-cid").getOrElse(false)
+trait PositiveInt extends IntValue {
+
+  require(value > 0, s"$typeName's value has to be positive")
+
+}
+
+trait PositiveLong extends LongValue {
+
+  require(value > 0, s"$typeName's value has to be positive")
+
+}
+
+trait PositiveBigDecimal {
+
+  self: ValueType[BigDecimal] =>
+
+  require(value > 0, s"$typeName's value has to be positive")
+
 }
