@@ -74,6 +74,37 @@ class PersonalDetailsValidatorSpec
       validator.validate(personalDetails).value shouldBe Right(personalDetailsValidation)
     }
 
+    "match the given postccode personal details with matching service, " +
+      "store them as SuccessfulPersonalDetailsValidation for successful match " +
+      "and return the ValidationId" in new Setup {
+
+      // SIS-1269
+
+      val inputPersonalDetails = personalDetailsWithPostCodeObjects.generateOne
+      val matchedPersonalDetails = personalDetailsWithNinoObjects.generateOne
+      val matchResult = MatchSuccessful(matchedPersonalDetails)
+
+      (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(inputPersonalDetails, headerCarrier, executionContext)
+        .returning(EitherT.rightT[Id, Exception](matchResult))
+
+      (mockAppConfig.returnNinoFromCid _).expects().returning(true).repeat(1)
+
+      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(matchResult, inputPersonalDetails, headerCarrier, request, executionContext)
+
+      (matchingEventsSender.sendBeginEvent()(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(headerCarrier, request, executionContext)
+
+      val personalDetailsValidation = PersonalDetailsValidation.successful(inputPersonalDetails.addNino(matchedPersonalDetails.nino))
+
+      (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
+        .expects(personalDetailsValidation, executionContext)
+        .returning(EitherT.rightT[Id, Exception](Done))
+
+      validator.validate(inputPersonalDetails).value shouldBe Right(personalDetailsValidation)
+    }
+
     "match the given personal details with matching service, with a different suffix, " +
       "store them as SuccessfulPersonalDetailsValidation for successful match " +
       "and return the ValidationId" in new Setup {

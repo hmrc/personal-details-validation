@@ -71,14 +71,15 @@ class PersonalDetailsValidator[Interpretation[_] : Monad](
     } yield personalDetailsValidation
   }.leftMap { error => sendErrorEvents(personalDetails); error }
 
-  def eventDetailsToSend(matchResult: MatchResult, originalDetails: PersonalDetails): PersonalDetails = {
+  def eventDetailsToSend(matchResult: MatchResult, personalDetails: PersonalDetails): PersonalDetails = {
     if (appConfig.returnNinoFromCid)
-      matchResult match {
-        case MatchSuccessful(personalDetails) => personalDetails
-        case _ => originalDetails
+      (matchResult, personalDetails) match {
+        case (MatchSuccessful(_), postCodeDetails: PersonalDetailsWithPostCode) => postCodeDetails
+        case (MatchSuccessful(matchedDetails), _) => matchedDetails
+        case (_, _) => personalDetails
       }
     else
-      originalDetails
+      personalDetails
   }
 
   def toPersonalDetailsValidation(matchResult: MatchResult, optionallyHaving: PersonalDetails): PersonalDetailsValidation = {
