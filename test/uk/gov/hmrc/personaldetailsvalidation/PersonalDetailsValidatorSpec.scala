@@ -78,6 +78,8 @@ class PersonalDetailsValidatorSpec
       "store them as SuccessfulPersonalDetailsValidation for successful match " +
       "and return the ValidationId" in new Setup {
 
+      // SIS-1269
+
       val inputPersonalDetails = personalDetailsWithPostCodeObjects.generateOne
       val matchedPersonalDetails = personalDetailsWithNinoObjects.generateOne
       val matchResult = MatchSuccessful(matchedPersonalDetails)
