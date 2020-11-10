@@ -25,7 +25,7 @@ import play.api.test.FakeRequest
 import support.UnitSpec
 import uk.gov.hmrc.audit.{GAEvent, PlatformAnalyticsConnector}
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{FailedDependencyException, HeaderCarrier}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.model._
@@ -33,7 +33,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.play.audit.model.DataEvent
 
 import scala.concurrent.ExecutionContext
-import scala.concurrent.ExecutionContext.Implicits.{global ⇒ executionContext}
+import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
 
 class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
 
@@ -155,6 +155,8 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
 
     "send technical error matching event" in new Setup {
 
+      val exception = new RuntimeException("error")
+
       (platformAnalyticsConnector.sendEvent(_: GAEvent)(_: HeaderCarrier, _: ExecutionContext))
         .expects(GAEvent("sos_iv", "personal_detail_validation_result", "technical_error_matching"), headerCarrier, executionContext)
 
@@ -165,7 +167,14 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
       (auditConnector.sendEvent(_: DataEvent)(_: HeaderCarrier, _: ExecutionContext))
         .expects(dataEvent, headerCarrier, executionContext)
 
-      sender.sendErrorEvents(personalDetails)
+      sender.sendErrorEvents(personalDetails, exception)
+    }
+
+    "Not send event when error is 'FailedDependencyException'" in new Setup {
+
+      val exception = new FailedDependencyException("Request to create account for a deceased user")
+
+      sender.sendErrorEvents(personalDetails, exception)
     }
   }
 

@@ -26,7 +26,7 @@ import setups.HttpClientStubSetup
 import support.UnitSpec
 import uk.gov.hmrc.config.HostConfigProvider
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
+import uk.gov.hmrc.http.{BadGatewayException, FailedDependencyException, HeaderCarrier}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -73,6 +73,15 @@ class FuturedMatchingConnectorSpec
         expectedException shouldBe a[BadGatewayException]
         expectedException.getMessage shouldBe s"Unexpected response from POST http://host/authenticator/match with status: '$unexpectedStatus' and body: some response body"
       }
+    }
+
+    "return Left FAILED_DEPENDENCY when POST to /authenticator/match returns 424 and body contains 'request to create account for a deceased use'" in new Setup {
+      val exception = new FailedDependencyException("Request to create account for a deceased user")
+      expectPost(toUrl = "http://host/authenticator/match")
+        .withPayload(payload)
+        .throwing(exception)
+
+      connector.doMatch(personalDetails).value.futureValue shouldBe Left(exception)
     }
 
     "return Left when POST to /authenticator/match returns a failed Future" in new Setup {

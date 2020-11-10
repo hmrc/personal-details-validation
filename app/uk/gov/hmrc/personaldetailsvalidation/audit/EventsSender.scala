@@ -17,9 +17,10 @@
 package uk.gov.hmrc.personaldetailsvalidation.audit
 
 import javax.inject.{Inject, Singleton}
+import play.api.libs.iteratee.Done
 import play.api.mvc.Request
 import uk.gov.hmrc.audit.{GAEvent, PlatformAnalyticsConnector}
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{FailedDependencyException, HeaderCarrier}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.model._
@@ -67,9 +68,14 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
     case _ =>
   }
 
-  def sendErrorEvents(personalDetails: PersonalDetails)(implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): Unit = {
-    platformAnalyticsConnector.sendEvent(gaEvent("technical_error_matching"))
-    auditConnector.sendEvent(auditDataFactory.createErrorEvent(personalDetails))
+  def sendErrorEvents(personalDetails: PersonalDetails, error: Exception)(implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): Unit = {
+    error match {
+      case _: FailedDependencyException => Done //SIS-1208: don't send error events if Matching returns 424 when user is Deceased
+      case _ => {
+        platformAnalyticsConnector.sendEvent(gaEvent("technical_error_matching"))
+        auditConnector.sendEvent(auditDataFactory.createErrorEvent(personalDetails))
+      }
+    }
   }
 
   def sendBeginEvent()(implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): Unit = {
