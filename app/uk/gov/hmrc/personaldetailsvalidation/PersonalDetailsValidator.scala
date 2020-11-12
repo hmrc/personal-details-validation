@@ -69,7 +69,7 @@ class PersonalDetailsValidator[Interpretation[_] : Monad](
       _ <- personalDetailsValidationRepository.create(personalDetailsValidation)
       _ = sendEvents(matchResult, eventDetailsToSend(matchResult, personalDetails))
     } yield personalDetailsValidation
-  }.leftMap { error => sendErrorEvents(personalDetails); error }
+  }.leftMap { error => sendErrorEvents(personalDetails, error); error }
 
   def eventDetailsToSend(matchResult: MatchResult, personalDetails: PersonalDetails): PersonalDetails = {
     if (appConfig.returnNinoFromCid)

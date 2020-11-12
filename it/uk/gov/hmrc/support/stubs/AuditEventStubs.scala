@@ -1,5 +1,6 @@
 package uk.gov.hmrc.support.stubs
 
+import com.github.tomakehurst.wiremock.client.CountMatchingStrategy
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
@@ -31,4 +32,12 @@ object AuditEventStubs {
   private def matchingResultAuditEventRequestBuilder: RequestPatternBuilder = postRequestedFor(url)
     .withRequestBody(matchingJsonPath("$.auditSource", equalTo("personal-details-validation")))
     .withRequestBody(matchingJsonPath("$.auditType", equalTo("MatchingResult")))
+
+  def verifyAuditEventNotCreated(matchingStatus: String): Unit = {
+    eventually {
+      verify(new CountMatchingStrategy(CountMatchingStrategy.EQUAL_TO, 0), matchingResultAuditEventRequestBuilder
+        .withRequestBody(matchingJsonPath("$.detail.matchingStatus", equalTo(matchingStatus)))
+      )
+    }
+  }
 }
