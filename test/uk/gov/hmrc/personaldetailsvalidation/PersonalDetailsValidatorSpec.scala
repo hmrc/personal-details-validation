@@ -29,7 +29,7 @@ import play.api.test.FakeRequest
 import support.UnitSpec
 import uk.gov.hmrc.config.AppConfig
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.http.{FailedDependencyException, HeaderCarrier}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
@@ -202,8 +202,8 @@ class PersonalDetailsValidatorSpec
         .expects(personalDetails, headerCarrier, executionContext)
         .returning(EitherT.leftT[Id, MatchResult](exception))
 
-      (matchingEventsSender.sendErrorEvents(_: PersonalDetails, _: Exception)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(personalDetails, exception, headerCarrier, request, executionContext)
+      (matchingEventsSender.sendErrorEvents(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(personalDetails, headerCarrier, request, executionContext)
 
       (matchingEventsSender.sendBeginEvent()(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(headerCarrier, request, executionContext)
@@ -232,26 +232,8 @@ class PersonalDetailsValidatorSpec
         .expects(personalDetailsValidation, executionContext)
         .returning(EitherT.leftT[Id, Done](exception))
 
-      (matchingEventsSender.sendErrorEvents(_: PersonalDetails, _: Exception)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(personalDetails, exception, headerCarrier, request, executionContext)
-
-      validator.validate(personalDetails).value shouldBe Left(exception)
-    }
-
-    "return FAILED_DEPENDENCY error when the call to match returns 424 because the person is deceased" in new Setup {
-      val personalDetails = personalDetailsObjects.generateOne
-
-      val exception = new FailedDependencyException("Request to create account for a deceased user")
-      (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(personalDetails, headerCarrier, executionContext)
-        .returning(EitherT.leftT[Id, MatchResult](exception))
-
-      (matchingEventsSender.sendErrorEvents(_: PersonalDetails, _: Exception)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(personalDetails, exception, headerCarrier, request, executionContext)
-
-      (matchingEventsSender.sendBeginEvent()(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(headerCarrier, request, executionContext)
-
+      (matchingEventsSender.sendErrorEvents(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(personalDetails, headerCarrier, request, executionContext)
 
       validator.validate(personalDetails).value shouldBe Left(exception)
     }

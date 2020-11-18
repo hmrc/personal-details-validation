@@ -36,7 +36,7 @@ import play.api.test.Helpers._
 import scalamock.MockArgumentMatchers
 import support.UnitSpec
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.http.{BadGatewayException, FailedDependencyException, HeaderCarrier}
+import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.uuid.UUIDProvider
@@ -149,19 +149,6 @@ class PersonalDetailsValidationResourceControllerSpec
       val response = controller.create(request.withBody(personalDetails.toJson))
 
       status(response) shouldBe BAD_REQUEST
-    }
-
-    "return FailedDependencyException if matching discovers person is deceased" in new Setup {
-      val personalDetails = randomPersonalDetails
-
-      val failedDependencyException = new FailedDependencyException("Request to create account for a deceased user")
-      val requestWithBody: FakeRequest[JsValue] = request.withBody(toJson(personalDetails))
-
-      (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(personalDetails, instanceOf[HeaderCarrier], requestWithBody, *)
-        .returns(EitherT.leftT[Future, PersonalDetailsValidation](failedDependencyException))
-
-      controller.create(requestWithBody).failed.futureValue shouldBe failedDependencyException
     }
 
     "return BAD_REQUEST if mandatory fields are missing" in new Setup {

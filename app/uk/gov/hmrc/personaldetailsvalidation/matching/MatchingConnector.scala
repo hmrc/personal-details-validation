@@ -58,7 +58,6 @@ class FuturedMatchingConnector @Inject()(httpClient: HttpClient, connectorConfig
     override def read(method: String, url: String, response: HttpResponse): Either[Exception, MatchResult] = response.status match {
       case OK => Right(MatchSuccessful(response.json.as[PersonalDetails]))
       case UNAUTHORIZED => Right(MatchFailed((response.json \ "errors").as[String]))
-      case FAILED_DEPENDENCY if response.body.toLowerCase.contains("request to create account for a deceased user") => Left(new FailedDependencyException("Request to create account for a deceased user"))
       case other => Left(new BadGatewayException(s"Unexpected response from $method $url with status: '$other' and body: ${response.body}"))
     }
   }

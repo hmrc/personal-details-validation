@@ -4,7 +4,7 @@ import java.util.UUID.randomUUID
 
 import play.api.http.ContentTypes.JSON
 import play.api.http.Status._
-import play.api.libs.json.{JsString, JsUndefined, JsValue, Json}
+import play.api.libs.json.{JsUndefined, JsValue, Json}
 import play.api.libs.ws.WSResponse
 import play.mvc.Http.HeaderNames.{CONTENT_TYPE, LOCATION}
 import uk.gov.hmrc.support.BaseIntegrationSpec
@@ -101,18 +101,6 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       verifyGAMatchEvent("technical_error_matching")
       verifyMatchingStatusInAuditEvent(matchingStatus = "technicalError")
     }
-
-    "return FAILED_DEPENDENCY when Authenticator returns an 424 status code " +
-      "and should NOT create 'technical_error_matching' GA Event or 'technicalError' Audit Event" in new Setup {
-      AuthenticatorStub.expecting(personalDetails).respondWith(FAILED_DEPENDENCY, Some(JsString("Request to create account for a deceased user")))
-
-      val createResponse: WSResponse = sendCreateValidationResourceRequest(personalDetails).futureValue
-      createResponse.status mustBe FAILED_DEPENDENCY
-
-      verifyGAMatchEventNotCreated("technical_error_matching")
-      verifyAuditEventNotCreated(matchingStatus = "technicalError")
-    }
-
 
     "return BAD Request if mandatory fields are missing" in new Setup {
       val createResponse: WSResponse = sendCreateValidationResourceRequest("{}").futureValue
