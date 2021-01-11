@@ -81,7 +81,11 @@ class PersonalDetailsValidationFormatSpec
 
     "fail validation for invalid postcodes" in new Setup {
       import PersonalDetailsFormat._
-      forAll { (invalidPostCode: String, personalDetailsWithPostCode: PersonalDetailsWithPostCode) =>
+      val badPostcodes = List("ZZ1 1ZZ","YI1 1YY")
+
+      val personalDetailsWithPostCode=personalDetailsWithPostCodeObjects.generateOne
+
+      badPostcodes.foreach { invalidPostCode: String =>
         an [JsResultException] should be thrownBy
           Json.parse(personalDetailsWithPostCode.copy(postCode = invalidPostCode).toJson.toString()).as[PersonalDetails]
       }
