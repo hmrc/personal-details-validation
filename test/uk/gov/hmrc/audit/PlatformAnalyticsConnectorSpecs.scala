@@ -16,9 +16,8 @@
 
 package uk.gov.hmrc.audit
 
-import org.scalamock.proxy.{ProxyMockFactory, Stub}
+import org.scalamock.proxy.Stub
 import org.scalamock.scalatest.proxy.AsyncMockFactory
-import org.scalatest.concurrent.Eventually
 import play.api.LoggerLike
 import play.api.libs.json.Json
 import play.api.test.Helpers._

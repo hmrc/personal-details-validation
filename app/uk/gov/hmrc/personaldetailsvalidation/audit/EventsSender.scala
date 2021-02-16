@@ -17,7 +17,6 @@
 package uk.gov.hmrc.personaldetailsvalidation.audit
 
 import javax.inject.{Inject, Singleton}
-import play.api.libs.iteratee.Done
 import play.api.mvc.Request
 import uk.gov.hmrc.audit.{GAEvent, PlatformAnalyticsConnector}
 import uk.gov.hmrc.http.HeaderCarrier
