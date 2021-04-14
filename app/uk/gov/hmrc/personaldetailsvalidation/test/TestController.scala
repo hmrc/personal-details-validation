@@ -25,7 +25,7 @@ import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.personaldetailsvalidation.FuturedPersonalDetailsValidationRepository
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsWithNino, SuccessfulPersonalDetailsValidation, ValidationId}
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.play.json.JsonValidation
 
 import scala.concurrent.{ExecutionContext, Future}

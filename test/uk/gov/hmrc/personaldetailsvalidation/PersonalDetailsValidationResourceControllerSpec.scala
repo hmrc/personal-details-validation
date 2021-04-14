@@ -27,7 +27,8 @@ import generators.ObjectGenerators._
 import org.scalacheck.Arbitrary
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.prop.{PropertyChecks, TableDrivenPropertyChecks}
+import org.scalatest.prop.TableDrivenPropertyChecks
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json.Json.toJson
 import play.api.libs.json._
 import play.api.mvc.Request
@@ -46,7 +47,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class PersonalDetailsValidationResourceControllerSpec
   extends UnitSpec
-    with PropertyChecks
+    with ScalaCheckPropertyChecks
     with ScalaFutures
     with MockFactory
     with MockArgumentMatchers
