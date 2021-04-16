@@ -20,8 +20,7 @@ import akka.Done
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{JsObject, Json}
 import play.api.{Logger, LoggerLike}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.random.RandomIntProvider
 
 import scala.concurrent.ExecutionContext

@@ -25,7 +25,7 @@ import uk.gov.hmrc.http._
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector._
 import uk.gov.hmrc.personaldetailsvalidation.model._
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.http.HttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.higherKinds

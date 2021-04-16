@@ -18,7 +18,7 @@ package uk.gov.hmrc.play.json
 
 import play.api.libs.json._
 import play.api.mvc.{Request, Result}
-import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.Future
 

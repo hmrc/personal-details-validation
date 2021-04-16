@@ -17,12 +17,12 @@
 package uk.gov.hmrc.personaldetailsvalidation.formats
 
 import java.util.UUID.randomUUID
-
+import java.util.UUID
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
 import org.scalacheck.Gen
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.prop.GeneratorDrivenPropertyChecks
+import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import play.api.libs.json.{JsResultException, Json}
 import play.api.libs.json.Json.toJson
 import support.UnitSpec
@@ -31,7 +31,7 @@ import uk.gov.hmrc.uuid.UUIDProvider
 
 class PersonalDetailsValidationFormatSpec
   extends UnitSpec
-    with GeneratorDrivenPropertyChecks {
+    with ScalaCheckDrivenPropertyChecks {
 
   import PersonalDetailsValidationFormat._
   import TinyTypesFormats._
@@ -139,7 +139,7 @@ class PersonalDetailsValidationFormatSpec
 
   private trait Setup extends MockFactory {
     implicit val uuidProvider: UUIDProvider = new UUIDProvider {
-      override lazy val apply = randomUUID()
+      override val apply: UUID = randomUUID()
     }
   }
 }

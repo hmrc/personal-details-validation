@@ -21,23 +21,17 @@ import akka.stream.ActorMaterializer
 import com.typesafe.config.Config
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.Matchers._
-import play.api.Configuration
 import play.api.libs.json.{JsObject, Writes}
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.{HttpClient, HttpResponse}
 import uk.gov.hmrc.http.hooks.HttpHook
 import uk.gov.hmrc.integration.servicemanager.AhcWsClientFactory
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import uk.gov.hmrc.play.http.ws.WSHttp
 
+import java.util.Collections
 import scala.concurrent.{ExecutionContext, Future}
 
 trait HttpClientStubSetup extends MockFactory {
-
-  private val configurationMock = mock[Configuration]
-  (configurationMock.getString(_: String, _: Option[Set[String]]))
-    .expects("appName", None)
-    .returning(Some("personal-details-validation"))
 
   protected def expectPost(toUrl: String) = new {
     def withPayload(payload: JsObject) = new {
@@ -72,6 +66,13 @@ trait HttpClientStubSetup extends MockFactory {
     extends HttpClient
       with WSHttp {
 
+    private val config = mock[Config]
+    (config.getStringList _).expects(*).returning(Collections.emptyList()).anyNumberOfTimes()
+    (config.hasPath _).expects(*).returning(true).anyNumberOfTimes()
+    (config.getString _).expects(*).returning("").anyNumberOfTimes()
+    (config.getDurationList(_: String)).expects(*).returning(Collections.emptyList()).anyNumberOfTimes()
+    (config.getBoolean _).expects(*).returning(false).anyNumberOfTimes()
+
     implicit val mat: ActorMaterializer = ActorMaterializer()(actorSystem)
 
     override val wsClient: WSClient = AhcWsClientFactory.createClient()
@@ -84,7 +85,7 @@ trait HttpClientStubSetup extends MockFactory {
     private var invoked = false
 
     override def doPost[A](url: String, body: A, headers: Seq[(String, String)])
-                          (implicit rds: Writes[A], hc: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
+                          (implicit rds: Writes[A], ec: ExecutionContext): Future[HttpResponse] = {
       invoked = true
       postStubbing(url, body.asInstanceOf[JsObject])
     }
@@ -93,7 +94,7 @@ trait HttpClientStubSetup extends MockFactory {
 
     override protected def actorSystem: ActorSystem = ActorSystem()
 
-    override protected def configuration: Option[Config] = Option(configurationMock.underlying)
+    override protected def configuration: Config = config
   }
 
   val httpClient: HttpClientStub = new HttpClientStub()
