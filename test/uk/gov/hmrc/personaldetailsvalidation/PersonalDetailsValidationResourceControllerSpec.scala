@@ -29,6 +29,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.libs.json.Json.toJson
 import play.api.libs.json._
 import play.api.mvc.Request
@@ -47,6 +48,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class PersonalDetailsValidationResourceControllerSpec
   extends UnitSpec
+    with GuiceOneAppPerSuite
     with ScalaCheckPropertyChecks
     with ScalaFutures
     with MockFactory
@@ -82,7 +84,7 @@ class PersonalDetailsValidationResourceControllerSpec
       s"$scenario" in new Setup {
         val personalDetailsValidation = personalDetailsValidationObjects.generateOne
         val requestPersonalDetails: PersonalDetailsWithNino = randomPersonalDetails.asInstanceOf[PersonalDetailsWithNino]
-        val json = Json.toJson(requestPersonalDetails).as[JsObject] + ("nino" -> JsString(originalNinoValue))
+        val json = Json.toJson[PersonalDetails](requestPersonalDetails).as[JsObject] + ("nino" -> JsString(originalNinoValue))
         val requestWithBody: FakeRequest[JsObject] = request.withBody(json)
 
         val personalDetailsWithUpperCaseNino = requestPersonalDetails.copy(nino = Nino(finalNinoValue))
@@ -283,7 +285,7 @@ class PersonalDetailsValidationResourceControllerSpec
   }
 
   private trait Setup {
-    implicit val materializer: Materializer = mock[Materializer]
+    implicit val materializer: Materializer = app.materializer // was mock[Materializer]
     implicit val uuidProvider: UUIDProvider = stub[UUIDProvider]
     uuidProvider.apply _ when() returns randomUUID()
 
