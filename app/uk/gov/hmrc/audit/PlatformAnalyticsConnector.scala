@@ -30,25 +30,30 @@ class PlatformAnalyticsConnector(httpClient: HttpClient, connectorConfig: Platfo
 
   @Inject() def this(httpClient: HttpClient, connectorConfig: PlatformAnalyticsConnectorConfig, randomIntProvider: RandomIntProvider) = this(httpClient, connectorConfig, randomIntProvider, Logger)
 
-  def sendEvent(event: GAEvent)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit =
+  def sendEvent(event: GAEvent)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+    val origin = hc.otherHeaders.toMap.getOrElse("origin", "Unknown-Origin")
     httpClient.POST[JsObject, HttpResponse](
       url = s"${connectorConfig.baseUrl}/platform-analytics/event",
-      body = event.toJson(hc.gaUserId.getOrElse(randomGaUserId))
+      body = event.toJson(hc.gaUserId.getOrElse(randomGaUserId), origin)
     ).map(_ => Done).recover {
       case ex: Exception => logger.error("Unexpected response from platform-analytics", ex); Done
     }
+  }
 
   private def randomGaUserId = s"GA1.1.${Math.abs(randomIntProvider())}.${Math.abs(randomIntProvider())}"
 
   private implicit class GAEventSerializer(gaEvent: GAEvent) {
-    def toJson(gaUserId: String): JsObject = Json.obj(
-      "gaClientId" -> s"$gaUserId",
-      "events" -> Json.arr(Json.obj(
-        "category" -> s"${gaEvent.category}",
-        "action" -> s"${gaEvent.action}",
-        "label" -> s"${gaEvent.label}"
-      ))
-    )
+    def toJson(gaUserId: String, origin: String): JsObject = {
+      Json.obj(
+        "gaClientId" -> s"$gaUserId",
+        "events" -> Json.arr(Json.obj(
+          "category" -> s"${gaEvent.category}",
+          "action" -> s"${gaEvent.action}",
+          "label" -> s"${gaEvent.label}",
+          "origin" -> s"$origin"
+        ))
+      )
+    }
   }
 
 }

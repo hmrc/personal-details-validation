@@ -1,4 +1,5 @@
 import TestPhases.oneForkedJvmPerTest
+import play.sbt.PlayImport.PlayKeys.playDefaultPort
 import uk.gov.hmrc.DefaultBuildSettings.{addTestReportOption, defaultSettings, scalaSettings}
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
 
@@ -37,6 +38,7 @@ lazy val microservice = Project(appName, file("."))
   .disablePlugins(JUnitXmlReportPlugin)
   .settings(playSettings ++ scoverageSettings: _*)
   .settings(publishingSettings: _*)
+  .settings(playDefaultPort := 9967)
   .settings(defaultSettings(): _*)
   .settings(
     scalacOptions ++= Seq(
