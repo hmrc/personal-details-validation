@@ -42,7 +42,8 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
     withJsonBody[PersonalDetails] { personalDetails =>
 
       def handleMatchingDone(personalDetailsValidation: PersonalDetailsValidation): Future[Result] =
-        Future.successful(Created(toJson(personalDetailsValidation)).withHeaders(LOCATION -> routes.PersonalDetailsValidationResourceController.get(personalDetailsValidation.id).url))
+        Future.successful(Created(toJson(personalDetailsValidation))
+          .withHeaders(LOCATION -> routes.PersonalDetailsValidationResourceController.get(personalDetailsValidation.id).url))
 
       def handleException(exception: Exception): Future[Result] = Future.failed(exception)
 
