@@ -20,7 +20,6 @@ import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.config.HostConfigProvider
 
 @Singleton
-private class PlatformAnalyticsConnectorConfig @Inject()(hostProvider: HostConfigProvider) {
-
+class PlatformAnalyticsConnectorConfig @Inject()(hostProvider: HostConfigProvider) {
   lazy val baseUrl: String = hostProvider.hostFor("platform-analytics").value
 }

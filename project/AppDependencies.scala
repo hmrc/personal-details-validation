@@ -9,7 +9,7 @@ private object AppDependencies {
 
   private val compile = Seq(
     "org.typelevel" %% "cats-core" % "2.0.0",
-    "uk.gov.hmrc" %% "bootstrap-backend-play-28" % "5.4.0",
+    "uk.gov.hmrc" %% "bootstrap-backend-play-28" % "5.5.0",
     "uk.gov.hmrc" %% "simple-reactivemongo" % "8.0.0-play-28",
     "uk.gov.hmrc" %% "domain" % "6.0.0-play-28",
     ws
