@@ -1,7 +1,6 @@
 package uk.gov.hmrc.contracts
 
 import java.time.LocalDate
-
 import com.itv.scalapact.ScalaPactForger
 import com.itv.scalapact.ScalaPactForger.{bodyRegexRule, bodyTypeRule, forgePact, interaction}
 import com.itv.scalapact.http._
@@ -13,7 +12,7 @@ import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.matching.FuturedMatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
-import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetailsWithNino
+import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsWithNino}
 import uk.gov.hmrc.support.BaseIntegrationSpec
 import uk.gov.hmrc.support.stubs.AuthenticatorStub
 
@@ -26,7 +25,7 @@ class AuthenticatorCSpec extends BaseIntegrationSpec {
   "Authenticator Service" should {
     "find a known person" in new Setup {
       val jimFerguson = PersonalDetailsWithNino("Jim", "Ferguson", LocalDate.parse("1948-04-23"), Nino("AA000003D"))
-      val jimFergusonAsString = Json.toJson(jimFerguson).toString()
+      val jimFergusonAsString = Json.toJson[PersonalDetails](jimFerguson).toString()
       AuthenticatorStub.expecting(jimFergusonAsString).respondWithOK()
 
       forgePact
@@ -63,7 +62,7 @@ class AuthenticatorCSpec extends BaseIntegrationSpec {
 
     "not find an unknown person" in new Setup {
       val almostJimFerguson = PersonalDetailsWithNino("Jim", "Ferguson", LocalDate.parse("1948-04-23"), Nino("BB000003D"))
-      val almostJimFergusonAsString = Json.toJson(almostJimFerguson).toString()
+      val almostJimFergusonAsString = Json.toJson[PersonalDetails](almostJimFerguson).toString()
       val failureReason = "CID returned no record"
       val responseBody = Json.obj("errors" -> failureReason)
       AuthenticatorStub.expecting(almostJimFergusonAsString).respondWith(UNAUTHORIZED, Some(responseBody))

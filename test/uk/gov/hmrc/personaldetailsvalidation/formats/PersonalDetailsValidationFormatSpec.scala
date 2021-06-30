@@ -93,7 +93,7 @@ class PersonalDetailsValidationFormatSpec
 
     "allow to serialise SuccessfulPersonalDetailsValidation to JSON" in new Setup {
       forAll { personalDetailsWithNino: PersonalDetailsWithNino =>
-        toJson(PersonalDetailsValidation.successful(personalDetailsWithNino)) shouldBe Json.obj(
+        toJson[PersonalDetailsValidation](PersonalDetailsValidation.successful(personalDetailsWithNino)) shouldBe Json.obj(
           "id" -> ValidationId(uuidProvider()),
           "validationStatus" -> "success",
           "personalDetails" -> Json.obj(
@@ -107,7 +107,7 @@ class PersonalDetailsValidationFormatSpec
     }
 
     "allow to serialise FailedPersonalDetailsValidation to JSON" in new Setup {
-      toJson(PersonalDetailsValidation.failed()) shouldBe Json.obj(
+      toJson[PersonalDetailsValidation](PersonalDetailsValidation.failed()) shouldBe Json.obj(
         "id" -> ValidationId(uuidProvider()),
         "validationStatus" -> "failure"
       )

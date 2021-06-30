@@ -126,9 +126,11 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with AsyncMockFactory {
 
     val randomIntProvider = stub[RandomIntProvider]
     val logger: LoggerLike with Stub = Proxy.stub[LoggerLike]
+    // TODO: logger is not used ... in-fact, this test does not even appear to be RAN??
+    // TODO: Not sure why this entire class is here
 
-    val  mockHttpClient: HttpClient = mock[HttpClient]
-    val connector = new PlatformAnalyticsConnector(mockHttpClient, connectorConfig, randomIntProvider, logger)
+    val connector = new PlatformAnalyticsConnector(httpClient, connectorConfig, randomIntProvider)
+    val mockHttpClient: HttpClient = mock[HttpClient]
   }
 
 }

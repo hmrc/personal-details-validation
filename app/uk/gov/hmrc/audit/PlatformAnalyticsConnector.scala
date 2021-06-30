@@ -17,18 +17,16 @@
 package uk.gov.hmrc.audit
 
 import akka.Done
-import javax.inject.{Inject, Singleton}
+import play.api.Logging
 import play.api.libs.json.{JsObject, Json}
-import play.api.{Logger, LoggerLike}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.random.RandomIntProvider
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class PlatformAnalyticsConnector(httpClient: HttpClient, connectorConfig: PlatformAnalyticsConnectorConfig, randomIntProvider: RandomIntProvider, logger: LoggerLike) {
-
-  @Inject() def this(httpClient: HttpClient, connectorConfig: PlatformAnalyticsConnectorConfig, randomIntProvider: RandomIntProvider) = this(httpClient, connectorConfig, randomIntProvider, Logger)
+class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConfig: PlatformAnalyticsConnectorConfig, randomIntProvider: RandomIntProvider) extends Logging {
 
   def sendEvent(event: GAEvent)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
     val origin = hc.otherHeaders.toMap.getOrElse("origin", "Unknown-Origin")
