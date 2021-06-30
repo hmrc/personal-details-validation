@@ -17,3 +17,9 @@
 package uk.gov.hmrc.audit
 
 case class GAEvent(category: String, action: String, label: String)
+
+case class DimensionValue(index: Int, value: String)
+
+case class Event(category: String, action: String, label: String, dimensions: Seq[DimensionValue])
+
+case class AnalyticsRequest(gaClientId: String, events: Seq[Event])

@@ -17,41 +17,38 @@
 package uk.gov.hmrc.audit
 
 import akka.Done
+import javax.inject.{Inject, Singleton}
 import play.api.Logging
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{Json, OWrites}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.random.RandomIntProvider
 
-import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConfig: PlatformAnalyticsConnectorConfig, randomIntProvider: RandomIntProvider) extends Logging {
+class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConfig: PlatformAnalyticsConnectorConfig, randomIntProvider: RandomIntProvider)
+  extends Logging {
 
   def sendEvent(event: GAEvent)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
     val origin = hc.otherHeaders.toMap.getOrElse("origin", "Unknown-Origin")
-    httpClient.POST[JsObject, HttpResponse](
+    logger.warn(s"VER-1010: origin is $origin")
+
+    implicit val dimensionWrites: OWrites[DimensionValue] = Json.writes[DimensionValue]
+    implicit val eventWrites: OWrites[Event] = Json.writes[Event]
+    implicit val analyticsWrites: OWrites[AnalyticsRequest] = Json.writes[AnalyticsRequest]
+
+    val dimensions = Seq(DimensionValue(connectorConfig.gaOriginDimension, origin))
+    val newEvent = Event(event.category, event.action, event.label, dimensions)
+    val analyticsRequest = AnalyticsRequest(hc.gaUserId.getOrElse(randomGaUserId), Seq(newEvent))
+
+    httpClient.POST[AnalyticsRequest, HttpResponse](
       url = s"${connectorConfig.baseUrl}/platform-analytics/event",
-      body = event.toJson(hc.gaUserId.getOrElse(randomGaUserId), origin)
+      body = analyticsRequest
     ).map(_ => Done).recover {
       case ex: Exception => logger.error("Unexpected response from platform-analytics", ex); Done
     }
   }
 
   private def randomGaUserId = s"GA1.1.${Math.abs(randomIntProvider())}.${Math.abs(randomIntProvider())}"
-
-  private implicit class GAEventSerializer(gaEvent: GAEvent) {
-    def toJson(gaUserId: String, origin: String): JsObject = {
-      Json.obj(
-        "gaClientId" -> s"$gaUserId",
-        "events" -> Json.arr(Json.obj(
-          "category" -> s"${gaEvent.category}",
-          "action" -> s"${gaEvent.action}",
-          "label" -> s"${gaEvent.label}",
-          "origin" -> s"$origin"
-        ))
-      )
-    }
-  }
 
 }

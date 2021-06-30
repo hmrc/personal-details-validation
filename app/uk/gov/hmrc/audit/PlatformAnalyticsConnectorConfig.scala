@@ -22,4 +22,5 @@ import uk.gov.hmrc.config.HostConfigProvider
 @Singleton
 class PlatformAnalyticsConnectorConfig @Inject()(hostProvider: HostConfigProvider) {
   lazy val baseUrl: String = hostProvider.hostFor("platform-analytics").value
+  lazy val gaOriginDimension: Int = hostProvider.originDimension
 }
