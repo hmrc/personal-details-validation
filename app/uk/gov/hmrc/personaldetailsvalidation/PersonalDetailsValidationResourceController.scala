@@ -38,16 +38,15 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
   import formats.PersonalDetailsFormat._
   import formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
 
-  def create: Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def create(origin: Option[String] = None): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[PersonalDetails] { personalDetails =>
-
       def handleMatchingDone(personalDetailsValidation: PersonalDetailsValidation): Future[Result] =
         Future.successful(Created(toJson(personalDetailsValidation))
           .withHeaders(LOCATION -> routes.PersonalDetailsValidationResourceController.get(personalDetailsValidation.id).url))
 
       def handleException(exception: Exception): Future[Result] = Future.failed(exception)
 
-      personalDetailsValidator.validate(personalDetails).fold(handleException, handleMatchingDone).flatten
+      personalDetailsValidator.validate(personalDetails, origin).fold(handleException, handleMatchingDone).flatten
     }
   }
 

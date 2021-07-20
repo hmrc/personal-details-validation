@@ -29,10 +29,9 @@ import scala.concurrent.ExecutionContext
 class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConfig: PlatformAnalyticsConnectorConfig, randomIntProvider: RandomIntProvider)
   extends Logging {
 
-  def sendEvent(event: GAEvent)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
-    val origin = hc.otherHeaders.toMap.getOrElse("origin", "Unknown-Origin")
+  def sendEvent(event: GAEvent, loginOrigin: Option[String] = None)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+    val origin = loginOrigin.getOrElse(hc.otherHeaders.toMap.getOrElse("origin", "Unknown-Origin"))
     logger.warn(s"VER-1010: origin is $origin")
-
     implicit val dimensionWrites: OWrites[DimensionValue] = Json.writes[DimensionValue]
     implicit val eventWrites: OWrites[Event] = Json.writes[Event]
     implicit val analyticsWrites: OWrites[AnalyticsRequest] = Json.writes[AnalyticsRequest]

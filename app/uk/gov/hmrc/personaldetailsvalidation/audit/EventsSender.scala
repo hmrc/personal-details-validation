@@ -32,23 +32,23 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
                                                                 auditConnector: AuditConnector,
                                                                 auditDataFactory: AuditDataEventFactory) {
 
-  def sendEvents(matchResult: MatchResult, personalDetails: PersonalDetails)(implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): Unit = {
-    sendGAMatchResultEvent(matchResult)
-    sendGAMatchResultForNinoOrPostcodeEvent(matchResult, personalDetails)
-    sendGASuffixMatchingEvent(matchResult, personalDetails)
+  def sendEvents(matchResult: MatchResult, personalDetails: PersonalDetails, origin: Option[String])(implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): Unit = {
+    sendGAMatchResultEvent(matchResult, origin)
+    sendGAMatchResultForNinoOrPostcodeEvent(matchResult, personalDetails, origin)
+    sendGASuffixMatchingEvent(matchResult, personalDetails, origin)
     auditConnector.sendEvent(auditDataFactory.createEvent(matchResult, personalDetails))
   }
 
-  private def sendGAMatchResultEvent(matchResult: MatchResult)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+  private def sendGAMatchResultEvent(matchResult: MatchResult, origin: Option[String])(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
     val label = matchResult match {
       case MatchSuccessful(_) => "success"
       case MatchFailed(_) => "failed_matching"
     }
 
-    platformAnalyticsConnector.sendEvent(gaEvent(label))
+    platformAnalyticsConnector.sendEvent(gaEvent(label), origin)
   }
 
-  private def sendGAMatchResultForNinoOrPostcodeEvent(matchResult: MatchResult, personalDetails: PersonalDetails)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+  private def sendGAMatchResultForNinoOrPostcodeEvent(matchResult: MatchResult, personalDetails: PersonalDetails, origin: Option[String])(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
     val label = (matchResult, personalDetails) match {
       case (MatchSuccessful(_), _: PersonalDetailsWithNino) => "success_withNINO"
       case (MatchSuccessful(_), _: PersonalDetailsWithPostCode) => "success_withPOSTCODE"
@@ -56,24 +56,24 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
       case (MatchFailed(_), _: PersonalDetailsWithPostCode) => "failed_matching_withPOSTCODE"
     }
 
-    platformAnalyticsConnector.sendEvent(gaEvent(label))
+    platformAnalyticsConnector.sendEvent(gaEvent(label), origin)
   }
 
-  private def sendGASuffixMatchingEvent(matchResult: MatchResult, externalPerson: PersonalDetails)
+  private def sendGASuffixMatchingEvent(matchResult: MatchResult, externalPerson: PersonalDetails, origin: Option[String])
                                        (implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = (matchResult, externalPerson) match {
-    case (MatchSuccessful(matchedPerson: PersonalDetailsWithNino), _) if externalPerson.hasSameNinoSuffixAs(matchedPerson) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_same_as_cid"))
-    case (MatchSuccessful(_), _: PersonalDetailsWithNino) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_different_from_cid"))
-    case (MatchSuccessful(_), _: PersonalDetailsWithPostCode) => platformAnalyticsConnector.sendEvent(gaEvent("success_postcode_suffix"))
+    case (MatchSuccessful(matchedPerson: PersonalDetailsWithNino), _) if externalPerson.hasSameNinoSuffixAs(matchedPerson) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_same_as_cid"), origin)
+    case (MatchSuccessful(_), _: PersonalDetailsWithNino) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_different_from_cid"), origin)
+    case (MatchSuccessful(_), _: PersonalDetailsWithPostCode) => platformAnalyticsConnector.sendEvent(gaEvent("success_postcode_suffix"), origin)
     case _ =>
   }
 
-  def sendErrorEvents(personalDetails: PersonalDetails)(implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): Unit = {
-    platformAnalyticsConnector.sendEvent(gaEvent("technical_error_matching"))
+  def sendErrorEvents(personalDetails: PersonalDetails, origin: Option[String])(implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): Unit = {
+    platformAnalyticsConnector.sendEvent(gaEvent("technical_error_matching"), origin)
     auditConnector.sendEvent(auditDataFactory.createErrorEvent(personalDetails))
   }
 
-  def sendBeginEvent()(implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): Unit = {
-    platformAnalyticsConnector.sendEvent(gaEvent("begin"))
+  def sendBeginEvent(origin: Option[String])(implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): Unit = {
+    platformAnalyticsConnector.sendEvent(gaEvent("begin"), origin)
   }
 
   private implicit class PersonalDetailsOps(target: PersonalDetails) {
