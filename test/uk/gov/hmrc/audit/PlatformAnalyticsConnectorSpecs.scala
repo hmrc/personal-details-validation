@@ -51,7 +51,7 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with AsyncMockFactory {
 
       implicit val hc: HeaderCarrier = headerCarrier.copy(gaUserId = Option(gaUserId))
 
-      connector.sendEvent(gaEvent)
+      connector.sendEvent(gaEvent, origin)
 
       httpClient.assertInvocation()
     }
@@ -70,7 +70,7 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with AsyncMockFactory {
 
       implicit val hc = headerCarrier
 
-      connector.sendEvent(gaEvent)
+      connector.sendEvent(gaEvent, origin)
 
       httpClient.assertInvocation()
     }
@@ -88,7 +88,7 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with AsyncMockFactory {
 
       logger.when('error)(*,*,*)
 
-      connector.sendEvent(gaEvent)(headerCarrier.copy(gaUserId = Option(gaUserId)), executionContext)
+      connector.sendEvent(gaEvent, origin)(headerCarrier.copy(gaUserId = Option(gaUserId)), executionContext)
 
       logger.verify('error)(
         argAssert { (message: () => String) =>
@@ -124,6 +124,7 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with AsyncMockFactory {
       override lazy val baseUrl = testBaseUrl
     }
 
+    val origin = Some("Test")
     val randomIntProvider = stub[RandomIntProvider]
     val logger: LoggerLike with Stub = Proxy.stub[LoggerLike]
     // TODO: logger is not used ... in-fact, this test does not even appear to be RAN??

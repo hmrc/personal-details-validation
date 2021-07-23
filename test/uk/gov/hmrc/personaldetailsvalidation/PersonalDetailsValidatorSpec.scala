@@ -59,11 +59,11 @@ class PersonalDetailsValidatorSpec
 
       (mockAppConfig.returnNinoFromCid _).expects().returning(false).repeat(2)
 
-      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(matchResult, personalDetails, headerCarrier, request, executionContext)
+      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(matchResult, personalDetails, origin, headerCarrier, request, executionContext)
 
-      (matchingEventsSender.sendBeginEvent()(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(headerCarrier, request, executionContext)
+      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(origin, headerCarrier, request, executionContext)
 
       val personalDetailsValidation = PersonalDetailsValidation.successful(personalDetails)
 
@@ -71,7 +71,7 @@ class PersonalDetailsValidatorSpec
         .expects(personalDetailsValidation, executionContext)
         .returning(EitherT.rightT[Id, Exception](Done))
 
-      validator.validate(personalDetails).value shouldBe Right(personalDetailsValidation)
+      validator.validate(personalDetails, origin).value shouldBe Right(personalDetailsValidation)
     }
 
     "match the given postccode personal details with matching service, " +
@@ -90,11 +90,11 @@ class PersonalDetailsValidatorSpec
 
       (mockAppConfig.returnNinoFromCid _).expects().returning(true).repeat(1)
 
-      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(matchResult, inputPersonalDetails, headerCarrier, request, executionContext)
+      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(matchResult, inputPersonalDetails, origin, headerCarrier, request, executionContext)
 
-      (matchingEventsSender.sendBeginEvent()(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(headerCarrier, request, executionContext)
+      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(origin, headerCarrier, request, executionContext)
 
       val personalDetailsValidation = PersonalDetailsValidation.successful(inputPersonalDetails.addNino(matchedPersonalDetails.nino))
 
@@ -102,7 +102,7 @@ class PersonalDetailsValidatorSpec
         .expects(personalDetailsValidation, executionContext)
         .returning(EitherT.rightT[Id, Exception](Done))
 
-      validator.validate(inputPersonalDetails).value shouldBe Right(personalDetailsValidation)
+      validator.validate(inputPersonalDetails, origin).value shouldBe Right(personalDetailsValidation)
     }
 
     "match the given personal details with matching service, with a different suffix, " +
@@ -121,11 +121,11 @@ class PersonalDetailsValidatorSpec
 
       (mockAppConfig.returnNinoFromCid _).expects().returning(false).repeat(2)
 
-      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(matchResult, enteredPersonalDetails, headerCarrier, request, executionContext)
+      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(matchResult, enteredPersonalDetails, origin,  headerCarrier, request, executionContext)
 
-      (matchingEventsSender.sendBeginEvent()(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(headerCarrier, request, executionContext)
+      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(origin, headerCarrier, request, executionContext)
 
       val personalDetailsValidation = PersonalDetailsValidation.successful(enteredPersonalDetails)
 
@@ -133,7 +133,7 @@ class PersonalDetailsValidatorSpec
         .expects(personalDetailsValidation, executionContext)
         .returning(EitherT.rightT[Id, Exception](Done))
 
-      validator.validate(enteredPersonalDetails).value shouldBe Right(personalDetailsValidation)
+      validator.validate(enteredPersonalDetails, origin).value shouldBe Right(personalDetailsValidation)
     }
 
     "match the given personal details with matching service, with a different suffix, " +
@@ -152,11 +152,11 @@ class PersonalDetailsValidatorSpec
 
       (mockAppConfig.returnNinoFromCid _).expects().returning(true).repeat(2)
 
-      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(matchResult, personalDetails, headerCarrier, request, executionContext)
+      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(matchResult, personalDetails, origin, headerCarrier, request, executionContext)
 
-      (matchingEventsSender.sendBeginEvent()(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(headerCarrier, request, executionContext)
+      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(origin, headerCarrier, request, executionContext)
 
       val personalDetailsValidation = PersonalDetailsValidation.successful(personalDetails)
 
@@ -164,7 +164,7 @@ class PersonalDetailsValidatorSpec
         .expects(personalDetailsValidation, executionContext)
         .returning(EitherT.rightT[Id, Exception](Done))
 
-      validator.validate(enteredPersonalDetails).value shouldBe Right(personalDetailsValidation)
+      validator.validate(enteredPersonalDetails, origin).value shouldBe Right(personalDetailsValidation)
     }
 
     "match the given personal details with matching service, " +
@@ -179,11 +179,11 @@ class PersonalDetailsValidatorSpec
 
       (mockAppConfig.returnNinoFromCid _).expects().returning(false)
 
-      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(matchResult, personalDetails, headerCarrier, request, executionContext)
+      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(matchResult, personalDetails, origin,  headerCarrier, request, executionContext)
 
-      (matchingEventsSender.sendBeginEvent()(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(headerCarrier, request, executionContext)
+      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(origin, headerCarrier, request, executionContext)
 
       val personalDetailsValidation = PersonalDetailsValidation.failed()
 
@@ -191,7 +191,7 @@ class PersonalDetailsValidatorSpec
         .expects(personalDetailsValidation, executionContext)
         .returning(EitherT.rightT[Id, Exception](Done))
 
-      validator.validate(personalDetails).value shouldBe Right(personalDetailsValidation)
+      validator.validate(personalDetails, origin).value shouldBe Right(personalDetailsValidation)
     }
 
     "return matching error when the call to match fails" in new Setup {
@@ -202,13 +202,13 @@ class PersonalDetailsValidatorSpec
         .expects(personalDetails, headerCarrier, executionContext)
         .returning(EitherT.leftT[Id, MatchResult](exception))
 
-      (matchingEventsSender.sendErrorEvents(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(personalDetails, headerCarrier, request, executionContext)
+      (matchingEventsSender.sendErrorEvents(_: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(personalDetails, origin,  headerCarrier, request, executionContext)
 
-      (matchingEventsSender.sendBeginEvent()(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(headerCarrier, request, executionContext)
+      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(origin, headerCarrier, request, executionContext)
 
-      validator.validate(personalDetails).value shouldBe Left(exception)
+      validator.validate(personalDetails, origin).value shouldBe Left(exception)
     }
 
     "return matching error when the call to persist fails" in new Setup {
@@ -216,8 +216,8 @@ class PersonalDetailsValidatorSpec
 
       val matchResult = MatchSuccessful(personalDetails)
 
-      (matchingEventsSender.sendBeginEvent()(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(headerCarrier, request, executionContext)
+      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(origin, headerCarrier, request, executionContext)
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
@@ -232,10 +232,10 @@ class PersonalDetailsValidatorSpec
         .expects(personalDetailsValidation, executionContext)
         .returning(EitherT.leftT[Id, Done](exception))
 
-      (matchingEventsSender.sendErrorEvents(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(personalDetails, headerCarrier, request, executionContext)
+      (matchingEventsSender.sendErrorEvents(_: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(personalDetails, origin,  headerCarrier, request, executionContext)
 
-      validator.validate(personalDetails).value shouldBe Left(exception)
+      validator.validate(personalDetails, origin).value shouldBe Left(exception)
     }
   }
 
@@ -259,6 +259,7 @@ class PersonalDetailsValidatorSpec
 
       Nino(s"$ninoPrefix$newSuffix")
     }
+    val origin = Some("test")
 
     val validator = new PersonalDetailsValidator(matchingConnector, repository, matchingEventsSender, mockAppConfig)
   }

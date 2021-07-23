@@ -64,11 +64,11 @@ class PersonalDetailsValidationResourceControllerSpec
       forAll { (personalDetails: PersonalDetails, personalDetailsValidation: PersonalDetailsValidation) =>
         val requestWithBody = request.withBody(toJson(personalDetails))
 
-        (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-          .expects(personalDetails, instanceOf[HeaderCarrier], requestWithBody, *)
+        (mockValidator.validate(_: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+          .expects(personalDetails, origin,  instanceOf[HeaderCarrier], requestWithBody, *)
           .returns(EitherT.rightT[Future, Exception](personalDetailsValidation))
 
-        val response = controller.create(requestWithBody)
+        val response = controller.create(origin)(requestWithBody)
 
         status(response) shouldBe CREATED
       }
@@ -89,11 +89,11 @@ class PersonalDetailsValidationResourceControllerSpec
 
         val personalDetailsWithUpperCaseNino = requestPersonalDetails.copy(nino = Nino(finalNinoValue))
 
-        (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-          .expects(personalDetailsWithUpperCaseNino, instanceOf[HeaderCarrier], requestWithBody, *)
+        (mockValidator.validate(_: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+          .expects(personalDetailsWithUpperCaseNino, origin,  instanceOf[HeaderCarrier], requestWithBody, *)
           .returns(EitherT.rightT[Future, Exception](personalDetailsValidation))
 
-        val response = controller.create(requestWithBody)
+        val response = controller.create(origin)(requestWithBody)
 
         status(response) shouldBe CREATED
       }
@@ -104,11 +104,11 @@ class PersonalDetailsValidationResourceControllerSpec
         val requestWithBody = request.withBody(toJson(personalDetails))
         val personalDetailsValidation = personalDetailsValidationObjects.generateOne
 
-        (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-          .expects(personalDetails, instanceOf[HeaderCarrier], requestWithBody, *)
+        (mockValidator.validate(_: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+          .expects(personalDetails, origin, instanceOf[HeaderCarrier], requestWithBody, *)
           .returns(EitherT.rightT[Future, Exception](personalDetailsValidation))
 
-        val response = controller.create(requestWithBody)
+        val response = controller.create(origin)(requestWithBody)
 
         header(LOCATION, response) shouldBe Some(routes.PersonalDetailsValidationResourceController.get(personalDetailsValidation.id).url)
       }
@@ -118,11 +118,11 @@ class PersonalDetailsValidationResourceControllerSpec
       forAll { (personalDetails: PersonalDetails, personalDetailsValidation: PersonalDetailsValidation) =>
         val requestWithBody = request.withBody(toJson(personalDetails))
 
-        (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-          .expects(personalDetails, instanceOf[HeaderCarrier], requestWithBody, *)
+        (mockValidator.validate(_: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+          .expects(personalDetails, origin,  instanceOf[HeaderCarrier], requestWithBody, *)
           .returns(EitherT.rightT[Future, Exception](personalDetailsValidation))
 
-        val response = controller.create(requestWithBody)
+        val response = controller.create(origin)(requestWithBody)
         jsonBodyOf(response).futureValue.as[PersonalDetailsValidation] shouldBe personalDetailsValidation
       }
     }
@@ -133,11 +133,11 @@ class PersonalDetailsValidationResourceControllerSpec
       val badGatewayException = new BadGatewayException("some error")
       val requestWithBody: FakeRequest[JsValue] = request.withBody(toJson(personalDetails))
 
-      (mockValidator.validate(_: PersonalDetails)(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(personalDetails, instanceOf[HeaderCarrier], requestWithBody, *)
+      (mockValidator.validate(_: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(personalDetails, origin, instanceOf[HeaderCarrier], requestWithBody, *)
         .returns(EitherT.leftT[Future, PersonalDetailsValidation](badGatewayException))
 
-      controller.create(requestWithBody).failed.futureValue shouldBe badGatewayException
+      controller.create(origin)(requestWithBody).failed.futureValue shouldBe badGatewayException
     }
 
     "return BAD_REQUEST if postcode is supplied in an incorrect format" in new Setup {
@@ -149,19 +149,19 @@ class PersonalDetailsValidationResourceControllerSpec
         "INVALID POSTCODE"
       )
 
-      val response = controller.create(request.withBody(personalDetails.toJson))
+      val response = controller.create(origin)(request.withBody(personalDetails.toJson))
 
       status(response) shouldBe BAD_REQUEST
     }
 
     "return BAD_REQUEST if mandatory fields are missing" in new Setup {
-      val response = controller.create(request.withBody(JsNull))
+      val response = controller.create(origin)(request.withBody(JsNull))
 
       status(response) shouldBe BAD_REQUEST
     }
 
     "return errors if mandatory fields are missing" in new Setup {
-      val response = controller.create(request.withBody(JsNull)).futureValue
+      val response = controller.create(origin)(request.withBody(JsNull)).futureValue
 
       (jsonBodyOf(response) \ "errors").as[List[String]] should contain only(
         "firstName is missing",
@@ -188,7 +188,7 @@ class PersonalDetailsValidationResourceControllerSpec
     forAll(invalidDataScenarios) { (scenario, jsonModification, errorMessages) =>
       s"return errors if $scenario" in new Setup {
         val personalDetailsJson = Json.toJson(randomPersonalDetails).as[JsObject] ++ jsonModification
-        val response = controller.create(request.withBody(personalDetailsJson)).futureValue
+        val response = controller.create(origin)(request.withBody(personalDetailsJson)).futureValue
 
         status(response) shouldBe BAD_REQUEST
 
@@ -292,6 +292,7 @@ class PersonalDetailsValidationResourceControllerSpec
     val request = FakeRequest()
     val mockRepository = mock[FuturedPersonalDetailsValidationRepository]
     val mockValidator = mock[FuturedPersonalDetailsValidator]
+    val origin = Some("Test")
     val controller = new PersonalDetailsValidationResourceController(mockRepository, mockValidator, stubControllerComponents())
   }
 

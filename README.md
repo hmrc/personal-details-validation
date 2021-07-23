@@ -6,7 +6,7 @@ Manages personal details validation.
 
 | Method | Path                                             | Description                                              |
 |--------|--------------------------------------------------|----------------------------------------------------------|
-|  POST  | ```/personal-details-validation```               | Performs validation of the given Personal details.       |
+|  POST  | ```/personal-details-validation[?origin=<origin>]```               | Performs validation of the given Personal details.       |
 |  GET   | ```/personal-details-validation/:validationId``` | Returns validation results for the given `validationId`. |
 
 #### POST /personal-details-validation
