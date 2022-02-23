@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -107,9 +107,11 @@ class PersonalDetailsValidationFormatSpec
     }
 
     "allow to serialise FailedPersonalDetailsValidation to JSON" in new Setup {
-      toJson[PersonalDetailsValidation](PersonalDetailsValidation.failed()) shouldBe Json.obj(
+      toJson[PersonalDetailsValidation](PersonalDetailsValidation.failed(Some("credentialId"), Some(0))) shouldBe Json.obj(
         "id" -> ValidationId(uuidProvider()),
-        "validationStatus" -> "failure"
+        "validationStatus" -> "failure",
+        "credentialId" -> "credentialId",
+        "attempts" -> 0
       )
     }
 
@@ -132,8 +134,10 @@ class PersonalDetailsValidationFormatSpec
     "allow to deserialise FailedPersonalDetailsValidation to JSON" in new Setup {
       Json.obj(
         "id" -> ValidationId(),
-        "validationStatus" -> "failure"
-      ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.failed()
+        "validationStatus" -> "failure",
+        "credentialId" -> "credentialId",
+        "attempts" -> 0
+      ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.failed(Some("credentialId"), Some(0))
     }
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package uk.gov.hmrc.personaldetailsvalidation
 import cats.Monad
 import cats.data.EitherT
 import cats.implicits._
-import javax.inject.{Inject, Singleton}
 import play.api.mvc.Request
 import uk.gov.hmrc.config.AppConfig
 import uk.gov.hmrc.http.HeaderCarrier
@@ -30,6 +29,7 @@ import uk.gov.hmrc.personaldetailsvalidation.matching.{FuturedMatchingConnector,
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.uuid.UUIDProvider
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.higherKinds
 
@@ -49,8 +49,8 @@ class FuturedPersonalDetailsValidator @Inject()(
 )
 
 class PersonalDetailsValidator[Interpretation[_] : Monad](
-  matchingConnector: MatchingConnector[Interpretation],
-  personalDetailsValidationRepository: PersonalDetailsValidationRepository[Interpretation],
+  matchingConnector: MatchingConnector[Future],
+  personalDetailsValidationRepository: PersonalDetailsValidationRepository[Future],
   matchingEventsSender: EventsSender,
   appConfig: AppConfig)
 (
@@ -60,12 +60,12 @@ class PersonalDetailsValidator[Interpretation[_] : Monad](
   import matchingConnector._
   import matchingEventsSender._
 
-  def validate(personalDetails: PersonalDetails, origin: Option[String])
-              (implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): EitherT[Interpretation, Exception, PersonalDetailsValidation] = {
+  def validate(personalDetails: PersonalDetails, origin: Option[String], maybeCredId: Option[String])
+              (implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): EitherT[Future, Exception, PersonalDetailsValidation] = {
     sendBeginEvent(origin)
     for {
       matchResult <- doMatch(personalDetails)
-      personalDetailsValidation = toPersonalDetailsValidation(matchResult, personalDetails)
+      personalDetailsValidation <- toPersonalDetailsValidation(matchResult, personalDetails, maybeCredId)
       _ <- personalDetailsValidationRepository.create(personalDetailsValidation)
       _ = sendEvents(matchResult, eventDetailsToSend(matchResult, personalDetails), origin)
     } yield personalDetailsValidation
@@ -82,13 +82,23 @@ class PersonalDetailsValidator[Interpretation[_] : Monad](
       personalDetails
   }
 
-  def toPersonalDetailsValidation(matchResult: MatchResult, optionallyHaving: PersonalDetails): PersonalDetailsValidation = {
+  def toPersonalDetailsValidation(matchResult: MatchResult, optionallyHaving: PersonalDetails, maybeCredId: Option[String])
+                                 (implicit ec: ExecutionContext): EitherT[Future, Exception, PersonalDetailsValidation] = {
     (matchResult, optionallyHaving) match {
       case (MatchSuccessful(matchingPerson: PersonalDetailsNino), other: PersonalDetailsWithPostCode) =>
-        PersonalDetailsValidation.successful(other.addNino(matchingPerson.nino))
-      case (MatchSuccessful(matchingPerson), _) if appConfig.returnNinoFromCid => PersonalDetailsValidation.successful(matchingPerson)
-      case (MatchSuccessful(_), _) => PersonalDetailsValidation.successful(optionallyHaving)
-      case (MatchFailed(_), _) => PersonalDetailsValidation.failed()
+        EitherT.fromEither[Future](
+          PersonalDetailsValidation.successful(other.addNino(matchingPerson.nino)).asRight[Exception]
+        )
+      case (MatchSuccessful(matchingPerson), _) if appConfig.returnNinoFromCid =>
+        EitherT.fromEither[Future](
+          PersonalDetailsValidation.successful(matchingPerson).asRight[Exception]
+        )
+      case (MatchSuccessful(_), _) =>
+        EitherT.fromEither[Future](
+          PersonalDetailsValidation.successful(optionallyHaving).asRight[Exception]
+        )
+      case (MatchFailed(_), _) =>
+        personalDetailsValidationRepository.getAttempts(maybeCredId).map(attempts => PersonalDetailsValidation.failed(maybeCredId, Some(attempts + 1)))
     }
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,6 @@
  */
 
 package uk.gov.hmrc.personaldetailsvalidation
-
-import java.time.ZoneOffset.UTC
-import java.time.{Duration, LocalDateTime}
 
 import akka.Done
 import generators.Generators.Implicits._
@@ -37,6 +34,8 @@ import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import uk.gov.hmrc.personaldetailsvalidation.model.{SuccessfulPersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.uuid.UUIDProvider
 
+import java.time.ZoneOffset.UTC
+import java.time.{Duration, LocalDateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class PersonalDetailsValidationMongoRepositorySpec
@@ -49,13 +48,10 @@ class PersonalDetailsValidationMongoRepositorySpec
 
   "create" should {
     Set(
-      successfulPersonalDetailsValidationObjects.generateOne,
-      failedPersonalDetailsValidationObjects.generateOne
+      successfulPersonalDetailsValidationObjects.generateOne
     ) foreach { personalDetailsValidation =>
-
       s"be able to insert ${personalDetailsValidation.getClass.getSimpleName}" in new Setup {
         repository.create(personalDetailsValidation).value.futureValue shouldBe Right(Done)
-
         repository.get(personalDetailsValidation.id).futureValue shouldBe Some(personalDetailsValidation)
       }
     }

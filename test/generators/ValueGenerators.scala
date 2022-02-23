@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,5 +32,7 @@ trait ValueGenerators extends Generators {
   implicit val validationStatuses: Gen[ValidationStatus] = oneOf(ValidationStatus.all)
 
   implicit val validationIds: Gen[ValidationId] = Gen.uuid.map(ValidationId(_))
+  implicit val maybeCredId: Option[String] = None
+  implicit val attempt: Option[Int] = None
 
 }

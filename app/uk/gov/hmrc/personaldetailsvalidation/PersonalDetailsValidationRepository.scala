@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package uk.gov.hmrc.personaldetailsvalidation
 import akka.Done
 import cats.data.EitherT
 import com.google.inject.ImplementedBy
-import javax.inject.{Inject, Singleton}
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.Index
@@ -34,6 +33,7 @@ import uk.gov.hmrc.personaldetailsvalidation.formats.TinyTypesFormats._
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.json.ops._
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.higherKinds
 
@@ -44,6 +44,8 @@ private trait PersonalDetailsValidationRepository[Interpretation[_]] {
 
   def get(personalDetailsValidationId: ValidationId)
          (implicit ec: ExecutionContext): Interpretation[Option[PersonalDetailsValidation]]
+
+  def getAttempts(maybeCredId: Option[String])(implicit ec: ExecutionContext): EitherT[Interpretation, Exception, Int]
 }
 
 @ImplementedBy(classOf[PersonalDetailsValidationMongoRepository])
@@ -79,4 +81,19 @@ private class PersonalDetailsValidationMongoRepository @Inject()(config: Persona
          (implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]] =
     findById(personalDetailsValidationId)
 
+  //user's CredId is the retry key
+  def getAttempts(maybeCredId: Option[String])(implicit ec: ExecutionContext): EitherT[Future, Exception, Int] = {
+    EitherT(
+      maybeCredId.fold(Future.successful(Right(0))){ credId =>
+        find("credentialId" -> credId).map { personalDetailsValidation =>
+          personalDetailsValidation.last match {
+            case failedPersonalDetailsValidation: FailedPersonalDetailsValidation => Right(failedPersonalDetailsValidation.attempt.getOrElse(0))
+            case _ => Right(0)
+          }
+        }
+      }.recover {
+        case _: Exception => Right(0)
+      }
+    )
+  }
 }

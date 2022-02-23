@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,9 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import java.util.UUID.randomUUID
-
 import akka.Done
-import cats.Id
 import cats.data.EitherT
+import cats.implicits.catsStdInstancesForFuture
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
 import org.scalamock.scalatest.MockFactory
@@ -37,8 +35,9 @@ import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchRes
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsValidation, PersonalDetailsWithNino}
 import uk.gov.hmrc.uuid.UUIDProvider
 
-import scala.concurrent.ExecutionContext
+import java.util.UUID.randomUUID
 import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
+import scala.concurrent.{ExecutionContext, Future}
 
 class PersonalDetailsValidatorSpec
   extends UnitSpec
@@ -55,7 +54,7 @@ class PersonalDetailsValidatorSpec
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
-        .returning(EitherT.rightT[Id, Exception](matchResult))
+        .returning(EitherT.rightT[Future, Exception](matchResult))
 
       (mockAppConfig.returnNinoFromCid _).expects().returning(false).repeat(2)
 
@@ -69,9 +68,9 @@ class PersonalDetailsValidatorSpec
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(personalDetailsValidation, executionContext)
-        .returning(EitherT.rightT[Id, Exception](Done))
+        .returning(EitherT.rightT[Future, Exception](Done))
 
-      validator.validate(personalDetails, origin).value shouldBe Right(personalDetailsValidation)
+      await(validator.validate(personalDetails, origin, maybeCredId).value) shouldBe Right(personalDetailsValidation)
     }
 
     "match the given postccode personal details with matching service, " +
@@ -86,7 +85,7 @@ class PersonalDetailsValidatorSpec
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(inputPersonalDetails, headerCarrier, executionContext)
-        .returning(EitherT.rightT[Id, Exception](matchResult))
+        .returning(EitherT.rightT[Future, Exception](matchResult))
 
       (mockAppConfig.returnNinoFromCid _).expects().returning(true).repeat(1)
 
@@ -100,9 +99,9 @@ class PersonalDetailsValidatorSpec
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(personalDetailsValidation, executionContext)
-        .returning(EitherT.rightT[Id, Exception](Done))
+        .returning(EitherT.rightT[Future, Exception](Done))
 
-      validator.validate(inputPersonalDetails, origin).value shouldBe Right(personalDetailsValidation)
+      await(validator.validate(inputPersonalDetails, origin, maybeCredId).value) shouldBe Right(personalDetailsValidation)
     }
 
     "match the given personal details with matching service, with a different suffix, " +
@@ -117,7 +116,7 @@ class PersonalDetailsValidatorSpec
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(enteredPersonalDetails, headerCarrier, executionContext)
-        .returning(EitherT.rightT[Id, Exception](matchResult))
+        .returning(EitherT.rightT[Future, Exception](matchResult))
 
       (mockAppConfig.returnNinoFromCid _).expects().returning(false).repeat(2)
 
@@ -131,9 +130,9 @@ class PersonalDetailsValidatorSpec
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(personalDetailsValidation, executionContext)
-        .returning(EitherT.rightT[Id, Exception](Done))
+        .returning(EitherT.rightT[Future, Exception](Done))
 
-      validator.validate(enteredPersonalDetails, origin).value shouldBe Right(personalDetailsValidation)
+      await(validator.validate(enteredPersonalDetails, origin, maybeCredId).value) shouldBe Right(personalDetailsValidation)
     }
 
     "match the given personal details with matching service, with a different suffix, " +
@@ -148,7 +147,7 @@ class PersonalDetailsValidatorSpec
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(enteredPersonalDetails, headerCarrier, executionContext)
-        .returning(EitherT.rightT[Id, Exception](matchResult))
+        .returning(EitherT.rightT[Future, Exception](matchResult))
 
       (mockAppConfig.returnNinoFromCid _).expects().returning(true).repeat(2)
 
@@ -162,9 +161,9 @@ class PersonalDetailsValidatorSpec
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(personalDetailsValidation, executionContext)
-        .returning(EitherT.rightT[Id, Exception](Done))
+        .returning(EitherT.rightT[Future, Exception](Done))
 
-      validator.validate(enteredPersonalDetails, origin).value shouldBe Right(personalDetailsValidation)
+      await(validator.validate(enteredPersonalDetails, origin, maybeCredId).value) shouldBe Right(personalDetailsValidation)
     }
 
     "match the given personal details with matching service, " +
@@ -175,7 +174,7 @@ class PersonalDetailsValidatorSpec
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
-        .returning(EitherT.rightT[Id, Exception](matchResult))
+        .returning(EitherT.rightT[Future, Exception](matchResult))
 
       (mockAppConfig.returnNinoFromCid _).expects().returning(false)
 
@@ -185,13 +184,17 @@ class PersonalDetailsValidatorSpec
       (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(origin, headerCarrier, request, executionContext)
 
-      val personalDetailsValidation = PersonalDetailsValidation.failed()
+      val personalDetailsValidation = PersonalDetailsValidation.failed(maybeCredId, Some(1))
+
+      (repository.getAttempts(_: Option[String])(_: ExecutionContext))
+        .expects(maybeCredId, executionContext)
+        .returning(EitherT.rightT[Future, Exception](0))
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(personalDetailsValidation, executionContext)
-        .returning(EitherT.rightT[Id, Exception](Done))
+        .returning(EitherT.rightT[Future, Exception](Done))
 
-      validator.validate(personalDetails, origin).value shouldBe Right(personalDetailsValidation)
+      await(validator.validate(personalDetails, origin, maybeCredId).value) shouldBe Right(personalDetailsValidation)
     }
 
     "return matching error when the call to match fails" in new Setup {
@@ -200,7 +203,7 @@ class PersonalDetailsValidatorSpec
       val exception = new RuntimeException("error")
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
-        .returning(EitherT.leftT[Id, MatchResult](exception))
+        .returning(EitherT.leftT[Future, MatchResult](exception))
 
       (matchingEventsSender.sendErrorEvents(_: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(personalDetails, origin,  headerCarrier, request, executionContext)
@@ -208,7 +211,7 @@ class PersonalDetailsValidatorSpec
       (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(origin, headerCarrier, request, executionContext)
 
-      validator.validate(personalDetails, origin).value shouldBe Left(exception)
+      await( validator.validate(personalDetails, origin, maybeCredId).value) shouldBe Left(exception)
     }
 
     "return matching error when the call to persist fails" in new Setup {
@@ -221,7 +224,7 @@ class PersonalDetailsValidatorSpec
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
-        .returning(EitherT.rightT[Id, Exception](matchResult))
+        .returning(EitherT.rightT[Future, Exception](matchResult))
 
       (mockAppConfig.returnNinoFromCid _).expects().returning(false)
 
@@ -230,12 +233,12 @@ class PersonalDetailsValidatorSpec
       val exception = new RuntimeException("error")
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(personalDetailsValidation, executionContext)
-        .returning(EitherT.leftT[Id, Done](exception))
+        .returning(EitherT.leftT[Future, Done](exception))
 
       (matchingEventsSender.sendErrorEvents(_: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(personalDetails, origin,  headerCarrier, request, executionContext)
 
-      validator.validate(personalDetails, origin).value shouldBe Left(exception)
+      await(validator.validate(personalDetails, origin, maybeCredId).value) shouldBe Left(exception)
     }
   }
 
@@ -243,11 +246,11 @@ class PersonalDetailsValidatorSpec
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
     implicit val request = FakeRequest()
 
-    val matchingConnector = mock[MatchingConnector[Id]]
+    val matchingConnector = mock[MatchingConnector[Future]]
     val matchingEventsSender = mock[EventsSender]
     val mockAppConfig = mock[AppConfig]
 
-    val repository = mock[PersonalDetailsValidationRepository[Id]]
+    val repository = mock[PersonalDetailsValidationRepository[Future]]
     implicit val uuidProvider: UUIDProvider = stub[UUIDProvider]
     uuidProvider.apply _ when() returns randomUUID()
 
@@ -260,7 +263,7 @@ class PersonalDetailsValidatorSpec
       Nino(s"$ninoPrefix$newSuffix")
     }
     val origin = Some("test")
-
+    val maybeCredId = Some("credentialId")
     val validator = new PersonalDetailsValidator(matchingConnector, repository, matchingEventsSender, mockAppConfig)
   }
 }
