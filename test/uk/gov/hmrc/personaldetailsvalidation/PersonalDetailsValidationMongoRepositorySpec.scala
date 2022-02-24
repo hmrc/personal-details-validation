@@ -48,7 +48,8 @@ class PersonalDetailsValidationMongoRepositorySpec
 
   "create" should {
     Set(
-      successfulPersonalDetailsValidationObjects.generateOne
+      successfulPersonalDetailsValidationObjects.generateOne,
+      failedPersonalDetailsValidationObjects.generateOne
     ) foreach { personalDetailsValidation =>
       s"be able to insert ${personalDetailsValidation.getClass.getSimpleName}" in new Setup {
         repository.create(personalDetailsValidation).value.futureValue shouldBe Right(Done)
