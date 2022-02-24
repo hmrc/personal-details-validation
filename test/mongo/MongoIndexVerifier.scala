@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,9 @@ trait MongoIndexVerifier extends Matchers {
 
       val index = collectionIndexes
         .find(_.name.contains(expectedIndexName))
-        .getOrElse(throw new RuntimeException(s"Index with name $expectedIndexName not found in collection $collectionName"))
+        .getOrElse(
+          throw new RuntimeException(s"Index with name $expectedIndexName not found in collection $collectionName; indexes found: $collectionIndexes")
+        )
 
       //version of index is managed by mongodb. We don't want to assert on it.
       index shouldBe expectedIndex.copy(version = index.version)
