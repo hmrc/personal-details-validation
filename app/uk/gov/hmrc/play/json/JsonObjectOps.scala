@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,15 +17,14 @@
 package uk.gov.hmrc.play.json
 
 import java.time.ZoneOffset.UTC
-
-import play.api.libs.json.{JsNumber, JsObject}
+import play.api.libs.json.{JsNumber, JsObject, Json}
 import uk.gov.hmrc.datetime.CurrentTimeProvider
 
 private[json] trait JsonObjectOps {
 
   implicit class JsonObjectOps(target: JsObject) {
-    def withCreatedTimeStamp(fieldName: String = "createdAt")(implicit currentTimeProvider: CurrentTimeProvider): JsObject =
-      target + (fieldName -> JsNumber(currentTimeProvider().atZone(UTC).toInstant.toEpochMilli))
+    def withCreatedTimeStamp(fieldName: String)(implicit currentTimeProvider: CurrentTimeProvider): JsObject =
+      target + (fieldName ->  Json.obj("$date" -> JsNumber(currentTimeProvider().atZone(UTC).toInstant.toEpochMilli)))
   }
 
 }

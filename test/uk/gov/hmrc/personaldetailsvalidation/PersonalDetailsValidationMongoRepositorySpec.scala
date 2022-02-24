@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import java.time.ZoneOffset.UTC
 import java.time.{Duration, LocalDateTime}
-
 import akka.Done
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
@@ -30,7 +29,7 @@ import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.ReadConcern
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Descending
-import reactivemongo.bson.BSONDocument
+import reactivemongo.bson.{BSONDateTime, BSONDocument}
 import support.UnitSpec
 import uk.gov.hmrc.datetime.CurrentTimeProvider
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
@@ -73,7 +72,7 @@ class PersonalDetailsValidationMongoRepositorySpec
       repository.create(personalDetailsValidation).value.futureValue shouldBe Right(Done)
 
       bsonCollection(repository.collection.name)().count(
-        selector = Some(BSONDocument("_id" -> validationId, "createdAt" -> currentTime.atZone(UTC).toInstant.toEpochMilli)),
+        selector = Some(BSONDocument("_id" -> validationId, "createdAt" -> BSONDateTime(currentTime.atZone(UTC).toInstant.toEpochMilli))),
         limit = None, skip = 0, hint = None, readConcern = ReadConcern.Local
       ).futureValue shouldBe 1
     }
@@ -91,6 +90,7 @@ class PersonalDetailsValidationMongoRepositorySpec
         Index(Seq("createdAt" -> Descending),
           name = Some("personal-details-validation-ttl-index"),
           options = BSONDocument("expireAfterSeconds" -> ttlSeconds))
+      Thread.sleep(500) // wait for index to be created
       verify(expectedIndex).on(repository.collection.name)
     }
   }
