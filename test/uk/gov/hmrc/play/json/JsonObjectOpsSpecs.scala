@@ -28,11 +28,18 @@ class JsonObjectOpsSpecs extends UnitSpec with MockFactory {
 
   "withCreatedTimeStamp" should {
     "timestamp with default fieldName 'createdAt' to provided jsobject" in new Setup {
-      Json.obj("foo" -> "bar").withCreatedTimeStamp() shouldBe Json.obj("foo" -> "bar", "createdAt" -> currentTime.atZone(UTC).toInstant.toEpochMilli)
+      Json.obj("foo" -> "bar")
+        .withCreatedTimeStamp("createdAt") shouldBe Json.obj(
+        "foo" -> "bar",
+        "createdAt" -> Json.obj("$date" -> currentTime.atZone(UTC).toInstant.toEpochMilli)
+      )
     }
 
     "timestamp with provided fieldName to provided jsobject" in new Setup {
-      Json.obj("foo" -> "bar").withCreatedTimeStamp("timestamp") shouldBe Json.obj("foo" -> "bar", "timestamp" -> currentTime.atZone(UTC).toInstant.toEpochMilli)
+      Json.obj("foo" -> "bar")
+        .withCreatedTimeStamp("timestamp") shouldBe Json.obj(
+        "foo" -> "bar",
+        "timestamp" -> Json.obj("$date" -> currentTime.atZone(UTC).toInstant.toEpochMilli))
     }
   }
 

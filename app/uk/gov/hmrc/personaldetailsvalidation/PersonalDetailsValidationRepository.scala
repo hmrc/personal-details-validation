@@ -21,9 +21,9 @@ import cats.data.EitherT
 import com.google.inject.ImplementedBy
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.indexes.Index
+import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.api.indexes.IndexType.Descending
-import reactivemongo.bson.BSONDocument
+import reactivemongo.bson.{BSONDocument, BSONInteger, BSONLong}
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.datetime.CurrentTimeProvider
 import uk.gov.hmrc.mongo.ReactiveRepository
@@ -34,6 +34,7 @@ import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.json.ops._
 
 import javax.inject.{Inject, Singleton}
+import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.higherKinds
 
@@ -61,15 +62,53 @@ private class PersonalDetailsValidationMongoRepository @Inject()(config: Persona
     idFormat = personalDetailsValidationIdFormats
   ) with FuturedPersonalDetailsValidationRepository {
 
+  val ttlIndex = "personal-details-validation-ttl-index"
+  val OptExpireAfterSeconds = "expireAfterSeconds"
+  val createdAtField = "createdAt"
+
+  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
+
+    import reactivemongo.bson.DefaultBSONHandlers._
+
+    val indexes: Future[List[Index]] = collection.indexesManager.list()
+
+    def ensureTtlIndex(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
+      Future.sequence(Seq(collection.indexesManager.ensure(
+        Index(
+          key = Seq(createdAtField -> IndexType.Descending),
+          name = Some(ttlIndex),
+          options = BSONDocument(OptExpireAfterSeconds -> config.collectionTtl.getSeconds)
+        )
+      )))
+    }
+
+    def ttlHasChanged(index: Index): Boolean =
+      !index.options.getAs[BSONLong](OptExpireAfterSeconds).contains(BSONLong(config.collectionTtl.getSeconds))
+
+    indexes.flatMap {
+      idxs => {
+        val maybeIndex = idxs.find(index => index.eventualName == ttlIndex && ttlHasChanged(index))
+
+        maybeIndex.fold(ensureTtlIndex){ index =>
+          collection.indexesManager.drop(index.eventualName).flatMap(_ => ensureTtlIndex)
+        }
+      }
+    }
+
+  }
+
 
   override def indexes: Seq[Index] = Seq(
-    Index(Seq("createdAt" -> Descending), name = Some("personal-details-validation-ttl-index"), options = BSONDocument("expireAfterSeconds" -> config.collectionTtl.getSeconds))
+    Index(
+      Seq(createdAtField -> Descending),
+      name = Some(ttlIndex),
+      options = BSONDocument(OptExpireAfterSeconds -> config.collectionTtl.getSeconds))
   )
 
   def create(personalDetailsValidation: PersonalDetailsValidation)
             (implicit ec: ExecutionContext): EitherT[Future, Exception, Done] = {
 
-    val document = domainFormatImplicit.writes(personalDetailsValidation).as[JsObject].withCreatedTimeStamp()
+    val document = domainFormatImplicit.writes(personalDetailsValidation).as[JsObject].withCreatedTimeStamp(createdAtField)
 
     EitherT(collection.insert(ordered = false).one(document).map(_ => Right(Done))
       .recover {
