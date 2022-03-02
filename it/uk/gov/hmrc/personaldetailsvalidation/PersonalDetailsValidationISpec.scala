@@ -1,7 +1,5 @@
 package uk.gov.hmrc.personaldetailsvalidation
 
-import java.util.UUID.randomUUID
-
 import play.api.http.ContentTypes.JSON
 import play.api.http.Status._
 import play.api.libs.json.{JsUndefined, JsValue, Json}
@@ -12,6 +10,7 @@ import uk.gov.hmrc.support.stubs.AuditEventStubs._
 import uk.gov.hmrc.support.stubs.AuthenticatorStub
 import uk.gov.hmrc.support.stubs.PlatformAnalyticsStub._
 
+import java.util.UUID.randomUUID
 import scala.concurrent.Future
 
 class PersonalDetailsValidationISpec extends BaseIntegrationSpec {

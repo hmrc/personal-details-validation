@@ -45,7 +45,9 @@ object ObjectGenerators extends ValueGenerators {
   } yield SuccessfulPersonalDetailsValidation(id, personalDetails)
 
   implicit val failedPersonalDetailsValidationObjects: Gen[FailedPersonalDetailsValidation] =
-    validationIds map FailedPersonalDetailsValidation
+    validationIds.map{id =>
+      FailedPersonalDetailsValidation(id, maybeCredId, attempt)
+    }
 
   implicit val personalDetailsValidationObjects: Gen[PersonalDetailsValidation] = booleans flatMap {
     case true => successfulPersonalDetailsValidationObjects

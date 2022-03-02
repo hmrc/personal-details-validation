@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import java.time.ZoneOffset.UTC
-import java.time.{Duration, LocalDateTime}
 import akka.Done
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
@@ -36,6 +34,8 @@ import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import uk.gov.hmrc.personaldetailsvalidation.model.{SuccessfulPersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.uuid.UUIDProvider
 
+import java.time.ZoneOffset.UTC
+import java.time.{Duration, LocalDateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class PersonalDetailsValidationMongoRepositorySpec
@@ -51,10 +51,8 @@ class PersonalDetailsValidationMongoRepositorySpec
       successfulPersonalDetailsValidationObjects.generateOne,
       failedPersonalDetailsValidationObjects.generateOne
     ) foreach { personalDetailsValidation =>
-
       s"be able to insert ${personalDetailsValidation.getClass.getSimpleName}" in new Setup {
         repository.create(personalDetailsValidation).value.futureValue shouldBe Right(Done)
-
         repository.get(personalDetailsValidation.id).futureValue shouldBe Some(personalDetailsValidation)
       }
     }

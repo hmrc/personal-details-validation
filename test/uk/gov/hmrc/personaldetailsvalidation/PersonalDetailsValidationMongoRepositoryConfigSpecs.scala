@@ -16,12 +16,12 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import java.time.Duration
-import java.time.format.DateTimeParseException
-
 import play.api.Configuration
 import setups.ConfigSetup
 import support.UnitSpec
+
+import java.time.Duration
+import java.time.format.DateTimeParseException
 
 class PersonalDetailsValidationMongoRepositoryConfigSpecs extends UnitSpec {
 

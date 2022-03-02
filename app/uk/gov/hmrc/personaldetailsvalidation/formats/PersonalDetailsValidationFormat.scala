@@ -37,8 +37,10 @@ object PersonalDetailsValidationFormat {
         ) ((id, pd) => SuccessfulPersonalDetailsValidation(id, pd))
 
       lazy val toFailedPersonalDetailsValidation: JsResult[FailedPersonalDetailsValidation] =
-        (json \ "id").validate[ValidationId]
-          .map(id => FailedPersonalDetailsValidation(id))
+        ((json \ "id").validate[ValidationId] and
+          (json \ "credentialId").validateOpt[String] and
+          (json \ "attempts").validateOpt[Int]
+          )((id, credentialId, attempts )=> FailedPersonalDetailsValidation(id, credentialId, attempts))
     }
 
     val reads: Reads[PersonalDetailsValidation] = Reads[PersonalDetailsValidation] { json =>
@@ -54,9 +56,11 @@ object PersonalDetailsValidationFormat {
         "validationStatus" -> Success.value,
         "personalDetails" -> personalDetails
       )
-      case FailedPersonalDetailsValidation(id) => Json.obj(
+      case FailedPersonalDetailsValidation(id, maybeCredId, attempt) => Json.obj(
         "id" -> id,
-        "validationStatus" -> Failure.value
+        "credentialId" -> maybeCredId,
+        "validationStatus" -> Failure.value,
+        "attempts" -> attempt
       )
     }
 

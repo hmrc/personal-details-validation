@@ -32,5 +32,7 @@ trait ValueGenerators extends Generators {
   implicit val validationStatuses: Gen[ValidationStatus] = oneOf(ValidationStatus.all)
 
   implicit val validationIds: Gen[ValidationId] = Gen.uuid.map(ValidationId(_))
+  implicit val maybeCredId: Option[String] = None
+  implicit val attempt: Option[Int] = None
 
 }

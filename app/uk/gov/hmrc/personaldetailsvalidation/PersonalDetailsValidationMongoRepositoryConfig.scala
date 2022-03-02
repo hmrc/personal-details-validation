@@ -16,15 +16,15 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import java.time.Duration
-
-import javax.inject.{Inject, Singleton}
 import play.api.Configuration
 import uk.gov.hmrc.config.implicits._
 import uk.gov.hmrc.config.ops._
 
+import java.time.Duration
+import javax.inject.{Inject, Singleton}
+
 @Singleton
-private class PersonalDetailsValidationMongoRepositoryConfig @Inject()(configuration: Configuration) {
+class PersonalDetailsValidationMongoRepositoryConfig @Inject()(configuration: Configuration) {
 
   lazy val collectionTtl: Duration = Duration.from(configuration.loadMandatory[Duration]("mongodb.collections.personal-details-validation.ttl"))
 

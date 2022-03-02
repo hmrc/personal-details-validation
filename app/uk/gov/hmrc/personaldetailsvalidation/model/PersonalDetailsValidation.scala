@@ -49,7 +49,7 @@ case class SuccessfulPersonalDetailsValidation(id: ValidationId,
                                                personalDetails: PersonalDetails)
   extends PersonalDetailsValidation
 
-case class FailedPersonalDetailsValidation(id: ValidationId)
+case class FailedPersonalDetailsValidation(id: ValidationId, maybeCredId: Option[String] = None, attempt: Option[Int] = None)
   extends PersonalDetailsValidation
 
 object PersonalDetailsValidation {
@@ -58,6 +58,6 @@ object PersonalDetailsValidation {
                 (implicit uuidProvider: UUIDProvider) =
     SuccessfulPersonalDetailsValidation(ValidationId(), personalDetails)
 
-  def failed()(implicit uuidProvider: UUIDProvider) =
-    FailedPersonalDetailsValidation(ValidationId())
+  def failed(maybeCredId: Option[String], attempts: Option[Int])(implicit uuidProvider: UUIDProvider) =
+    FailedPersonalDetailsValidation(ValidationId(), maybeCredId, attempts)
 }
