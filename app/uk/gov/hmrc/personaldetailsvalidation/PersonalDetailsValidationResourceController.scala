@@ -53,7 +53,6 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
       lazy val toAuthCredentialId: Option[Credentials] => Future[Option[String]] = (credentials: Option[Credentials]) => Future.successful(credentials.map(_.providerId))
       val credentialId: Future[Option[String]] = authorised().retrieve(credentials)(toAuthCredentialId).recover{case _ => None}
       credentialId.flatMap { maybeCredId =>
-        logger.info(s"VER-1895: user' CredentialId at create: $maybeCredId")
         personalDetailsValidator.validate(personalDetails, origin, maybeCredId).fold(handleException, handleMatchingDone).flatten
       }
     }
@@ -63,10 +62,7 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
     lazy val toAuthCredentialId: Option[Credentials] => Future[Option[String]] = (credentials: Option[Credentials]) => Future.successful(credentials.map(_.providerId))
     val attempts: EitherT[Future, Exception, Result] = for {
       maybeCredId <- EitherT.right(authorised().retrieve(credentials)(toAuthCredentialId).recover{case _ => None})
-      attempts <- {
-        logger.info(s"VER-1895: user' CredentialId is: $maybeCredId")
-        personalDetailsValidationRepository.getAttempts(maybeCredId)
-      }
+      attempts <- personalDetailsValidationRepository.getAttempts(maybeCredId)
     } yield {
       Ok(attempts.toString)
     }
