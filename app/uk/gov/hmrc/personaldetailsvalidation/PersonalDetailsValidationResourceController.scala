@@ -18,6 +18,7 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import cats.data.EitherT
 import cats.implicits._
+import play.api.Logging
 import play.api.libs.json.JsValue
 import play.api.libs.json.Json.toJson
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
@@ -36,7 +37,7 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
                                                             personalDetailsValidator: FuturedPersonalDetailsValidator,
                                                             cc: ControllerComponents)
                                                            (implicit val authConnector: AuthConnector, ec: ExecutionContext)
-  extends BackendController(cc) with JsonValidation with AuthorisedFunctions {
+  extends BackendController(cc) with JsonValidation with AuthorisedFunctions with Logging {
 
   import formats.PersonalDetailsFormat._
   import formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
@@ -52,6 +53,7 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
       lazy val toAuthCredentialId: Option[Credentials] => Future[Option[String]] = (credentials: Option[Credentials]) => Future.successful(credentials.map(_.providerId))
       val credentialId: Future[Option[String]] = authorised().retrieve(credentials)(toAuthCredentialId).recover{case _ => None}
       credentialId.flatMap { maybeCredId =>
+        logger.info(s"VER-1895: user' CredentialId at create: $maybeCredId")
         personalDetailsValidator.validate(personalDetails, origin, maybeCredId).fold(handleException, handleMatchingDone).flatten
       }
     }
@@ -61,7 +63,10 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
     lazy val toAuthCredentialId: Option[Credentials] => Future[Option[String]] = (credentials: Option[Credentials]) => Future.successful(credentials.map(_.providerId))
     val attempts: EitherT[Future, Exception, Result] = for {
       maybeCredId <- EitherT.right(authorised().retrieve(credentials)(toAuthCredentialId).recover{case _ => None})
-      attempts <- personalDetailsValidationRepository.getAttempts(maybeCredId)
+      attempts <- {
+        logger.info(s"VER-1895: user' CredentialId is: $maybeCredId")
+        personalDetailsValidationRepository.getAttempts(maybeCredId)
+      }
     } yield {
       Ok(attempts.toString)
     }
