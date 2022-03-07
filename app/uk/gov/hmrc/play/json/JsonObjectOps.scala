@@ -23,7 +23,7 @@ import uk.gov.hmrc.datetime.CurrentTimeProvider
 private[json] trait JsonObjectOps {
 
   implicit class JsonObjectOps(target: JsObject) {
-    def withCreatedTimeStamp(fieldName: String)(implicit currentTimeProvider: CurrentTimeProvider): JsObject =
+    def withCreatedTimeStamp(fieldName: String = "createdAt")(implicit currentTimeProvider: CurrentTimeProvider): JsObject =
       target + (fieldName ->  Json.obj("$date" -> JsNumber(currentTimeProvider().atZone(UTC).toInstant.toEpochMilli)))
   }
 
