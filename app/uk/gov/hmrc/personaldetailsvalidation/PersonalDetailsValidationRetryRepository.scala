@@ -51,8 +51,8 @@ class PersonalDetailsValidationRetryRepository @Inject()(config: PersonalDetails
     import Json.{obj, toJson}
     val selector = obj(retryKey -> maybeCredId)
     val update = obj(
-      "$inc" → obj("attempts" → 1),
-      "$setOnInsert" → obj(createdAtField → toJson(DateTime.now.withZone(DateTimeZone.UTC))(Retry.dateTimeFormats))
+      "$inc" -> obj("attempts" -> 1),
+      "$setOnInsert" -> obj(createdAtField -> toJson(DateTime.now.withZone(DateTimeZone.UTC))(Retry.dateTimeFormats))
     )
     findAndUpdate(selector, update, upsert = true, fetchNewObject = true).map(_ => Done).recover{ case _ => Done }
   }
