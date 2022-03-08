@@ -33,6 +33,7 @@ import play.api.libs.json._
 import play.api.mvc.{AnyContentAsEmpty, Request, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import play.modules.reactivemongo.ReactiveMongoComponent
 import scalamock.MockArgumentMatchers
 import support.UnitSpec
 import uk.gov.hmrc.auth.core.AuthConnector
@@ -40,6 +41,7 @@ import uk.gov.hmrc.auth.core.authorise.Predicate
 import uk.gov.hmrc.auth.core.retrieve.{Credentials, Retrieval}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
+import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.uuid.UUIDProvider
@@ -55,7 +57,8 @@ class PersonalDetailsValidationResourceControllerSpec
     with ScalaFutures
     with MockFactory
     with MockArgumentMatchers
-    with TableDrivenPropertyChecks {
+    with TableDrivenPropertyChecks
+    with MongoSpecSupport {
 
   "create" should {
 
@@ -306,11 +309,18 @@ class PersonalDetailsValidationResourceControllerSpec
 
     val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
     val mockRepository: FuturedPersonalDetailsValidationRepository = mock[FuturedPersonalDetailsValidationRepository]
+
+    val personalDetailsValidationMongoRepositoryConfig: PersonalDetailsValidationMongoRepositoryConfig = app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
+    val reactiveMongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
+      override def mongoConnector: MongoConnector = mongoConnectorForTest
+    }
+    val personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository = new PersonalDetailsValidationRetryRepository(personalDetailsValidationMongoRepositoryConfig, reactiveMongoComponent)
+
     val mockValidator: FuturedPersonalDetailsValidator = mock[FuturedPersonalDetailsValidator]
     val origin: Some[String] = Some("Test")
     val maybeCredId: Some[String] = Some("test")
     implicit val mockAuthConnector: AuthConnector = mock[AuthConnector]
-    val controller = new PersonalDetailsValidationResourceController(mockRepository, mockValidator, stubControllerComponents())
+    val controller = new PersonalDetailsValidationResourceController(mockRepository, personalDetailsValidationRetryRepository, mockValidator, stubControllerComponents())
   }
 
 }

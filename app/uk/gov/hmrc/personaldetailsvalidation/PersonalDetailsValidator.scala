@@ -37,6 +37,7 @@ import scala.language.higherKinds
 class FuturedPersonalDetailsValidator @Inject()(
   matchingConnector: FuturedMatchingConnector,
   personalDetailsValidationRepository: PersonalDetailsValidationMongoRepository,
+  personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository,
   matchingEventsSender: EventsSender,
   appConfig: AppConfig
 )(
@@ -44,6 +45,7 @@ class FuturedPersonalDetailsValidator @Inject()(
 ) extends PersonalDetailsValidator[Future](
   matchingConnector,
   personalDetailsValidationRepository,
+  personalDetailsValidationRetryRepository,
   matchingEventsSender,
   appConfig
 )
@@ -51,11 +53,9 @@ class FuturedPersonalDetailsValidator @Inject()(
 class PersonalDetailsValidator[Interpretation[_] : Monad](
   matchingConnector: MatchingConnector[Future],
   personalDetailsValidationRepository: PersonalDetailsValidationRepository[Future],
+  personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository,
   matchingEventsSender: EventsSender,
-  appConfig: AppConfig)
-(
-  implicit uuidProvider: UUIDProvider
-) {
+  appConfig: AppConfig)(implicit uuidProvider: UUIDProvider) {
 
   import matchingConnector._
   import matchingEventsSender._
@@ -66,7 +66,10 @@ class PersonalDetailsValidator[Interpretation[_] : Monad](
     for {
       matchResult <- doMatch(personalDetails)
       personalDetailsValidation <- toPersonalDetailsValidation(matchResult, personalDetails, maybeCredId)
-      _ <- personalDetailsValidationRepository.create(personalDetailsValidation)
+      _ <- {
+        if (maybeCredId.isDefined) { personalDetailsValidationRetryRepository.recordAttempt(maybeCredId.get) }
+        personalDetailsValidationRepository.create(personalDetailsValidation)
+      }
       _ = sendEvents(matchResult, eventDetailsToSend(matchResult, personalDetails), origin)
     } yield personalDetailsValidation
   }.leftMap { error => sendErrorEvents(personalDetails, origin); error }
@@ -98,7 +101,7 @@ class PersonalDetailsValidator[Interpretation[_] : Monad](
           PersonalDetailsValidation.successful(optionallyHaving).asRight[Exception]
         )
       case (MatchFailed(_), _) =>
-        personalDetailsValidationRepository.getAttempts(maybeCredId).map(attempts => PersonalDetailsValidation.failed(maybeCredId, Some(attempts + 1)))
+        personalDetailsValidationRetryRepository.getAttempts(maybeCredId).map(attempts => PersonalDetailsValidation.failed(maybeCredId, Some(attempts + 1)))
     }
   }
 }

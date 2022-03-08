@@ -34,6 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class PersonalDetailsValidationResourceController @Inject()(personalDetailsValidationRepository: FuturedPersonalDetailsValidationRepository,
+                                                            personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository,
                                                             personalDetailsValidator: FuturedPersonalDetailsValidator,
                                                             cc: ControllerComponents)
                                                            (implicit val authConnector: AuthConnector, ec: ExecutionContext)
@@ -66,7 +67,7 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
     lazy val toAuthCredentialId: Option[Credentials] => Future[Option[String]] = (credentials: Option[Credentials]) => Future.successful(credentials.map(_.providerId))
     val attempts: EitherT[Future, Exception, Result] = for {
       maybeCredId <- EitherT.right(authorised().retrieve(credentials)(toAuthCredentialId).recover{case _ => None})
-      attempts <- personalDetailsValidationRepository.getAttempts(maybeCredId)
+      attempts <- personalDetailsValidationRetryRepository.getAttempts(maybeCredId)
     } yield {
       Ok(attempts.toString)
     }
