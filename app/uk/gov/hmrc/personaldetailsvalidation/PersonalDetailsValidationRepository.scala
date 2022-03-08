@@ -37,6 +37,7 @@ import javax.inject.{Inject, Singleton}
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.higherKinds
+import scala.util.{Failure, Success}
 
 private trait PersonalDetailsValidationRepository[Interpretation[_]] {
 
@@ -73,25 +74,48 @@ private class PersonalDetailsValidationMongoRepository @Inject()(config: Persona
     val indexes: Future[List[Index]] = collection.indexesManager.list()
 
     def ensureTtlIndex(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
-      Future.sequence(Seq(collection.indexesManager.ensure(
+      logger.warn(s"IDX: Ensuring index: $ttlIndex; will create it if not found")
+      val ensureF = Future.sequence(Seq(collection.indexesManager.ensure(
         Index(
           key = Seq(createdAtField -> IndexType.Descending),
           name = Some(ttlIndex),
           options = BSONDocument(OptExpireAfterSeconds -> config.collectionTtl.getSeconds)
         )
       )))
+
+      ensureF.onComplete {
+        case Failure(exception) => logger.error(s"IDX: Failed to ensure indexes: ${exception.getMessage}", exception)
+        case Success(booleans) =>
+          logger.warn(s"IDX: Indexes created? " + booleans.mkString(","))
+          booleans
+      }
+
+      ensureF
     }
 
-    def ttlHasChanged(index: Index): Boolean =
-      !index.options.getAs[BSONLong](OptExpireAfterSeconds).contains(BSONLong(config.collectionTtl.getSeconds))
+    def ttlHasChanged(index: Index): Boolean = {
+      logger.warn(s"IDX: ${index.eventualName} has TTL: " + index.options.getAs[BSONLong](OptExpireAfterSeconds))
+      logger.warn(s"IDX: Configuration of TTL is: " + BSONLong(config.collectionTtl.getSeconds))
+      val changed = !index.options.getAs[BSONLong](OptExpireAfterSeconds).contains(BSONLong(config.collectionTtl.getSeconds))
+      logger.warn(s"IDX: TTL has changed? - returning $changed")
+      changed
+    }
 
     indexes.flatMap {
       idxs => {
-        val maybeIndex = idxs.find(index => index.eventualName == ttlIndex && ttlHasChanged(index))
 
-        maybeIndex.fold(ensureTtlIndex){ index =>
-          collection.indexesManager.drop(index.eventualName).flatMap(_ => ensureTtlIndex)
+        logger.warn("IDX: Found current indexes: " + idxs.mkString(","))
+
+        val maybeIndex: Option[Index] = idxs.find(index => index.eventualName == ttlIndex && ttlHasChanged(index))
+
+        logger.warn(s"IDX: Found an index with name: $ttlIndex whose existing ttl differs from that in config? " + maybeIndex.isDefined)
+
+        maybeIndex.fold(ensureTtlIndex) { index =>
+          logger.warn(s"IDX: Dropping and recreating " + index.eventualName)
+          ensureTtlIndex
+          //collection.indexesManager.drop(index.eventualName).flatMap(_ => ensureTtlIndex)
         }
+
       }
     }
 

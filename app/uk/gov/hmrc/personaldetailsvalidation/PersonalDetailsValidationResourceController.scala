@@ -53,12 +53,16 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
       lazy val toAuthCredentialId: Option[Credentials] => Future[Option[String]] = (credentials: Option[Credentials]) => Future.successful(credentials.map(_.providerId))
       val credentialId: Future[Option[String]] = authorised().retrieve(credentials)(toAuthCredentialId).recover{case _ => None}
       credentialId.flatMap { maybeCredId =>
+        logger.warn(s"Calling validate for credId: $maybeCredId")
         personalDetailsValidator.validate(personalDetails, origin, maybeCredId).fold(handleException, handleMatchingDone).flatten
       }
     }
   }
 
   def getUserAttempts: Action[AnyContent] = Action.async { implicit request =>
+
+    logger.warn("getUserAttempts called...")
+
     lazy val toAuthCredentialId: Option[Credentials] => Future[Option[String]] = (credentials: Option[Credentials]) => Future.successful(credentials.map(_.providerId))
     val attempts: EitherT[Future, Exception, Result] = for {
       maybeCredId <- EitherT.right(authorised().retrieve(credentials)(toAuthCredentialId).recover{case _ => None})
