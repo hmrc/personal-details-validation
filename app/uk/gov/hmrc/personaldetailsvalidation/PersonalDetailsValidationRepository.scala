@@ -49,8 +49,7 @@ private trait FuturedPersonalDetailsValidationRepository extends PersonalDetails
 
 @Singleton
 private class PersonalDetailsValidationMongoRepository @Inject()(config: PersonalDetailsValidationMongoRepositoryConfig,
-                                                                 mongoComponent: ReactiveMongoComponent)(implicit currentTimeProvider: CurrentTimeProvider,
-                                                                                                         ec: ExecutionContext)
+                                                                 mongoComponent: ReactiveMongoComponent)(implicit currentTimeProvider: CurrentTimeProvider)
   extends ReactiveRepository[PersonalDetailsValidation, ValidationId](
     collectionName = "personal-details-validation",
     mongo = mongoComponent.mongoConnector.db,
@@ -58,7 +57,9 @@ private class PersonalDetailsValidationMongoRepository @Inject()(config: Persona
     idFormat = personalDetailsValidationIdFormats
   ) with FuturedPersonalDetailsValidationRepository with TtlIndexedReactiveRepository[PersonalDetailsValidation, ValidationId] {
 
-  //maybeCreateTtlIndex // runs after base class constructor
+  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
+    super.ensureIndexes.zipWith(maybeCreateTtlIndex)(_ ++ _)
+  }
 
   override val ttl: Long = config.collectionTtl.getSeconds
 
