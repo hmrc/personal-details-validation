@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import reactivemongo.api.indexes.IndexType.Descending
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONLong}
 import uk.gov.hmrc.mongo.ReactiveRepository
@@ -24,17 +23,15 @@ import uk.gov.hmrc.mongo.ReactiveRepository
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
-trait RetryMongoIndexes[A, B] { self: ReactiveRepository[A, B] =>
+trait TtlIndexedReactiveRepository[A, B] { self: ReactiveRepository[A, B] =>
 
   val ttlIndex = "personal-details-validation-ttl-index"
   val OptExpireAfterSeconds = "expireAfterSeconds"
   val createdAtField = "createdAt"
-  //user's CredId is the retry key
-  val retryKey = "credentialId"
 
   val ttl: Long
 
-  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
+  def maybeCreateTtlIndex(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
 
     import reactivemongo.bson.DefaultBSONHandlers._
 
@@ -57,18 +54,10 @@ trait RetryMongoIndexes[A, B] { self: ReactiveRepository[A, B] =>
       idxs => {
         val maybeIndex = idxs.find(index => index.eventualName == ttlIndex && ttlHasChanged(index))
 
-        maybeIndex.fold(ensureTtlIndex){ index =>
+        maybeIndex.fold(ensureTtlIndex) { index =>
           collection.indexesManager.drop(index.eventualName).flatMap(_ => ensureTtlIndex)
         }
       }
     }
   }
-
-  override def indexes: Seq[Index] = Seq(
-    Index(
-      Seq(createdAtField -> Descending),
-      name = Some(ttlIndex),
-      options = BSONDocument(OptExpireAfterSeconds -> ttl))
-  )
-
 }

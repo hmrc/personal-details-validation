@@ -31,6 +31,7 @@ import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.json.ops._
 
 import javax.inject.{Inject, Singleton}
+import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
 
@@ -48,13 +49,16 @@ private trait FuturedPersonalDetailsValidationRepository extends PersonalDetails
 
 @Singleton
 private class PersonalDetailsValidationMongoRepository @Inject()(config: PersonalDetailsValidationMongoRepositoryConfig,
-                                                                 mongoComponent: ReactiveMongoComponent)(implicit currentTimeProvider: CurrentTimeProvider)
+                                                                 mongoComponent: ReactiveMongoComponent)(implicit currentTimeProvider: CurrentTimeProvider,
+                                                                                                         ec: ExecutionContext)
   extends ReactiveRepository[PersonalDetailsValidation, ValidationId](
     collectionName = "personal-details-validation",
     mongo = mongoComponent.mongoConnector.db,
     domainFormat = mongoEntity(personalDetailsValidationFormats),
     idFormat = personalDetailsValidationIdFormats
-  ) with FuturedPersonalDetailsValidationRepository with RetryMongoIndexes[PersonalDetailsValidation, ValidationId] {
+  ) with FuturedPersonalDetailsValidationRepository with TtlIndexedReactiveRepository[PersonalDetailsValidation, ValidationId] {
+
+  //maybeCreateTtlIndex // runs after base class constructor
 
   override val ttl: Long = config.collectionTtl.getSeconds
 

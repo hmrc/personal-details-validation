@@ -21,11 +21,14 @@ import cats.data.EitherT
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
+import reactivemongo.api.indexes.Index
+import reactivemongo.api.indexes.IndexType.Descending
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
 import javax.inject.{Inject, Singleton}
+import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
 case class Retry(credentialId: String, attempts: Option[Int])
@@ -43,9 +46,22 @@ class PersonalDetailsValidationRetryRepository @Inject()(config: PersonalDetails
     collectionName = "personal-details-validation-retry-store",
     mongo = mongoComponent.mongoConnector.db,
     domainFormat = Retry.format,
-    idFormat = ReactiveMongoFormats.objectIdFormats) with RetryMongoIndexes[Retry, BSONObjectID] {
+    idFormat = ReactiveMongoFormats.objectIdFormats) with TtlIndexedReactiveRepository[Retry, BSONObjectID] {
+
+  //maybeCreateTtlIndex // runs after base class constructor
 
   override val ttl: Long = config.collectionTtl.getSeconds
+
+  //user's CredId is the retry key
+  val retryKey = "credentialId"
+
+  override def indexes: Seq[Index] = {
+    Seq(Index(
+      Seq(retryKey -> Descending),
+      name = Some(ttlIndex),
+      unique = true
+    ))
+  }
 
   def recordAttempt(maybeCredId: String): Future[Done] = {
     import Json.{obj, toJson}
