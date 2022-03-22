@@ -18,28 +18,26 @@ package uk.gov.hmrc.personaldetailsvalidation.matching
 
 import cats.data.EitherT
 import com.google.inject.ImplementedBy
-import javax.inject.{Inject, Singleton}
 import play.api.http.Status._
 import play.api.libs.json.JsObject
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.{HttpClient, _}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector._
 import uk.gov.hmrc.personaldetailsvalidation.model._
-import uk.gov.hmrc.http.HttpClient
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.higherKinds
 
-@ImplementedBy(classOf[FuturedMatchingConnector])
-trait MatchingConnector[Interpretation[_]] {
+@ImplementedBy(classOf[MatchingConnectorImpl])
+trait MatchingConnector {
 
   def doMatch(personalDetails: PersonalDetails)
-             (implicit headerCarrier: HeaderCarrier, executionContext: ExecutionContext): EitherT[Interpretation, Exception, MatchResult]
+             (implicit headerCarrier: HeaderCarrier, executionContext: ExecutionContext): EitherT[Future, Exception, MatchResult]
 
 }
 
 @Singleton
-class FuturedMatchingConnector @Inject()(httpClient: HttpClient, connectorConfig: MatchingConnectorConfig) extends MatchingConnector[Future] {
+class MatchingConnectorImpl @Inject()(httpClient: HttpClient, connectorConfig: MatchingConnectorConfig) extends MatchingConnector {
 
   import connectorConfig.authenticatorBaseUrl
   import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsFormat._

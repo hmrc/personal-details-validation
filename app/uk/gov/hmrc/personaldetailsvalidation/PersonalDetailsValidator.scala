@@ -25,7 +25,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
-import uk.gov.hmrc.personaldetailsvalidation.matching.{FuturedMatchingConnector, MatchingConnector}
+import uk.gov.hmrc.personaldetailsvalidation.matching.{MatchingConnectorImpl, MatchingConnector}
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.uuid.UUIDProvider
 
@@ -35,7 +35,7 @@ import scala.language.higherKinds
 
 @Singleton
 class FuturedPersonalDetailsValidator @Inject()(
-  matchingConnector: FuturedMatchingConnector,
+  matchingConnector: MatchingConnector,
   personalDetailsValidationRepository: PersonalDetailsValidationRepository,
   personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository,
   matchingEventsSender: EventsSender,
@@ -51,7 +51,7 @@ class FuturedPersonalDetailsValidator @Inject()(
 )
 
 class PersonalDetailsValidator[Interpretation[_] : Monad](
-  matchingConnector: MatchingConnector[Future],
+  matchingConnector: MatchingConnector,
   personalDetailsValidationRepository: PdvRepository,
   personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository,
   matchingEventsSender: EventsSender,

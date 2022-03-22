@@ -33,7 +33,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
-class FuturedMatchingConnectorSpec
+class MatchingConnectorSpec
   extends UnitSpec
     with ScalaFutures
     with MockFactory {
@@ -106,7 +106,7 @@ class FuturedMatchingConnectorSpec
       override lazy val authenticatorBaseUrl = "http://host/authenticator"
     }
 
-    val connector = new FuturedMatchingConnector(httpClient, connectorConfig)
+    val connector = new MatchingConnectorImpl(httpClient, connectorConfig)
 
     implicit val patienceConfig: PatienceConfig = PatienceConfig(timeout = 5 seconds, interval = 100 millis)
   }

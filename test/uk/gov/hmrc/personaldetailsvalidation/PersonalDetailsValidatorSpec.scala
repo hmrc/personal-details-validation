@@ -108,7 +108,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
     "match the given personal details with matching service, with a different suffix, " +
       "store them as SuccessfulPersonalDetailsValidation for successful match " +
       "and return the ValidationId" in new Setup {
-      val personalDetails : PersonalDetailsWithNino = (personalDetailsObjects.generateOne).asInstanceOf[PersonalDetailsWithNino]
+      val personalDetails : PersonalDetailsWithNino = personalDetailsObjects.generateOne.asInstanceOf[PersonalDetailsWithNino]
 
       val enteredNino: Nino = adjustedNino(personalDetails.nino)
       val enteredPersonalDetails: PersonalDetailsWithNino = personalDetails.copy(nino = enteredNino)
@@ -139,7 +139,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
     "match the given personal details with matching service, with a different suffix, " +
       "store the returned Nino as SuccessfulPersonalDetailsValidation for successful match " +
       "and return the ValidationId" in new Setup {
-      val personalDetails : PersonalDetailsWithNino = (personalDetailsObjects.generateOne).asInstanceOf[PersonalDetailsWithNino]
+      val personalDetails : PersonalDetailsWithNino = personalDetailsObjects.generateOne.asInstanceOf[PersonalDetailsWithNino]
 
       val enteredNino: Nino = adjustedNino(personalDetails.nino)
       val enteredPersonalDetails: PersonalDetailsWithNino = personalDetails.copy(nino = enteredNino)
@@ -245,7 +245,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
     implicit val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
 
-    val matchingConnector: MatchingConnector[Future] = mock[MatchingConnector[Future]]
+    val matchingConnector: MatchingConnector = mock[MatchingConnector]
     val matchingEventsSender: EventsSender = mock[EventsSender]
     val mockAppConfig: AppConfig = mock[AppConfig]
 
