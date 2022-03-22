@@ -18,7 +18,6 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import akka.Done
 import cats.data.EitherT
-import com.google.inject.ImplementedBy
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.play.json.ImplicitBSONHandlers._
@@ -34,28 +33,15 @@ import javax.inject.{Inject, Singleton}
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
-
-private trait PersonalDetailsValidationRepository[Interpretation[_]] {
-
-  def create(personalDetails: PersonalDetailsValidation)
-            (implicit ec: ExecutionContext): EitherT[Interpretation, Exception, Done]
-
-  def get(personalDetailsValidationId: ValidationId)
-         (implicit ec: ExecutionContext): Interpretation[Option[PersonalDetailsValidation]]
-}
-
-@ImplementedBy(classOf[PersonalDetailsValidationMongoRepository])
-private trait FuturedPersonalDetailsValidationRepository extends PersonalDetailsValidationRepository[Future]
-
 @Singleton
-private class PersonalDetailsValidationMongoRepository @Inject()(config: PersonalDetailsValidationMongoRepositoryConfig,
-                                                                 mongoComponent: ReactiveMongoComponent)(implicit currentTimeProvider: CurrentTimeProvider)
+class PersonalDetailsValidationRepository @Inject()(config: PersonalDetailsValidationMongoRepositoryConfig,
+                                                    mongoComponent: ReactiveMongoComponent)(implicit currentTimeProvider: CurrentTimeProvider)
   extends ReactiveRepository[PersonalDetailsValidation, ValidationId](
     collectionName = "personal-details-validation",
     mongo = mongoComponent.mongoConnector.db,
     domainFormat = mongoEntity(personalDetailsValidationFormats),
     idFormat = personalDetailsValidationIdFormats
-  ) with FuturedPersonalDetailsValidationRepository with TtlIndexedReactiveRepository[PersonalDetailsValidation, ValidationId] {
+  ) with PdvRepository with TtlIndexedReactiveRepository[PersonalDetailsValidation, ValidationId] {
 
   override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
     super.ensureIndexes.zipWith(maybeCreateTtlIndex)(_ ++ _)
@@ -74,6 +60,7 @@ private class PersonalDetailsValidationMongoRepository @Inject()(config: Persona
       })
   }
 
+  // look in new repo, fallback to old?
   def get(personalDetailsValidationId: ValidationId)
          (implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]] =
     findById(personalDetailsValidationId)

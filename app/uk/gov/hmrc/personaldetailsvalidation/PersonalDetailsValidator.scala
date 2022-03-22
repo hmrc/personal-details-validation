@@ -36,7 +36,7 @@ import scala.language.higherKinds
 @Singleton
 class FuturedPersonalDetailsValidator @Inject()(
   matchingConnector: FuturedMatchingConnector,
-  personalDetailsValidationRepository: PersonalDetailsValidationMongoRepository,
+  personalDetailsValidationRepository: PersonalDetailsValidationRepository,
   personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository,
   matchingEventsSender: EventsSender,
   appConfig: AppConfig
@@ -52,7 +52,7 @@ class FuturedPersonalDetailsValidator @Inject()(
 
 class PersonalDetailsValidator[Interpretation[_] : Monad](
   matchingConnector: MatchingConnector[Future],
-  personalDetailsValidationRepository: PersonalDetailsValidationRepository[Future],
+  personalDetailsValidationRepository: PdvRepository,
   personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository,
   matchingEventsSender: EventsSender,
   appConfig: AppConfig)(implicit uuidProvider: UUIDProvider) {

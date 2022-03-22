@@ -108,7 +108,7 @@ class PersonalDetailsValidationMongoRepositorySpec
 
     currentTimeProvider.apply _ when() returns currentTime
 
-    val repository = new PersonalDetailsValidationMongoRepository(config, new ReactiveMongoComponent {
+    val repository = new PersonalDetailsValidationRepository(config, new ReactiveMongoComponent {
       override val mongoConnector: MongoConnector = mongoConnectorForTest
     })
   }

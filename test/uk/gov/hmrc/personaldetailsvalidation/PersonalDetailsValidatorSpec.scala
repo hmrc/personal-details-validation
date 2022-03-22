@@ -249,7 +249,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
     val matchingEventsSender: EventsSender = mock[EventsSender]
     val mockAppConfig: AppConfig = mock[AppConfig]
 
-    val repository: PersonalDetailsValidationRepository[Future] = mock[PersonalDetailsValidationRepository[Future]]
+    val repository: PdvRepository = mock[PdvRepository]
 
     val personalDetailsValidationMongoRepositoryConfig: PersonalDetailsValidationMongoRepositoryConfig = app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
     val reactiveMongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {

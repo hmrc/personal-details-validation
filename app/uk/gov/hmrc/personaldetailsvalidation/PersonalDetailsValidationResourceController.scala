@@ -33,7 +33,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class PersonalDetailsValidationResourceController @Inject()(personalDetailsValidationRepository: FuturedPersonalDetailsValidationRepository,
+class PersonalDetailsValidationResourceController @Inject()(personalDetailsValidationRepository: PdvRepository,
                                                             personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository,
                                                             personalDetailsValidator: FuturedPersonalDetailsValidator,
                                                             cc: ControllerComponents)

@@ -18,12 +18,11 @@ package uk.gov.hmrc.personaldetailsvalidation.test
 
 import java.time.LocalDate
 import java.util.UUID
-
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{Format, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.personaldetailsvalidation.FuturedPersonalDetailsValidationRepository
+import uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidationRepository
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsWithNino, SuccessfulPersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.play.json.JsonValidation
@@ -31,7 +30,7 @@ import uk.gov.hmrc.play.json.JsonValidation
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class TestController @Inject()(personalDetailsValidationRepository: FuturedPersonalDetailsValidationRepository,
+class TestController @Inject()(personalDetailsValidationRepository: PersonalDetailsValidationRepository,
                               cc: ControllerComponents)
                               (implicit ec: ExecutionContext)
   extends BackendController(cc)

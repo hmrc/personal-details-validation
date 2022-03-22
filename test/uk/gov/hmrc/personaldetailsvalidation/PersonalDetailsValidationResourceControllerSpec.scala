@@ -303,12 +303,14 @@ class PersonalDetailsValidationResourceControllerSpec
   }
 
   private trait Setup {
+
     implicit val materializer: Materializer = app.materializer
     implicit val uuidProvider: UUIDProvider = stub[UUIDProvider]
     uuidProvider.apply _ when() returns randomUUID()
 
     val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
-    val mockRepository: FuturedPersonalDetailsValidationRepository = mock[FuturedPersonalDetailsValidationRepository]
+
+    val mockRepository: PdvRepository = mock[PdvRepository]
 
     val personalDetailsValidationMongoRepositoryConfig: PersonalDetailsValidationMongoRepositoryConfig = app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
     val reactiveMongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
