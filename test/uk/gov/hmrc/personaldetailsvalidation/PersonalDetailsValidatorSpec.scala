@@ -251,11 +251,15 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
 
     val repository: PdvRepository = mock[PdvRepository]
 
-    val personalDetailsValidationMongoRepositoryConfig: PersonalDetailsValidationMongoRepositoryConfig = app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
+    val personalDetailsValidationMongoRepositoryConfig: PersonalDetailsValidationMongoRepositoryConfig =
+      app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
+
     val reactiveMongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
       override def mongoConnector: MongoConnector = mongoConnectorForTest
     }
-    val personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository = new PersonalDetailsValidationRetryRepository(personalDetailsValidationMongoRepositoryConfig, reactiveMongoComponent)
+
+    val personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository =
+      new PersonalDetailsValidationRetryRepository(personalDetailsValidationMongoRepositoryConfig, reactiveMongoComponent)
 
     implicit val uuidProvider: UUIDProvider = stub[UUIDProvider]
     uuidProvider.apply _ when() returns randomUUID()
@@ -270,6 +274,6 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
     }
     val origin: Some[String] = Some("test")
     val maybeCredId: Some[String] = Some("credentialId")
-    val validator = new PersonalDetailsValidator(matchingConnector, repository, personalDetailsValidationRetryRepository, matchingEventsSender, mockAppConfig)
+    val validator = new PersonalDetailsValidatorImpl(matchingConnector, repository, personalDetailsValidationRetryRepository, matchingEventsSender, mockAppConfig)
   }
 }

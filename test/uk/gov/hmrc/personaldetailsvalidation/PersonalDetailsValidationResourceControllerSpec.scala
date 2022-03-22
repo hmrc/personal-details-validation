@@ -312,17 +312,23 @@ class PersonalDetailsValidationResourceControllerSpec
 
     val mockRepository: PdvRepository = mock[PdvRepository]
 
-    val personalDetailsValidationMongoRepositoryConfig: PersonalDetailsValidationMongoRepositoryConfig = app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
+    val personalDetailsValidationMongoRepositoryConfig: PersonalDetailsValidationMongoRepositoryConfig =
+      app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
+
     val reactiveMongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
       override def mongoConnector: MongoConnector = mongoConnectorForTest
     }
-    val personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository = new PersonalDetailsValidationRetryRepository(personalDetailsValidationMongoRepositoryConfig, reactiveMongoComponent)
 
-    val mockValidator: FuturedPersonalDetailsValidator = mock[FuturedPersonalDetailsValidator]
+    val personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository =
+      new PersonalDetailsValidationRetryRepository(personalDetailsValidationMongoRepositoryConfig, reactiveMongoComponent)
+
+    val mockValidator: PersonalDetailsValidator = mock[PersonalDetailsValidator]
     val origin: Some[String] = Some("Test")
     val maybeCredId: Some[String] = Some("test")
     implicit val mockAuthConnector: AuthConnector = mock[AuthConnector]
-    val controller = new PersonalDetailsValidationResourceController(mockRepository, personalDetailsValidationRetryRepository, mockValidator, stubControllerComponents())
+
+    val controller = new PersonalDetailsValidationResourceController(
+        mockRepository, personalDetailsValidationRetryRepository, mockValidator, stubControllerComponents())
   }
 
 }

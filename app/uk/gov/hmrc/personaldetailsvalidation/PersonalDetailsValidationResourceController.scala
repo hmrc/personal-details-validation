@@ -35,7 +35,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class PersonalDetailsValidationResourceController @Inject()(personalDetailsValidationRepository: PdvRepository,
                                                             personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository,
-                                                            personalDetailsValidator: FuturedPersonalDetailsValidator,
+                                                            personalDetailsValidator: PersonalDetailsValidator,
                                                             cc: ControllerComponents)
                                                            (implicit val authConnector: AuthConnector, ec: ExecutionContext)
   extends BackendController(cc) with JsonValidation with AuthorisedFunctions with Logging {

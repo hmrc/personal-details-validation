@@ -16,46 +16,42 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import cats.Monad
 import cats.data.EitherT
 import cats.implicits._
+import com.google.inject.ImplementedBy
 import play.api.mvc.Request
 import uk.gov.hmrc.config.AppConfig
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
-import uk.gov.hmrc.personaldetailsvalidation.matching.{MatchingConnectorImpl, MatchingConnector}
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.language.higherKinds
+
+@ImplementedBy(classOf[PersonalDetailsValidatorImpl])
+trait PersonalDetailsValidator {
+
+  def validate(personalDetails: PersonalDetails, origin: Option[String], maybeCredId: Option[String])
+              (implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): EitherT[Future, Exception, PersonalDetailsValidation]
+
+  def eventDetailsToSend(matchResult: MatchResult, personalDetails: PersonalDetails): PersonalDetails
+
+  def toPersonalDetailsValidation(matchResult: MatchResult, optionallyHaving: PersonalDetails, maybeCredId: Option[String])
+                                 (implicit ec: ExecutionContext): EitherT[Future, Exception, PersonalDetailsValidation]
+
+}
 
 @Singleton
-class FuturedPersonalDetailsValidator @Inject()(
-  matchingConnector: MatchingConnector,
-  personalDetailsValidationRepository: PersonalDetailsValidationRepository,
-  personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository,
-  matchingEventsSender: EventsSender,
-  appConfig: AppConfig
-)(
-  implicit uuidProvider: UUIDProvider, ec: ExecutionContext
-) extends PersonalDetailsValidator[Future](
-  matchingConnector,
-  personalDetailsValidationRepository,
-  personalDetailsValidationRetryRepository,
-  matchingEventsSender,
-  appConfig
-)
-
-class PersonalDetailsValidator[Interpretation[_] : Monad](
+class PersonalDetailsValidatorImpl @Inject() (
   matchingConnector: MatchingConnector,
   personalDetailsValidationRepository: PdvRepository,
   personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository,
   matchingEventsSender: EventsSender,
-  appConfig: AppConfig)(implicit uuidProvider: UUIDProvider) {
+  appConfig: AppConfig)(implicit uuidProvider: UUIDProvider) extends PersonalDetailsValidator {
 
   import matchingConnector._
   import matchingEventsSender._
