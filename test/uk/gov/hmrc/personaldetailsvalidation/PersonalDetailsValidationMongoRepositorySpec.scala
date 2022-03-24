@@ -104,13 +104,18 @@ class PersonalDetailsValidationMongoRepositorySpec
       override lazy val collectionTtl: Duration = Duration.ofSeconds(ttlSeconds)
     }
 
+    val pdvOldRepository: PdvOldRepository = new PdvOldRepository(new ReactiveMongoComponent {
+      override val mongoConnector: MongoConnector = mongoConnectorForTest
+    })
+
     val currentTime: LocalDateTime = LocalDateTime.now()
 
     currentTimeProvider.apply _ when() returns currentTime
 
     val repository = new PersonalDetailsValidationRepository(config, new ReactiveMongoComponent {
       override val mongoConnector: MongoConnector = mongoConnectorForTest
-    })
+    }, pdvOldRepository)
+
   }
 
 }
