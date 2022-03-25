@@ -23,7 +23,7 @@ import mongo.MongoIndexVerifier
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import play.api.Configuration
-import play.api.libs.json.{Format, JsObject, OFormat}
+import play.api.libs.json.JsObject
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.ReadConcern
 import reactivemongo.api.indexes.Index
@@ -34,7 +34,7 @@ import uk.gov.hmrc.datetime.CurrentTimeProvider
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.mongoEntity
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
-import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, SuccessfulPersonalDetailsValidation, ValidationId}
+import uk.gov.hmrc.personaldetailsvalidation.model.{SuccessfulPersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import java.time.ZoneOffset.UTC
@@ -101,7 +101,7 @@ class PersonalDetailsValidationMongoRepositorySpec
         mongoEntity(personalDetailsValidationFormats).writes(pdvDoc).as[JsObject]
 
       import reactivemongo.play.json.ImplicitBSONHandlers._
-      pdvOldRepository.collection.insert(ordered = false).one(document)
+      await(pdvOldRepository.collection.insert(ordered = false).one(document))
 
       // now check we can access via fallback:
       
