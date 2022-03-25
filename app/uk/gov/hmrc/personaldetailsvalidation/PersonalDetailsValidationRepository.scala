@@ -61,7 +61,8 @@ class PersonalDetailsValidationRepository @Inject()(config: PersonalDetailsValid
   def create(personalDetailsValidation: PersonalDetailsValidation)
             (implicit ec: ExecutionContext): EitherT[Future, Exception, Done] = {
 
-    val document = domainFormatImplicit.writes(personalDetailsValidation).as[JsObject].withCreatedTimeStamp(createdAtField)
+    val document: JsObject =
+      domainFormatImplicit.writes(personalDetailsValidation).as[JsObject].withCreatedTimeStamp(createdAtField)
 
     EitherT(collection.insert(ordered = false).one(document).map(_ => Right(Done))
       .recover {
