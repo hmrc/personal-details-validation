@@ -29,7 +29,7 @@ trait TtlIndexedReactiveRepository[A, B] { self: ReactiveRepository[A, B] =>
   val OptExpireAfterSeconds = "expireAfterSeconds"
   val createdAtField = "createdAt"
 
-  val ttl: Long
+  val ttl: Long = 0
 
   def maybeCreateTtlIndex(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
 

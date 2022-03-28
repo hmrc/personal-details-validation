@@ -23,6 +23,7 @@ import mongo.MongoIndexVerifier
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import play.api.Configuration
+import play.api.libs.json.JsObject
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.ReadConcern
 import reactivemongo.api.indexes.Index
@@ -30,7 +31,9 @@ import reactivemongo.api.indexes.IndexType.Descending
 import reactivemongo.bson.{BSONDateTime, BSONDocument}
 import support.UnitSpec
 import uk.gov.hmrc.datetime.CurrentTimeProvider
+import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.mongoEntity
 import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
+import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
 import uk.gov.hmrc.personaldetailsvalidation.model.{SuccessfulPersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.uuid.UUIDProvider
 
@@ -77,12 +80,38 @@ class PersonalDetailsValidationMongoRepositorySpec
   }
 
   "get" should {
-    "return None if document not found" in new Setup {
+
+    "return None if document not found in either new or old collection" in new Setup {
       repository.get(ValidationId()).futureValue shouldBe None
     }
+
+    "return Document if document found in new collection" in new Setup {
+
+      val pdvDoc: SuccessfulPersonalDetailsValidation = successfulPersonalDetailsValidationObjects.generateOne
+      repository.create(pdvDoc).value.futureValue shouldBe Right(Done)
+      repository.get(pdvDoc.id).futureValue shouldBe Some(pdvDoc)
+    }
+
+    "return Document if document not in new collection, but found in old collection" in new Setup {
+
+      // manually insert a doc into the old repo (create method here is banned)
+      private val pdvDoc = successfulPersonalDetailsValidationObjects.generateOne
+
+      private val document: JsObject =
+        mongoEntity(personalDetailsValidationFormats).writes(pdvDoc).as[JsObject]
+
+      import reactivemongo.play.json.ImplicitBSONHandlers._
+      await(pdvOldRepository.collection.insert(ordered = false).one(document))
+
+      // now check we can access via fallback:
+      
+      repository.get(pdvDoc.id).futureValue shouldBe Some(pdvDoc)
+    }
+
   }
 
   "repository" should {
+
     "create ttl on collection" in new Setup {
       val expectedIndex: Index =
         Index(Seq("createdAt" -> Descending),
@@ -91,9 +120,11 @@ class PersonalDetailsValidationMongoRepositorySpec
       Thread.sleep(500) // wait for index to be created
       verify(expectedIndex).on(repository.collection.name)
     }
+
   }
 
   private trait Setup {
+
     implicit val uuidProvider: UUIDProvider = new UUIDProvider()
     implicit val ttlSeconds: Long = 100
     await(mongo().drop())
@@ -104,13 +135,18 @@ class PersonalDetailsValidationMongoRepositorySpec
       override lazy val collectionTtl: Duration = Duration.ofSeconds(ttlSeconds)
     }
 
+    val pdvOldRepository: PdvOldRepository = new PdvOldRepository(new ReactiveMongoComponent {
+      override val mongoConnector: MongoConnector = mongoConnectorForTest
+    })
+
     val currentTime: LocalDateTime = LocalDateTime.now()
 
     currentTimeProvider.apply _ when() returns currentTime
 
-    val repository = new PersonalDetailsValidationMongoRepository(config, new ReactiveMongoComponent {
+    val repository = new PersonalDetailsValidationRepository(config, new ReactiveMongoComponent {
       override val mongoConnector: MongoConnector = mongoConnectorForTest
-    })
+    }, pdvOldRepository)
+
   }
 
 }

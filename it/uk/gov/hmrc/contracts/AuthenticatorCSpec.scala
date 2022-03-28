@@ -10,7 +10,7 @@ import play.api.libs.json.Json
 import play.api.test.Helpers._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.personaldetailsvalidation.matching.FuturedMatchingConnector
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnectorImpl
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsWithNino}
 import uk.gov.hmrc.support.BaseIntegrationSpec
@@ -97,6 +97,6 @@ class AuthenticatorCSpec extends BaseIntegrationSpec {
   }
 
   private trait Setup {
-    val authConnector = app.injector.instanceOf[FuturedMatchingConnector]
+    val authConnector = app.injector.instanceOf[MatchingConnectorImpl]
   }
 }

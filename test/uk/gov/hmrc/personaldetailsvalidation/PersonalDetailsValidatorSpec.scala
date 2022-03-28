@@ -108,7 +108,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
     "match the given personal details with matching service, with a different suffix, " +
       "store them as SuccessfulPersonalDetailsValidation for successful match " +
       "and return the ValidationId" in new Setup {
-      val personalDetails : PersonalDetailsWithNino = (personalDetailsObjects.generateOne).asInstanceOf[PersonalDetailsWithNino]
+      val personalDetails : PersonalDetailsWithNino = personalDetailsObjects.generateOne.asInstanceOf[PersonalDetailsWithNino]
 
       val enteredNino: Nino = adjustedNino(personalDetails.nino)
       val enteredPersonalDetails: PersonalDetailsWithNino = personalDetails.copy(nino = enteredNino)
@@ -139,7 +139,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
     "match the given personal details with matching service, with a different suffix, " +
       "store the returned Nino as SuccessfulPersonalDetailsValidation for successful match " +
       "and return the ValidationId" in new Setup {
-      val personalDetails : PersonalDetailsWithNino = (personalDetailsObjects.generateOne).asInstanceOf[PersonalDetailsWithNino]
+      val personalDetails : PersonalDetailsWithNino = personalDetailsObjects.generateOne.asInstanceOf[PersonalDetailsWithNino]
 
       val enteredNino: Nino = adjustedNino(personalDetails.nino)
       val enteredPersonalDetails: PersonalDetailsWithNino = personalDetails.copy(nino = enteredNino)
@@ -245,17 +245,21 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
     implicit val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
 
-    val matchingConnector: MatchingConnector[Future] = mock[MatchingConnector[Future]]
+    val matchingConnector: MatchingConnector = mock[MatchingConnector]
     val matchingEventsSender: EventsSender = mock[EventsSender]
     val mockAppConfig: AppConfig = mock[AppConfig]
 
-    val repository: PersonalDetailsValidationRepository[Future] = mock[PersonalDetailsValidationRepository[Future]]
+    val repository: PdvRepository = mock[PdvRepository]
 
-    val personalDetailsValidationMongoRepositoryConfig: PersonalDetailsValidationMongoRepositoryConfig = app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
+    val personalDetailsValidationMongoRepositoryConfig: PersonalDetailsValidationMongoRepositoryConfig =
+      app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
+
     val reactiveMongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
       override def mongoConnector: MongoConnector = mongoConnectorForTest
     }
-    val personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository = new PersonalDetailsValidationRetryRepository(personalDetailsValidationMongoRepositoryConfig, reactiveMongoComponent)
+
+    val personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository =
+      new PersonalDetailsValidationRetryRepository(personalDetailsValidationMongoRepositoryConfig, reactiveMongoComponent)
 
     implicit val uuidProvider: UUIDProvider = stub[UUIDProvider]
     uuidProvider.apply _ when() returns randomUUID()
@@ -270,6 +274,6 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
     }
     val origin: Some[String] = Some("test")
     val maybeCredId: Some[String] = Some("credentialId")
-    val validator = new PersonalDetailsValidator(matchingConnector, repository, personalDetailsValidationRetryRepository, matchingEventsSender, mockAppConfig)
+    val validator = new PersonalDetailsValidatorImpl(matchingConnector, repository, personalDetailsValidationRetryRepository, matchingEventsSender, mockAppConfig)
   }
 }

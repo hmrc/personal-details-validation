@@ -18,7 +18,6 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import akka.Done
 import cats.data.EitherT
-import com.google.inject.ImplementedBy
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.play.json.ImplicitBSONHandlers._
@@ -34,30 +33,26 @@ import javax.inject.{Inject, Singleton}
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
-
-private trait PersonalDetailsValidationRepository[Interpretation[_]] {
-
-  def create(personalDetails: PersonalDetailsValidation)
-            (implicit ec: ExecutionContext): EitherT[Interpretation, Exception, Done]
-
-  def get(personalDetailsValidationId: ValidationId)
-         (implicit ec: ExecutionContext): Interpretation[Option[PersonalDetailsValidation]]
-}
-
-@ImplementedBy(classOf[PersonalDetailsValidationMongoRepository])
-private trait FuturedPersonalDetailsValidationRepository extends PersonalDetailsValidationRepository[Future]
-
 @Singleton
-private class PersonalDetailsValidationMongoRepository @Inject()(config: PersonalDetailsValidationMongoRepositoryConfig,
-                                                                 mongoComponent: ReactiveMongoComponent)(implicit currentTimeProvider: CurrentTimeProvider)
+class PersonalDetailsValidationRepository @Inject()(config: PersonalDetailsValidationMongoRepositoryConfig,
+                                                    mongoComponent: ReactiveMongoComponent,
+                                                    pdvOldRepository: PdvOldRepository)(implicit currentTimeProvider: CurrentTimeProvider)
   extends ReactiveRepository[PersonalDetailsValidation, ValidationId](
-    collectionName = "personal-details-validation",
+    collectionName = "pdv-journey", // new collection name
     mongo = mongoComponent.mongoConnector.db,
     domainFormat = mongoEntity(personalDetailsValidationFormats),
     idFormat = personalDetailsValidationIdFormats
-  ) with FuturedPersonalDetailsValidationRepository with TtlIndexedReactiveRepository[PersonalDetailsValidation, ValidationId] {
+  ) with PdvRepository with TtlIndexedReactiveRepository[PersonalDetailsValidation, ValidationId] {
+
 
   override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
+
+   // TODO on startup, AFTER journeys are all using the new collection, add a hook to drop the OLD collection (if exists)
+   //   Once collection is successfully dropped (check Grafana) the hook can be removed:
+   //    mongo()
+   //      .collection[JSONCollection]("personal-details-validation")
+   //      .drop(failIfNotFound = false)
+
     super.ensureIndexes.zipWith(maybeCreateTtlIndex)(_ ++ _)
   }
 
@@ -66,7 +61,8 @@ private class PersonalDetailsValidationMongoRepository @Inject()(config: Persona
   def create(personalDetailsValidation: PersonalDetailsValidation)
             (implicit ec: ExecutionContext): EitherT[Future, Exception, Done] = {
 
-    val document = domainFormatImplicit.writes(personalDetailsValidation).as[JsObject].withCreatedTimeStamp(createdAtField)
+    val document: JsObject =
+      domainFormatImplicit.writes(personalDetailsValidation).as[JsObject].withCreatedTimeStamp(createdAtField)
 
     EitherT(collection.insert(ordered = false).one(document).map(_ => Right(Done))
       .recover {
@@ -74,8 +70,22 @@ private class PersonalDetailsValidationMongoRepository @Inject()(config: Persona
       })
   }
 
+  /**
+   * Fetch a journey record by validation id
+   *
+   * While we are transitioning to the new collection, we need to fallback to looking in the
+   * OLD collection for journeys which were started with the previous version of code (only needed for max 24 hours - TTL period)
+   */
   def get(personalDetailsValidationId: ValidationId)
-         (implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]] =
+         (implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]] = {
     findById(personalDetailsValidationId)
+      .flatMap {
+        case Some(result) => Future.successful(Some(result))
+        case None =>
+          // NOTE: this fallback no longer needed once these messages disappear in production
+          logger.warn(s"[VER-1979] Journey with validation id: $personalDetailsValidationId not found, looking in old 7G collection")
+          pdvOldRepository.findById(personalDetailsValidationId) // fallback to old collection
+      }
+  }
 
 }
