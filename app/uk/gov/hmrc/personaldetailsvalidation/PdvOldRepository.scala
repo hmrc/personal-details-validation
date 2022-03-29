@@ -20,11 +20,13 @@ import akka.Done
 import cats.data.EitherT
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
-import uk.gov.hmrc.personaldetailsvalidation.formats.TinyTypesFormats.personalDetailsValidationIdFormats
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, ValidationId}
 import javax.inject.{Inject, Singleton}
+import org.mongodb.scala.model.{IndexModel, IndexOptions}
+import org.mongodb.scala.model.Indexes.ascending
 import uk.gov.hmrc.mongo.MongoComponent
 
+import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -40,13 +42,14 @@ class PdvOldRepository @Inject()(mongo: MongoComponent)(implicit ec: ExecutionCo
     mongoComponent = mongo,
     collectionName = "personal-details-validation", // the original collection name (7G of old data)
     domainFormat = personalDetailsValidationFormats,
-    indexes =
+    indexes = Seq(IndexModel(ascending("credentialId"),IndexOptions().unique(true))),
   ) with PdvRepository {
 
   override def create(personalDetails: PersonalDetailsValidation)(implicit ec: ExecutionContext): EitherT[Future, Exception, Done] =
     throw new RuntimeException("Trying create a journey document in the old PDV collection - this is no longer allowed")
 
   override def get(personalDetailsValidationId: ValidationId)(implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]] =
-    findById(personalDetailsValidationId)
+    collection.find(personalDetailsValidationId).toFuture()
+
 
 }
