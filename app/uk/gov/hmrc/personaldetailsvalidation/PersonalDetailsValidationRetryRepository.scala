@@ -20,14 +20,10 @@ import akka.Done
 import cats.data.EitherT
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.indexes.Index
-import reactivemongo.api.indexes.IndexType.Descending
-import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
-
 import javax.inject.{Inject, Singleton}
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -41,12 +37,12 @@ object Retry {
 
 @Singleton
 class PersonalDetailsValidationRetryRepository @Inject()(config: PersonalDetailsValidationMongoRepositoryConfig,
-                                                         mongoComponent: ReactiveMongoComponent)(implicit ec: ExecutionContext)
-  extends ReactiveRepository[Retry, BSONObjectID](
+                                                         mongo: MongoComponent)(implicit ec: ExecutionContext)
+  extends PlayMongoRepository[Retry](
+    mongoComponent = mongo,
     collectionName = "personal-details-validation-retry-store",
-    mongo = mongoComponent.mongoConnector.db,
     domainFormat = Retry.format,
-    idFormat = ReactiveMongoFormats.objectIdFormats) with TtlIndexedReactiveRepository[Retry, BSONObjectID] {
+    indexes = Seq()) with TtlIndexedReactiveRepository[Retry] {
 
   override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
     super.ensureIndexes.zipWith(maybeCreateTtlIndex)(_ ++ _)

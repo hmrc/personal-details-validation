@@ -16,14 +16,11 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.{BSONDocument, BSONLong}
-import uk.gov.hmrc.mongo.ReactiveRepository
-
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
-trait TtlIndexedReactiveRepository[A, B] { self: ReactiveRepository[A, B] =>
+trait TtlIndexedReactiveRepository[A, B] { self: PlayMongoRepository[A] =>
 
   val ttlIndex = "personal-details-validation-ttl-index"
   val OptExpireAfterSeconds = "expireAfterSeconds"
@@ -33,12 +30,10 @@ trait TtlIndexedReactiveRepository[A, B] { self: ReactiveRepository[A, B] =>
 
   def maybeCreateTtlIndex(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
 
-    import reactivemongo.bson.DefaultBSONHandlers._
-
-    val indexes: Future[List[Index]] = collection.indexesManager.list()
+    val indexes: Future[List[Index]] = collection.listIndexes.toFuture()
 
     def ensureTtlIndex(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
-      Future.sequence(Seq(collection.indexesManager.ensure(
+      Future.sequence(Seq(collection.find(
         Index(
           key = Seq(createdAtField -> IndexType.Descending),
           name = Some(ttlIndex),
