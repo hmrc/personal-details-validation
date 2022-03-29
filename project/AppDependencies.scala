@@ -10,7 +10,7 @@ private object AppDependencies {
   private val compile = Seq(
     "org.typelevel" %% "cats-core" % "2.0.0",
     "uk.gov.hmrc" %% "bootstrap-backend-play-28" % "5.5.0",
-    "uk.gov.hmrc" %% "simple-reactivemongo" % "8.0.0-play-28",
+    "uk.gov.hmrc.mongo" %% "hmrc-mongo-play-28" % "0.62.0",
     "uk.gov.hmrc" %% "domain" % "6.0.0-play-28",
     ws
   )
@@ -26,7 +26,7 @@ private object AppDependencies {
     "org.pegdown" % "pegdown" % "1.6.0" % scope,
     "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % "it",
     "uk.gov.hmrc" %% "service-integration-test" % "1.1.0-play-27" % scope,
-    "uk.gov.hmrc" %% "reactivemongo-test" % "5.0.0-play-28" % "test",
+    "uk.gov.hmrc.mongo" %% "hmrc-mongo-test-play-28" % "0.62.0" % "test",
     "com.github.tomakehurst" % "wiremock-jre8" % "2.27.2" % "it"
   )
 }

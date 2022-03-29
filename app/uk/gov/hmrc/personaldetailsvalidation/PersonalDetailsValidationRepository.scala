@@ -20,7 +20,7 @@ import akka.Done
 import cats.data.EitherT
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.play.json.ImplicitBSONHandlers._
+import uk.gov.hmrc.mongo.play.json.formats.MongoFormats
 import uk.gov.hmrc.datetime.CurrentTimeProvider
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.mongoEntity

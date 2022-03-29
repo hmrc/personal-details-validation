@@ -18,14 +18,13 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import akka.Done
 import cats.data.EitherT
-import play.modules.reactivemongo.ReactiveMongoComponent
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.mongoEntity
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
 import uk.gov.hmrc.personaldetailsvalidation.formats.TinyTypesFormats.personalDetailsValidationIdFormats
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, ValidationId}
-
 import javax.inject.{Inject, Singleton}
+import uk.gov.hmrc.mongo.MongoComponent
+
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -36,12 +35,12 @@ import scala.concurrent.{ExecutionContext, Future}
  */
 
 @Singleton
-class PdvOldRepository @Inject()(mongoComponent: ReactiveMongoComponent)
-  extends ReactiveRepository[PersonalDetailsValidation, ValidationId](
+class PdvOldRepository @Inject()(mongo: MongoComponent)(implicit ec: ExecutionContext)
+  extends PlayMongoRepository[PersonalDetailsValidation](
+    mongoComponent = mongo,
     collectionName = "personal-details-validation", // the original collection name (7G of old data)
-    mongo = mongoComponent.mongoConnector.db,
-    domainFormat = mongoEntity(personalDetailsValidationFormats),
-    idFormat = personalDetailsValidationIdFormats
+    domainFormat = personalDetailsValidationFormats,
+    indexes =
   ) with PdvRepository {
 
   override def create(personalDetails: PersonalDetailsValidation)(implicit ec: ExecutionContext): EitherT[Future, Exception, Done] =
