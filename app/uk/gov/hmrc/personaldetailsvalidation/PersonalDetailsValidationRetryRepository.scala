@@ -18,11 +18,14 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import akka.Done
 import cats.data.EitherT
+import com.mongodb.client.model.IndexModel
 import org.joda.time.{DateTime, DateTimeZone}
 import play.api.libs.json._
 import javax.inject.{Inject, Singleton}
+import org.mongodb.scala.model.{IndexModel, Indexes}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import org.mongodb.scala._
 
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
@@ -42,18 +45,10 @@ class PersonalDetailsValidationRetryRepository @Inject()(config: PersonalDetails
     mongoComponent = mongo,
     collectionName = "personal-details-validation-retry-store",
     domainFormat = Retry.format,
-    indexes = Seq()) with TtlIndexedReactiveRepository[Retry] {
+    indexes = Seq(IndexModel(Indexes.descending("credentialId")), "name" -> Some("credentialIdUnique"), "unique" -> true)) with TtlIndexedReactiveRepository[Retry] {
 
   override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
     super.ensureIndexes.zipWith(maybeCreateTtlIndex)(_ ++ _)
-  }
-
-  override def indexes: Seq[Index] = {
-    Seq(Index(
-      Seq(retryKey -> Descending),
-      name = Some("credentialIdUnique"),
-      unique = true
-    ))
   }
 
   override val ttl: Long = config.collectionTtl.getSeconds
