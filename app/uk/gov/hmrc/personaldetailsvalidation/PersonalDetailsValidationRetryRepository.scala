@@ -53,7 +53,7 @@ class PersonalDetailsValidationRetryRepository @Inject()(config: PersonalDetails
     indexes = Seq(IndexModel(
     keys = Indexes.descending("credentialId"),
     indexOptions = IndexOptions().name("credentialIdUnique").unique(true).expireAfter(config.collectionTtl.getSeconds, TimeUnit.SECONDS)
-  ))) with TtlIndexedReactiveRepository[Retry] {
+  )))  {
 
 
   //user's CredId is the retry key

@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
+import java.util.concurrent.TimeUnit
+
 import akka.Done
 import cats.data.EitherT
 import play.api.libs.json._
@@ -23,10 +25,11 @@ import uk.gov.hmrc.datetime.CurrentTimeProvider
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat._
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import javax.inject.{Inject, Singleton}
-import org.mongodb.scala.model.Filters
+import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.Codecs.logger
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import org.mongodb.scala.model.Indexes.ascending
 
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
@@ -40,22 +43,16 @@ class PersonalDetailsValidationRepository @Inject()(config: PersonalDetailsValid
     mongoComponent = mongo,
     collectionName = "pdv-journey", // new collection name
     domainFormat = personalDetailsValidationFormats,
-    indexes = Seq()
-  ) with PdvRepository with TtlIndexedReactiveRepository[PersonalDetailsValidation, ValidationId] {
-
-
-  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
-
-   // TODO on startup, AFTER journeys are all using the new collection, add a hook to drop the OLD collection (if exists)
-   //   Once collection is successfully dropped (check Grafana) the hook can be removed:
-   //    mongo()
-   //      .collection[JSONCollection]("personal-details-validation")
-   //      .drop(failIfNotFound = false)
-
-    super.ensureIndexes.zipWith(maybeCreateTtlIndex)(_ ++ _)
-  }
-
-  override val ttl: Long = config.collectionTtl.getSeconds
+    indexes = Seq(
+      IndexModel(
+        ascending("createdAt"),
+        indexOptions = IndexOptions().name("expireAfterSeconds").expireAfter(config.collectionTtl.getSeconds, TimeUnit.SECONDS)
+      ),
+      IndexModel(
+        ascending("journeyId"), IndexOptions().name("Primary").unique(true)
+      )
+    )
+  ) with PdvRepository{
 
   def create(personalDetailsValidation: PersonalDetailsValidation)
             (implicit ec: ExecutionContext): EitherT[Future, Exception, Done] = {
