@@ -16,30 +16,38 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import java.util.concurrent.TimeUnit
-
 import akka.Done
 import cats.data.EitherT
-import com.mongodb.client.model.{IndexModel, Updates}
+import com.mongodb.client.model.Updates
+import org.bson.conversions.Bson
 import org.joda.time.{DateTime, DateTimeZone}
-import play.api.libs.json._
-import javax.inject.{Inject, Singleton}
+import org.mongodb.scala._
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
+import play.api.libs.json._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import org.mongodb.scala._
-import org.mongodb.scala.model.Aggregates.set
-import org.mongodb.scala.model.Filters._
 
+import java.util.concurrent.TimeUnit
+import javax.inject.{Inject, Singleton}
 import scala.collection.Seq
-import scala.collection.script.Update
 import scala.concurrent.{ExecutionContext, Future}
 
 case class Retry(credentialId: String, attempts: Option[Int])
 
-//check original format and find if it is required.
 object Retry {
-  implicit val dateTimeFormats: Format[DateTime] = Json.format[DateTime]
+  implicit val dateTimeFormats: Format[DateTime] = {
+    implicit val dateTimeRead: Reads[DateTime] =
+      ((__ \ "$date") \ "$numberLong").read[Long].map { dateTime =>
+        new DateTime(dateTime, DateTimeZone.UTC)
+      }
+
+    implicit val dateTimeWrite: Writes[DateTime] = new Writes[DateTime] {
+      def writes(dateTime: DateTime): JsValue = Json.obj(
+        "$date" -> dateTime.getMillis
+      )
+    }
+    Format(dateTimeRead, dateTimeWrite)
+  }
   implicit val format: OFormat[Retry] = Json.format[Retry]
 }
 
@@ -47,25 +55,24 @@ object Retry {
 class PersonalDetailsValidationRetryRepository @Inject()(config: PersonalDetailsValidationMongoRepositoryConfig,
                                                          mongo: MongoComponent)(implicit ec: ExecutionContext)
   extends PlayMongoRepository[Retry](
-    mongoComponent = mongo,
     collectionName = "personal-details-validation-retry-store",
+    mongoComponent = mongo,
     domainFormat = Retry.format,
-    indexes = Seq(IndexModel(
-    keys = Indexes.descending("credentialId"),
-    indexOptions = IndexOptions().name("credentialIdUnique").unique(true).expireAfter(config.collectionTtl.getSeconds, TimeUnit.SECONDS)
-  )))  {
+    indexes = Seq(
+      IndexModel(
+        keys = Indexes.descending("credentialId"),
+        indexOptions = IndexOptions().name("credentialIdUnique").unique(true).expireAfter(config.collectionTtl.getSeconds, TimeUnit.SECONDS)
+      )
+    )
+  )  {
 
 
   //user's CredId is the retry key
   lazy val retryKey = "credentialId"
 
   def recordAttempt(maybeCredId: String): Future[Done] = {
-    import Json.toJson
-    val update = Updates.set(
-      "$inc" , ("attempts", 1),
-      "$setOnInsert" , (createdAtField, toJson(DateTime.now.withZone(DateTimeZone.UTC))(Retry.dateTimeFormats))
-    )
-    collection.findOneAndUpdate(Filters.eq(retryKey, maybeCredId), Filters.eq(update)).map(_ => Done).recover{ case _ => Done }.toFuture()
+    val update: Bson = Updates.inc("attempts", 1)
+    collection.findOneAndUpdate(Filters.eq(retryKey, maybeCredId), update).map(_ => Done).recover{ case _ => Done }.toFuture().map(_ => Done)
   }
 
   def getAttempts(maybeCredId: Option[String])(implicit ec: ExecutionContext): EitherT[Future, Exception, Int] = EitherT(

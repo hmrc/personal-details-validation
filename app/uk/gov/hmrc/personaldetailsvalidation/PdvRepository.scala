@@ -19,7 +19,7 @@ package uk.gov.hmrc.personaldetailsvalidation
 import akka.Done
 import cats.data.EitherT
 import com.google.inject.ImplementedBy
-import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, ValidationId}
+import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, PersonalDetailsValidationWithCreateTimeStamp, ValidationId}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -30,5 +30,5 @@ trait PdvRepository {
             (implicit ec: ExecutionContext): EitherT[Future, Exception, Done]
 
   def get(personalDetailsValidationId: ValidationId)
-         (implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]]
+         (implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidationWithCreateTimeStamp]]
 }

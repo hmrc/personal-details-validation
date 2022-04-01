@@ -20,7 +20,8 @@ import akka.Done
 import cats.data.EitherT
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
-import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, ValidationId}
+import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, PersonalDetailsValidationWithCreateTimeStamp, ValidationId}
+
 import javax.inject.{Inject, Singleton}
 import org.mongodb.scala.model.Filters
 import uk.gov.hmrc.mongo.MongoComponent
@@ -37,17 +38,17 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class PdvOldRepository @Inject()(mongo: MongoComponent)(implicit ec: ExecutionContext)
-  extends PlayMongoRepository[PersonalDetailsValidation](
+  extends PlayMongoRepository[PersonalDetailsValidationWithCreateTimeStamp](
     mongoComponent = mongo,
     collectionName = "personal-details-validation", // the original collection name (7G of old data)
-    domainFormat = personalDetailsValidationFormats,
+    domainFormat = PersonalDetailsValidationWithCreateTimeStamp.format,
     indexes = Seq()
   ) with PdvRepository {
 
   override def create(personalDetails: PersonalDetailsValidation)(implicit ec: ExecutionContext): EitherT[Future, Exception, Done] =
     throw new RuntimeException("Trying create a journey document in the old PDV collection - this is no longer allowed")
 
-  override def get(personalDetailsValidationId: ValidationId)(implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]] = {
+  override def get(personalDetailsValidationId: ValidationId)(implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidationWithCreateTimeStamp]] = {
     val completeFilter = Filters.and(Filters.eq("_id_", personalDetailsValidationId))
     collection.find(completeFilter).toFuture().map(_.headOption)
   }

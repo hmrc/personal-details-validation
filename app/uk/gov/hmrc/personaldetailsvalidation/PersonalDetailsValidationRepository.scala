@@ -16,22 +16,19 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import java.time.LocalDateTime
-import java.util.concurrent.TimeUnit
-
 import akka.Done
 import cats.data.EitherT
-import play.api.libs.json._
-import uk.gov.hmrc.datetime.CurrentTimeProvider
-import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat._
-import uk.gov.hmrc.personaldetailsvalidation.model._
-import javax.inject.{Inject, Singleton}
+import org.mongodb.scala.model.Indexes.ascending
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions}
+import uk.gov.hmrc.datetime.CurrentTimeProvider
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.Codecs.logger
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import org.mongodb.scala.model.Indexes.ascending
+import uk.gov.hmrc.personaldetailsvalidation.model._
 
+import java.time.{LocalDateTime, ZoneOffset}
+import java.util.concurrent.TimeUnit
+import javax.inject.{Inject, Singleton}
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -40,10 +37,10 @@ class PersonalDetailsValidationRepository @Inject()(config: PersonalDetailsValid
                                                     mongo: MongoComponent,
                                                     pdvOldRepository: PdvOldRepository)
                                                    (implicit currentTimeProvider: CurrentTimeProvider,executionContext: ExecutionContext)
-  extends PlayMongoRepository[PersonalDetailsValidation](
+  extends PlayMongoRepository[PersonalDetailsValidationWithCreateTimeStamp](
     mongoComponent = mongo,
     collectionName = "pdv-journey", // new collection name
-    domainFormat = personalDetailsValidationFormats,
+    domainFormat = PersonalDetailsValidationWithCreateTimeStamp.format,
     indexes = Seq(
       IndexModel(
         ascending("createdAt"),
@@ -56,12 +53,11 @@ class PersonalDetailsValidationRepository @Inject()(config: PersonalDetailsValid
   ) with PdvRepository{
 
   def create(personalDetailsValidation: PersonalDetailsValidation)
-            (implicit ec: ExecutionContext): EitherT[Future, Exception, Done] = {
+            (implicit executionContext: ExecutionContext): EitherT[Future, Exception, Done] = {
 
-    val document: JsObject =
-      domainFormatImplicit.writes(personalDetailsValidation).as[JsObject].withCreatedTimeStamp(LocalDateTime.now())
+    val pdv: PersonalDetailsValidationWithCreateTimeStamp = PersonalDetailsValidationWithCreateTimeStamp(personalDetailsValidation, LocalDateTime.now(ZoneOffset.UTC))
 
-    EitherT(collection.insertOne(document) .map(_ => Right(Done))
+    EitherT(collection.insertOne(pdv).map(_ => Right(Done)).toFuture().map(_ => Right(Done))
       .recover {
         case ex: Exception => Left(ex)
       })
@@ -73,7 +69,7 @@ class PersonalDetailsValidationRepository @Inject()(config: PersonalDetailsValid
    * While we are transitioning to the new collection, we need to fallback to looking in the
    * OLD collection for journeys which were started with the previous version of code (only needed for max 24 hours - TTL period)
    */
-  def get(personalDetailsValidationId: ValidationId): Future[Option[PersonalDetailsValidation]] = {
+  def get(personalDetailsValidationId: ValidationId)(implicit executionContext: ExecutionContext): Future[Option[PersonalDetailsValidationWithCreateTimeStamp]] = {
     val completeFilter = Filters.and(Filters.eq("_id_", personalDetailsValidationId))
     collection.find(completeFilter).toFuture().map(_.headOption)
       .flatMap {
