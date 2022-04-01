@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
+import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
 
 import akka.Done
@@ -58,7 +59,7 @@ class PersonalDetailsValidationRepository @Inject()(config: PersonalDetailsValid
             (implicit ec: ExecutionContext): EitherT[Future, Exception, Done] = {
 
     val document: JsObject =
-      domainFormatImplicit.writes(personalDetailsValidation).as[JsObject].withCreatedTimeStamp(createdAtField)
+      domainFormatImplicit.writes(personalDetailsValidation).as[JsObject].withCreatedTimeStamp(LocalDateTime.now())
 
     EitherT(collection.insertOne(document) .map(_ => Right(Done))
       .recover {
