@@ -7,7 +7,7 @@ import play.api.libs.ws.WSResponse
 import play.mvc.Http.HeaderNames.{CONTENT_TYPE, LOCATION}
 import uk.gov.hmrc.support.BaseIntegrationSpec
 import uk.gov.hmrc.support.stubs.AuditEventStubs._
-import uk.gov.hmrc.support.stubs.AuthenticatorStub
+import uk.gov.hmrc.support.stubs.{AuthenticatorStub, CitizenDetailsStub}
 import uk.gov.hmrc.support.stubs.PlatformAnalyticsStub._
 
 import java.util.UUID.randomUUID
@@ -20,6 +20,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
     "return OK with success validation status when provided personal details can be matched by Authenticator" in new Setup {
 
       AuthenticatorStub.expecting(personalDetails).respondWithOK()
+      CitizenDetailsStub.expecting.respondWithOK()
 
       val createResponse: WSResponse = sendCreateValidationResourceRequest(personalDetails).futureValue
       createResponse.status mustBe CREATED
@@ -46,6 +47,7 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
     "return OK with success validation status when provided personal details, that contain postcode, can be matched by Authenticator. Include nino in response" in new Setup {
 
       AuthenticatorStub.expecting(personalDetailsWithPostCode).respondWithOK()
+      CitizenDetailsStub.expecting.respondWithOK()
 
       val createResponse: WSResponse = sendCreateValidationResourceRequest(personalDetailsWithPostCode).futureValue
       createResponse.status mustBe CREATED

@@ -30,6 +30,14 @@ object ObjectGenerators extends ValueGenerators {
     nino <- ninos
   } yield PersonalDetailsWithNino(firstName, lastName, dateOfBirth, nino)
 
+  implicit val personalDetailsWithNinoGenderObjects: Gen[PersonalDetailsWithNinoAndGender] = for {
+    firstName <- nonEmptyStrings
+    lastName <- nonEmptyStrings
+    dateOfBirth <- localDates
+    nino <- ninos
+    gender <- nonEmptyStrings
+  } yield PersonalDetailsWithNinoAndGender(firstName, lastName, dateOfBirth, nino, gender)
+
   implicit val personalDetailsWithPostCodeObjects: Gen[PersonalDetailsWithPostCode] = for {
     firstName <- nonEmptyStrings
     lastName <- nonEmptyStrings
