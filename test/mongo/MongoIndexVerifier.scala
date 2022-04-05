@@ -16,21 +16,43 @@
 
 package mongo
 
-import org.scalatest.Matchers
-import reactivemongo.api.indexes.Index
-import support.UnitSpec
-import uk.gov.hmrc.mongo.MongoSpecSupport
+import java.util.concurrent.TimeUnit
 
+import org.mongodb.scala.model.Indexes.ascending
+import org.mongodb.scala.model.{IndexModel, IndexOptions}
+import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.{BeforeAndAfterEach, Matchers}
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import support.UnitSpec
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetailsValidationWithCreateTimeStamp
+
+import scala.collection.Seq
 import scala.concurrent.ExecutionContext.Implicits.global
 
-trait MongoIndexVerifier extends Matchers {
-  self: MongoSpecSupport with UnitSpec =>
-  def verify(expectedIndex: Index) = new {
+trait MongoIndexVerifier extends Matchers with UnitSpec with GuiceOneAppPerSuite with BeforeAndAfterEach {
+  def verify(expectedIndex: IndexModel) = new {
     def on(collectionName: String) {
-      val expectedIndexName = expectedIndex.eventualName
-      val collectionIndexes = await(mongo().indexesManager.onCollection(collectionName).list())
+      val mongoComponent: MongoComponent = app.injector.instanceOf[MongoComponent]
+      val service = new PlayMongoRepository(
+        mongoComponent,
+        "pdv-test",
+        PersonalDetailsValidationWithCreateTimeStamp.format,
+        indexes = Seq(
+          IndexModel(
+            ascending("createdAt"),
+            indexOptions = IndexOptions().name("expireAfterSeconds").expireAfter(120, TimeUnit.SECONDS)
+          ),
+          IndexModel(
+            ascending("journeyId"), IndexOptions().name("Primary").unique(true)
+          )
+        )
+      )
+      val expectedIndexName = expectedIndex.getKeys
+      val collectionIndexes = await(service.collection.drop().toFuture())
 
-      val index = collectionIndexes
+      val index = collectionIndexes.
         .find(_.name.contains(expectedIndexName))
         .getOrElse(
           throw new RuntimeException(s"Index with name $expectedIndexName not found in collection $collectionName; indexes found: $collectionIndexes")

@@ -24,26 +24,24 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import play.api.Configuration
 import play.api.libs.json.JsObject
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.ReadConcern
-import reactivemongo.api.indexes.Index
-import reactivemongo.api.indexes.IndexType.Descending
-import reactivemongo.bson.{BSONDateTime, BSONDocument}
 import support.UnitSpec
 import uk.gov.hmrc.datetime.CurrentTimeProvider
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.mongoEntity
-import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
 import uk.gov.hmrc.personaldetailsvalidation.model.{SuccessfulPersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.uuid.UUIDProvider
-
 import java.time.ZoneOffset.UTC
 import java.time.{Duration, LocalDateTime}
+import java.util.concurrent.TimeUnit
+
+import org.mongodb.scala.model.{IndexModel, IndexOptions}
+import org.mongodb.scala.model._
+import org.mongodb.scala.model.Indexes.descending
+import uk.gov.hmrc.mongo.MongoComponent
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class PersonalDetailsValidationMongoRepositorySpec
   extends UnitSpec
-    with MongoSpecSupport
     with MongoIndexVerifier
     with MockFactory
     with ScalaFutures
@@ -72,10 +70,9 @@ class PersonalDetailsValidationMongoRepositorySpec
 
       repository.create(personalDetailsValidation).value.futureValue shouldBe Right(Done)
 
-      bsonCollection(repository.collection.name)().count(
-        selector = Some(BSONDocument("_id" -> validationId, "createdAt" -> BSONDateTime(currentTime.atZone(UTC).toInstant.toEpochMilli))),
-        limit = None, skip = 0, hint = None, readConcern = ReadConcern.Local
-      ).futureValue shouldBe 1
+      repository.collection.find(filter = Filters.and(Filters.eq("_id",validationId),
+        Filters.eq("createdAt", currentTime.atZone(UTC).toInstant.toEpochMilli))).toFuture().map(_.size)
+        .futureValue shouldBe 1
     }
   }
 
@@ -98,13 +95,11 @@ class PersonalDetailsValidationMongoRepositorySpec
       private val pdvDoc = successfulPersonalDetailsValidationObjects.generateOne
 
       private val document: JsObject =
-        mongoEntity(personalDetailsValidationFormats).writes(pdvDoc).as[JsObject]
+        personalDetailsValidationFormats.writes(pdvDoc).as[JsObject]
 
-      import reactivemongo.play.json.ImplicitBSONHandlers._
-      await(pdvOldRepository.collection.insert(ordered = false).one(document))
+      await(pdvOldRepository.collection.insertOne(document))
 
       // now check we can access via fallback:
-      
       repository.get(pdvDoc.id).futureValue shouldBe Some(pdvDoc)
     }
 
@@ -113,10 +108,12 @@ class PersonalDetailsValidationMongoRepositorySpec
   "repository" should {
 
     "create ttl on collection" in new Setup {
-      val expectedIndex: Index =
-        Index(Seq("createdAt" -> Descending),
-          name = Some("personal-details-validation-ttl-index"),
-          options = BSONDocument("expireAfterSeconds" -> ttlSeconds))
+      val expectedIndex: IndexModel = {
+        IndexModel(
+          descending("createdAt"),
+          indexOptions = IndexOptions().name("personal-details-validation-ttl-index").expireAfter(config.collectionTtl.getSeconds, TimeUnit.SECONDS),
+        )
+      }
       Thread.sleep(500) // wait for index to be created
       verify(expectedIndex).on(repository.collection.name)
     }
@@ -135,7 +132,7 @@ class PersonalDetailsValidationMongoRepositorySpec
       override lazy val collectionTtl: Duration = Duration.ofSeconds(ttlSeconds)
     }
 
-    val pdvOldRepository: PdvOldRepository = new PdvOldRepository(new ReactiveMongoComponent {
+    val pdvOldRepository: PdvOldRepository = new PdvOldRepository(new MongoComponent {
       override val mongoConnector: MongoConnector = mongoConnectorForTest
     })
 
@@ -143,7 +140,7 @@ class PersonalDetailsValidationMongoRepositorySpec
 
     currentTimeProvider.apply _ when() returns currentTime
 
-    val repository = new PersonalDetailsValidationRepository(config, new ReactiveMongoComponent {
+    val repository = new PersonalDetailsValidationRepository(config, new MongoComponent {
       override val mongoConnector: MongoConnector = mongoConnectorForTest
     }, pdvOldRepository)
 
