@@ -17,10 +17,12 @@
 package uk.gov.hmrc.audit
 
 import akka.Done
+
 import javax.inject.{Inject, Singleton}
 import play.api.Logging
 import play.api.libs.json.{Json, OWrites}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
+import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
 import uk.gov.hmrc.random.RandomIntProvider
 
 import scala.concurrent.ExecutionContext
@@ -29,14 +31,19 @@ import scala.concurrent.ExecutionContext
 class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConfig: PlatformAnalyticsConnectorConfig, randomIntProvider: RandomIntProvider)
   extends Logging {
 
-  def sendEvent(event: GAEvent, loginOrigin: Option[String])(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+  def sendEvent(event: GAEvent, loginOrigin: Option[String], maybePersonalDetails: Option[PersonalDetails] = None)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
     val origin = loginOrigin.getOrElse(hc.otherHeaders.toMap.getOrElse("origin", "Unknown-Origin"))
 
     implicit val dimensionWrites: OWrites[DimensionValue] = Json.writes[DimensionValue]
     implicit val eventWrites: OWrites[Event] = Json.writes[Event]
     implicit val analyticsWrites: OWrites[AnalyticsRequest] = Json.writes[AnalyticsRequest]
 
-    val dimensions = Seq(DimensionValue(connectorConfig.gaOriginDimension, origin))
+    val dimensions: Seq[DimensionValue] = Seq(
+      Some(DimensionValue(connectorConfig.gaOriginDimension, origin)),
+      maybePersonalDetails.map(personalDetails => DimensionValue(connectorConfig.gaAgeDimension, personalDetails.age.toString)),
+      maybePersonalDetails.flatMap(personalDetails => personalDetails.maybeGender.map(gender => DimensionValue(connectorConfig.gaGenderDimension, gender.value)))
+    ).flatten
+
     val newEvent = Event(event.category, event.action, event.label, dimensions)
     val analyticsRequest = AnalyticsRequest(hc.gaUserId.getOrElse(randomGaUserId), Seq(newEvent))
 

@@ -35,7 +35,7 @@ import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
-import uk.gov.hmrc.personaldetailsvalidation.model.{FailedPersonalDetailsValidation, PersonalDetails, PersonalDetailsValidation, PersonalDetailsWithNino, PersonalDetailsWithPostCode, SuccessfulPersonalDetailsValidation}
+import uk.gov.hmrc.personaldetailsvalidation.model.{FailedPersonalDetailsValidation, PersonalDetails, PersonalDetailsValidation, PersonalDetailsWithNino, PersonalDetailsWithNinoAndGender, PersonalDetailsWithPostCode, SuccessfulPersonalDetailsValidation}
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import java.util.UUID.randomUUID
@@ -51,11 +51,18 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
       "and return the ValidationId" in new Setup {
       val personalDetails: PersonalDetails = personalDetailsObjects.generateOne
 
+      val gender = "F"
+      val personalDetailsWithGender = personalDetails.addGender(gender)
+
       val matchResult: MatchSuccessful = MatchSuccessful(personalDetails)
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
         .returning(EitherT.rightT[Future, Exception](matchResult))
+
+      (citizenDetailsConnector.findDesignatoryDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(*, headerCarrier, executionContext)
+        .returning(Future.successful(Some(Gender(gender))))
 
       (mockAppConfig.returnNinoFromCid _).expects().returning(false).repeat(2)
 
@@ -65,7 +72,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
       (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(origin, headerCarrier, request, executionContext)
 
-      val personalDetailsValidation: SuccessfulPersonalDetailsValidation = PersonalDetailsValidation.successful(personalDetails)
+      val personalDetailsValidation: SuccessfulPersonalDetailsValidation = PersonalDetailsValidation.successful(personalDetailsWithGender)
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(personalDetailsValidation, executionContext)
@@ -82,11 +89,16 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
 
       val inputPersonalDetails: PersonalDetailsWithPostCode = personalDetailsWithPostCodeObjects.generateOne
       val matchedPersonalDetails: PersonalDetailsWithNino = personalDetailsWithNinoObjects.generateOne
+      val gender = "F"
       val matchResult: MatchSuccessful = MatchSuccessful(matchedPersonalDetails)
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(inputPersonalDetails, headerCarrier, executionContext)
         .returning(EitherT.rightT[Future, Exception](matchResult))
+
+      (citizenDetailsConnector.findDesignatoryDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(*, headerCarrier, executionContext)
+        .returning(Future.successful(Some(Gender(gender))))
 
       (mockAppConfig.returnNinoFromCid _).expects().returning(true).repeat(1)
 
@@ -96,7 +108,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
       (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(origin, headerCarrier, request, executionContext)
 
-      val personalDetailsValidation: SuccessfulPersonalDetailsValidation = PersonalDetailsValidation.successful(inputPersonalDetails.addNino(matchedPersonalDetails.nino))
+      val personalDetailsValidation: SuccessfulPersonalDetailsValidation = PersonalDetailsValidation.successful(inputPersonalDetails.addNino(matchedPersonalDetails.nino).addGender(gender))
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(personalDetailsValidation, executionContext)
@@ -112,12 +124,17 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
 
       val enteredNino: Nino = adjustedNino(personalDetails.nino)
       val enteredPersonalDetails: PersonalDetailsWithNino = personalDetails.copy(nino = enteredNino)
+      val gender = "F"
 
       val matchResult: MatchSuccessful = MatchSuccessful(personalDetails)
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(enteredPersonalDetails, headerCarrier, executionContext)
         .returning(EitherT.rightT[Future, Exception](matchResult))
+
+      (citizenDetailsConnector.findDesignatoryDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(*, headerCarrier, executionContext)
+        .returning(Future.successful(Some(Gender(gender))))
 
       (mockAppConfig.returnNinoFromCid _).expects().returning(false).repeat(2)
 
@@ -127,7 +144,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
       (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(origin, headerCarrier, request, executionContext)
 
-      val personalDetailsValidation: SuccessfulPersonalDetailsValidation = PersonalDetailsValidation.successful(enteredPersonalDetails)
+      val personalDetailsValidation: SuccessfulPersonalDetailsValidation = PersonalDetailsValidation.successful(enteredPersonalDetails.addGender(gender))
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(personalDetailsValidation, executionContext)
@@ -143,12 +160,17 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
 
       val enteredNino: Nino = adjustedNino(personalDetails.nino)
       val enteredPersonalDetails: PersonalDetailsWithNino = personalDetails.copy(nino = enteredNino)
+      val gender = "F"
 
       val matchResult: MatchSuccessful = MatchSuccessful(personalDetails)
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(enteredPersonalDetails, headerCarrier, executionContext)
         .returning(EitherT.rightT[Future, Exception](matchResult))
+
+      (citizenDetailsConnector.findDesignatoryDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(*, headerCarrier, executionContext)
+        .returning(Future.successful(Some(Gender(gender))))
 
       (mockAppConfig.returnNinoFromCid _).expects().returning(true).repeat(2)
 
@@ -158,7 +180,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
       (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(origin, headerCarrier, request, executionContext)
 
-      val personalDetailsValidation: SuccessfulPersonalDetailsValidation = PersonalDetailsValidation.successful(personalDetails)
+      val personalDetailsValidation: SuccessfulPersonalDetailsValidation = PersonalDetailsValidation.successful(personalDetails.addGender(gender))
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(personalDetailsValidation, executionContext)
@@ -215,6 +237,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
 
     "return matching error when the call to persist fails" in new Setup {
       val personalDetails: PersonalDetails = personalDetailsObjects.generateOne
+      val gender = "F"
 
       val matchResult: MatchSuccessful = MatchSuccessful(personalDetails)
 
@@ -225,9 +248,13 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
         .expects(personalDetails, headerCarrier, executionContext)
         .returning(EitherT.rightT[Future, Exception](matchResult))
 
+      (citizenDetailsConnector.findDesignatoryDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(*, headerCarrier, executionContext)
+        .returning(Future.successful(Some(Gender(gender))))
+
       (mockAppConfig.returnNinoFromCid _).expects().returning(false)
 
-      val personalDetailsValidation: SuccessfulPersonalDetailsValidation = PersonalDetailsValidation.successful(personalDetails)
+      val personalDetailsValidation: SuccessfulPersonalDetailsValidation = PersonalDetailsValidation.successful(personalDetails.addGender(gender))
 
       val exception = new RuntimeException("error")
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
@@ -246,6 +273,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
     implicit val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
 
     val matchingConnector: MatchingConnector = mock[MatchingConnector]
+    val citizenDetailsConnector: CitizenDetailsConnector = mock[CitizenDetailsConnector]
     val matchingEventsSender: EventsSender = mock[EventsSender]
     val mockAppConfig: AppConfig = mock[AppConfig]
 
@@ -274,6 +302,6 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
     }
     val origin: Some[String] = Some("test")
     val maybeCredId: Some[String] = Some("credentialId")
-    val validator = new PersonalDetailsValidatorImpl(matchingConnector, repository, personalDetailsValidationRetryRepository, matchingEventsSender, mockAppConfig)
+    val validator = new PersonalDetailsValidatorImpl(matchingConnector, citizenDetailsConnector, repository, personalDetailsValidationRetryRepository, matchingEventsSender, mockAppConfig)
   }
 }

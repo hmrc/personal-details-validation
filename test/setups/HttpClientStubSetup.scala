@@ -21,7 +21,7 @@ import akka.stream.ActorMaterializer
 import com.typesafe.config.Config
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.Matchers._
-import play.api.libs.json.{JsObject, Writes}
+import play.api.libs.json.{JsObject, JsValue, Json, Writes}
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.http.{HttpClient, HttpResponse}
 import uk.gov.hmrc.http.hooks.HttpHook
@@ -62,6 +62,29 @@ trait HttpClientStubSetup extends MockFactory {
     }
   }
 
+  protected def expectGet(toUrl: String) = new {
+    def returning(status: Int, body: JsValue): Unit =
+      returning(HttpResponse(status, json = body, Map.empty))
+
+    def returning(status: Int): Unit =
+      returning(HttpResponse(status, ""))
+
+    def returning(status: Int, body: String): Unit =
+      returning(HttpResponse(status, body))
+
+    def returning(response: HttpResponse): Unit =
+      httpClient.getStubbing = (actualUrl: String) => Future.successful {
+        actualUrl shouldBe toUrl
+        response
+      }
+
+    def throwing(exception: Exception): Unit =
+      httpClient.getStubbing = (actualUrl: String) => Future.failed {
+        actualUrl shouldBe toUrl
+        exception
+      }
+  }
+
   class HttpClientStub
     extends HttpClient
       with WSHttp {
@@ -82,13 +105,19 @@ trait HttpClientStubSetup extends MockFactory {
     private[HttpClientStubSetup] var postStubbing: (String, JsObject) => Future[HttpResponse] =
       (_, _) => throw new IllegalStateException("HttpClientStub not configured")
 
+    private[HttpClientStubSetup] var getStubbing: (String) => Future[HttpResponse] =
+      (_) => throw new IllegalStateException("HttpClientStub not configured")
+
     private var invoked = false
 
     override def doPost[A](url: String, body: A, headers: Seq[(String, String)])
                           (implicit rds: Writes[A], ec: ExecutionContext): Future[HttpResponse] = {
       invoked = true
-      postStubbing(url, body.asInstanceOf[JsObject])
+      postStubbing(url, Json.toJson(body).as[JsObject])
     }
+
+    override def doGet(url: String, headers: Seq[(String, String)])(implicit ec: ExecutionContext): Future[HttpResponse] =
+      getStubbing(url)
 
     def assertInvocation(): Unit = if (!invoked) fail("stub was not invoked")
 

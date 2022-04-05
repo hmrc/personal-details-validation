@@ -14,21 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.config
+package uk.gov.hmrc.personaldetailsvalidation
+
+import uk.gov.hmrc.config.HostConfigProvider
 
 import javax.inject.{Inject, Singleton}
-import play.api.Configuration
-import uk.gov.hmrc.config.implicits._
-import uk.gov.hmrc.config.ops._
-import uk.gov.hmrc.http.Host
-
 
 @Singleton
-class HostConfigProvider @Inject()(configuration: Configuration) {
+class CitizenDetailsConnectorConfig @Inject()(hostProvider: HostConfigProvider) {
 
-  def hostFor(serviceName: String): Host = configuration.loadMandatory[Host](serviceName)
-  def originDimension: Int = configuration.get[Int]("google-analytics.origin-dimension")
-  def ageDimension: Int = configuration.get[Int]("google-analytics.age-dimension")
-  def genderDimension: Int = configuration.get[Int]("google-analytics.gender-dimension")
-
+  lazy val baseUrl: String = hostProvider.hostFor("citizen-details") + "/citizen-details"
 }

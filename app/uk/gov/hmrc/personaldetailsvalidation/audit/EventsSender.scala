@@ -33,37 +33,35 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
                                                                 auditDataFactory: AuditDataEventFactory) {
 
   def sendEvents(matchResult: MatchResult, personalDetails: PersonalDetails, origin: Option[String])(implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): Unit = {
-    sendGAMatchResultEvent(matchResult, origin)
+    sendGAMatchResultEvent(matchResult, origin, personalDetails)
     sendGAMatchResultForNinoOrPostcodeEvent(matchResult, personalDetails, origin)
     sendGASuffixMatchingEvent(matchResult, personalDetails, origin)
     auditConnector.sendEvent(auditDataFactory.createEvent(matchResult, personalDetails))
   }
 
-  private def sendGAMatchResultEvent(matchResult: MatchResult, origin: Option[String])(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
-    val label = matchResult match {
-      case MatchSuccessful(_) => "success"
-      case MatchFailed(_) => "failed_matching"
+  private def sendGAMatchResultEvent(matchResult: MatchResult, origin: Option[String], personalDetails: PersonalDetails)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+    matchResult match {
+      case MatchSuccessful(_) => platformAnalyticsConnector.sendEvent(gaEvent("success"), origin, Some(personalDetails))
+      case MatchFailed(_) => platformAnalyticsConnector.sendEvent(gaEvent("failed_matching"), origin)
     }
-
-    platformAnalyticsConnector.sendEvent(gaEvent(label), origin)
   }
 
   private def sendGAMatchResultForNinoOrPostcodeEvent(matchResult: MatchResult, personalDetails: PersonalDetails, origin: Option[String])(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
-    val label = (matchResult, personalDetails) match {
-      case (MatchSuccessful(_), _: PersonalDetailsWithNino) => "success_withNINO"
-      case (MatchSuccessful(_), _: PersonalDetailsWithPostCode) => "success_withPOSTCODE"
-      case (MatchFailed(_), _: PersonalDetailsWithNino) => "failed_matching_withNINO"
-      case (MatchFailed(_), _: PersonalDetailsWithPostCode) => "failed_matching_withPOSTCODE"
+    (matchResult, personalDetails) match {
+      case (MatchSuccessful(_), _: PersonalDetailsWithNino) => platformAnalyticsConnector.sendEvent(gaEvent("success_withNINO"), origin, Some(personalDetails))
+      case (MatchSuccessful(_), _: PersonalDetailsWithNinoAndGender) => platformAnalyticsConnector.sendEvent(gaEvent("success_withNINO"), origin, Some(personalDetails))
+      case (MatchSuccessful(_), _: PersonalDetailsWithPostCode) => platformAnalyticsConnector.sendEvent(gaEvent("success_withPOSTCODE"), origin, Some(personalDetails))
+      case (MatchFailed(_), _: PersonalDetailsWithNino) => platformAnalyticsConnector.sendEvent(gaEvent("failed_matching_withNINO"), origin)
+      case (MatchFailed(_), _: PersonalDetailsWithPostCode) => platformAnalyticsConnector.sendEvent(gaEvent("failed_matching_withPOSTCODE"), origin)
     }
-
-    platformAnalyticsConnector.sendEvent(gaEvent(label), origin)
   }
 
   private def sendGASuffixMatchingEvent(matchResult: MatchResult, externalPerson: PersonalDetails, origin: Option[String])
                                        (implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = (matchResult, externalPerson) match {
-    case (MatchSuccessful(matchedPerson: PersonalDetailsWithNino), _) if externalPerson.hasSameNinoSuffixAs(matchedPerson) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_same_as_cid"), origin)
-    case (MatchSuccessful(_), _: PersonalDetailsWithNino) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_different_from_cid"), origin)
-    case (MatchSuccessful(_), _: PersonalDetailsWithPostCode) => platformAnalyticsConnector.sendEvent(gaEvent("success_postcode_suffix"), origin)
+    case (MatchSuccessful(matchedPerson: PersonalDetailsWithNino), _) if externalPerson.hasSameNinoSuffixAs(matchedPerson) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_same_as_cid"), origin, Some(matchedPerson))
+    case (MatchSuccessful(matchedPerson: PersonalDetailsWithNinoAndGender), _) if externalPerson.hasSameNinoSuffixAs(matchedPerson) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_same_as_cid"), origin, Some(matchedPerson))
+    case (MatchSuccessful(_), matchedPerson: PersonalDetailsWithNino) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_different_from_cid"), origin, Some(matchedPerson))
+    case (MatchSuccessful(_), matchedPerson: PersonalDetailsWithPostCode) => platformAnalyticsConnector.sendEvent(gaEvent("success_postcode_suffix"), origin, Some(matchedPerson))
     case _ =>
   }
 
