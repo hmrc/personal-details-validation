@@ -63,7 +63,12 @@ class PersonalDetailsValidatorImpl @Inject() (
       matchResult <- doMatch(personalDetails)
       personalDetailsValidation <- toPersonalDetailsValidation(matchResult, personalDetails, maybeCredId)
       _ <- {
-        if (maybeCredId.isDefined) { personalDetailsValidationRetryRepository.recordAttempt(maybeCredId.get) }
+        if (maybeCredId.isDefined) {
+          val attempts: EitherT[Future, Exception, Int] = personalDetailsValidationRetryRepository.getAttempts(maybeCredId).map(attempts => attempts)
+          attempts.map{ attempts =>
+            personalDetailsValidationRetryRepository.recordAttempt(maybeCredId.get, attempts)
+          }
+        }
         personalDetailsValidationRepository.create(personalDetailsValidation)
       }
       _ = sendEvents(matchResult, eventDetailsToSend(matchResult, personalDetails), origin)

@@ -18,35 +18,35 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import akka.Done
 import cats.data.EitherT
-import com.mongodb.client.model.Updates
-import org.bson.conversions.Bson
-import org.joda.time.{DateTime, DateTimeZone}
 import org.mongodb.scala._
-import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
+import org.mongodb.scala.model.Indexes.ascending
+import org.mongodb.scala.model._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
-case class Retry(credentialId: String, attempts: Option[Int])
+case class Retry(credentialId: String, attempts: Option[Int], createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC))
 
 object Retry {
-  implicit val dateTimeFormats: Format[DateTime] = {
-    implicit val dateTimeRead: Reads[DateTime] =
-      ((__ \ "$date") \ "$numberLong").read[Long].map { dateTime =>
-        new DateTime(dateTime, DateTimeZone.UTC)
+  implicit val dateTimeFormats: Format[LocalDateTime] = {
+    implicit val localDateTimeRead: Reads[LocalDateTime] =
+      ((__ \ "$date") \ "$numberLong").read[String].map {
+        millis =>
+          LocalDateTime.ofInstant(Instant.ofEpochMilli(millis.toLong), ZoneOffset.UTC)
       }
 
-    implicit val dateTimeWrite: Writes[DateTime] = new Writes[DateTime] {
-      def writes(dateTime: DateTime): JsValue = Json.obj(
-        "$date" -> dateTime.getMillis
+    implicit val localDateTimeWrite: Writes[LocalDateTime] = (dateTime: LocalDateTime) =>{
+      Json.obj(
+        "$date" -> JsNumber(dateTime.atZone(ZoneOffset.UTC).toInstant.toEpochMilli)
       )
     }
-    Format(dateTimeRead, dateTimeWrite)
+    Format(localDateTimeRead, localDateTimeWrite)
   }
   implicit val format: OFormat[Retry] = Json.format[Retry]
 }
@@ -60,24 +60,29 @@ class PersonalDetailsValidationRetryRepository @Inject()(config: PersonalDetails
     domainFormat = Retry.format,
     indexes = Seq(
       IndexModel(
+        ascending("createdAt"),
+        indexOptions = IndexOptions().name("expireAfterSeconds").expireAfter(config.collectionTtl.getSeconds, TimeUnit.SECONDS)
+      ),
+      IndexModel(
         keys = Indexes.descending("credentialId"),
-        indexOptions = IndexOptions().name("credentialIdUnique").unique(true).expireAfter(config.collectionTtl.getSeconds, TimeUnit.SECONDS)
+        indexOptions = IndexOptions().name("credentialIdUnique").unique(true)
       )
-    )
+    ),
+    replaceIndexes = true
   )  {
 
 
   //user's CredId is the retry key
   lazy val retryKey = "credentialId"
 
-  def recordAttempt(maybeCredId: String): Future[Done] = {
-    val update: Bson = Updates.inc("attempts", 1)
-    collection.findOneAndUpdate(Filters.eq(retryKey, maybeCredId), update).map(_ => Done).recover{ case _ => Done }.toFuture().map(_ => Done)
+  def recordAttempt(maybeCredId: String, attempts: Int = 0): Future[Done] = {
+    val update = Retry(maybeCredId, Some(attempts + 1))
+    collection.replaceOne(Filters.eq(retryKey, maybeCredId), update, ReplaceOptions().upsert(true)).toFuture().map(_ => Done)
   }
 
   def getAttempts(maybeCredId: Option[String])(implicit ec: ExecutionContext): EitherT[Future, Exception, Int] = EitherT(
     maybeCredId.fold(Future.successful(Right(0))){ credId =>
-      val completeFilter = Filters.and(Filters.eq("_id_", credId))
+      val completeFilter = Filters.and(Filters.eq(retryKey, credId))
       collection.find(completeFilter).toFuture().map { personalDetailsValidation =>
         personalDetailsValidation.last match {
           case maybeRetry: Retry => Right(maybeRetry.attempts.getOrElse(0))

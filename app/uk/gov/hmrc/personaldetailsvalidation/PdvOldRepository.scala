@@ -18,14 +18,12 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import akka.Done
 import cats.data.EitherT
+import org.mongodb.scala.model.Filters
+import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, PersonalDetailsValidationWithCreateTimeStamp, ValidationId}
 
 import javax.inject.{Inject, Singleton}
-import org.mongodb.scala.model.Filters
-import uk.gov.hmrc.mongo.MongoComponent
-
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -42,7 +40,8 @@ class PdvOldRepository @Inject()(mongo: MongoComponent)(implicit ec: ExecutionCo
     mongoComponent = mongo,
     collectionName = "personal-details-validation", // the original collection name (7G of old data)
     domainFormat = PersonalDetailsValidationWithCreateTimeStamp.format,
-    indexes = Seq()
+    indexes = Seq(),
+    replaceIndexes = true
   ) with PdvRepository {
 
   override def create(personalDetails: PersonalDetailsValidation)(implicit ec: ExecutionContext): EitherT[Future, Exception, Done] =
@@ -52,6 +51,5 @@ class PdvOldRepository @Inject()(mongo: MongoComponent)(implicit ec: ExecutionCo
     val completeFilter = Filters.and(Filters.eq("_id_", personalDetailsValidationId))
     collection.find(completeFilter).toFuture().map(_.headOption)
   }
-
 
 }

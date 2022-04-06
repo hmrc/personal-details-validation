@@ -20,7 +20,6 @@ import akka.Done
 import cats.data.EitherT
 import org.mongodb.scala.model.Indexes.ascending
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions}
-import uk.gov.hmrc.datetime.CurrentTimeProvider
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.Codecs.logger
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
@@ -36,20 +35,18 @@ import scala.concurrent.{ExecutionContext, Future}
 class PersonalDetailsValidationRepository @Inject()(config: PersonalDetailsValidationMongoRepositoryConfig,
                                                     mongo: MongoComponent,
                                                     pdvOldRepository: PdvOldRepository)
-                                                   (implicit currentTimeProvider: CurrentTimeProvider,executionContext: ExecutionContext)
+                                                   (implicit executionContext: ExecutionContext)
   extends PlayMongoRepository[PersonalDetailsValidationWithCreateTimeStamp](
-    mongoComponent = mongo,
     collectionName = "pdv-journey", // new collection name
+    mongoComponent = mongo,
     domainFormat = PersonalDetailsValidationWithCreateTimeStamp.format,
     indexes = Seq(
       IndexModel(
         ascending("createdAt"),
         indexOptions = IndexOptions().name("expireAfterSeconds").expireAfter(config.collectionTtl.getSeconds, TimeUnit.SECONDS)
-      ),
-      IndexModel(
-        ascending("journeyId"), IndexOptions().name("Primary").unique(true)
       )
-    )
+    ),
+    replaceIndexes = true
   ) with PdvRepository{
 
   def create(personalDetailsValidation: PersonalDetailsValidation)
@@ -70,14 +67,14 @@ class PersonalDetailsValidationRepository @Inject()(config: PersonalDetailsValid
    * OLD collection for journeys which were started with the previous version of code (only needed for max 24 hours - TTL period)
    */
   def get(personalDetailsValidationId: ValidationId)(implicit executionContext: ExecutionContext): Future[Option[PersonalDetailsValidationWithCreateTimeStamp]] = {
-    val completeFilter = Filters.and(Filters.eq("_id_", personalDetailsValidationId))
+    val completeFilter = Filters.eq("personalDetailsValidation.id", personalDetailsValidationId.value.toString)
     collection.find(completeFilter).toFuture().map(_.headOption)
       .flatMap {
         case Some(result) => Future.successful(Some(result))
         case None =>
           // NOTE: this fallback no longer needed once these messages disappear in production
           logger.warn(s"[VER-1979] Journey with validation id: $personalDetailsValidationId not found, looking in old 7G collection")
-          collection.find(completeFilter).toFuture().map(_.headOption) // fallback to old collection
+          pdvOldRepository.collection.find(completeFilter).toFuture().map(_.headOption) // fallback to old collection
       }
   }
 
