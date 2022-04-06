@@ -21,6 +21,7 @@ import cats.implicits._
 import com.google.inject.ImplementedBy
 import play.api.mvc.Request
 import uk.gov.hmrc.config.AppConfig
+import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
@@ -41,13 +42,14 @@ trait PersonalDetailsValidator {
   def eventDetailsToSend(matchResult: MatchResult, personalDetails: PersonalDetails): PersonalDetails
 
   def toPersonalDetailsValidation(matchResult: MatchResult, optionallyHaving: PersonalDetails, maybeCredId: Option[String])
-                                 (implicit ec: ExecutionContext): EitherT[Future, Exception, PersonalDetailsValidation]
+                                 (implicit ec: ExecutionContext, hc: HeaderCarrier): EitherT[Future, Exception, PersonalDetailsValidation]
 
 }
 
 @Singleton
 class PersonalDetailsValidatorImpl @Inject() (
   matchingConnector: MatchingConnector,
+  citizenDetailsConnector: CitizenDetailsConnector,
   personalDetailsValidationRepository: PdvRepository,
   personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository,
   matchingEventsSender: EventsSender,
@@ -87,22 +89,27 @@ class PersonalDetailsValidatorImpl @Inject() (
   }
 
   def toPersonalDetailsValidation(matchResult: MatchResult, optionallyHaving: PersonalDetails, maybeCredId: Option[String])
-                                 (implicit ec: ExecutionContext): EitherT[Future, Exception, PersonalDetailsValidation] = {
-    (matchResult, optionallyHaving) match {
-      case (MatchSuccessful(matchingPerson: PersonalDetailsNino), other: PersonalDetailsWithPostCode) =>
-        EitherT.fromEither[Future](
-          PersonalDetailsValidation.successful(other.addNino(matchingPerson.nino)).asRight[Exception]
-        )
-      case (MatchSuccessful(matchingPerson), _) if appConfig.returnNinoFromCid =>
-        EitherT.fromEither[Future](
-          PersonalDetailsValidation.successful(matchingPerson).asRight[Exception]
-        )
-      case (MatchSuccessful(_), _) =>
-        EitherT.fromEither[Future](
-          PersonalDetailsValidation.successful(optionallyHaving).asRight[Exception]
-        )
-      case (MatchFailed(_), _) =>
+                                 (implicit ec: ExecutionContext, hc: HeaderCarrier): EitherT[Future, Exception, PersonalDetailsValidation] =
+    matchResult match {
+      case MatchSuccessful(pd: PersonalDetails) =>
+        EitherT(toPersonalDetails(pd, optionallyHaving) map (PersonalDetailsValidation.successful(_)) map (_.asRight[Exception]))
+
+      case MatchFailed(_) =>
         personalDetailsValidationRetryRepository.getAttempts(maybeCredId).map(attempts => PersonalDetailsValidation.failed(maybeCredId, Some(attempts + 1)))
     }
-  }
+
+  def toPersonalDetails(personalDetails: PersonalDetails, optionallyHaving: PersonalDetails)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[PersonalDetails] =
+    toPersonalDetailsWithGender ((personalDetails, optionallyHaving) match {
+      case (pD: PersonalDetailsNino, oH: PersonalDetailsWithPostCode) => oH.addNino(pD.nino)
+      case _ if appConfig.returnNinoFromCid => personalDetails
+      case _ => optionallyHaving
+    })
+
+  def toPersonalDetailsWithGender(personalDetails: PersonalDetails)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[PersonalDetails] =
+    personalDetails.maybeNino match {
+      case Some(nino) => citizenDetailsConnector.findDesignatoryDetails(nino)
+        .map(_.fold (personalDetails)(gender => personalDetails.addGender(gender.gender)))
+      case _ => Future.successful(personalDetails)
+    }
+
 }
