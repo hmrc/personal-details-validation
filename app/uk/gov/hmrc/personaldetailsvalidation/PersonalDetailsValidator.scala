@@ -21,7 +21,6 @@ import cats.implicits._
 import com.google.inject.ImplementedBy
 import play.api.mvc.Request
 import uk.gov.hmrc.config.AppConfig
-import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector

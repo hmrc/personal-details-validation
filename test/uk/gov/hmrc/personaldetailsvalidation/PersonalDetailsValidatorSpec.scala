@@ -35,7 +35,6 @@ import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.model._
-import uk.gov.hmrc.personaldetailsvalidation.model.{FailedPersonalDetailsValidation, PersonalDetails, PersonalDetailsValidation, PersonalDetailsWithNino, PersonalDetailsWithNinoAndGender, PersonalDetailsWithPostCode, SuccessfulPersonalDetailsValidation}
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import java.util.UUID.randomUUID
