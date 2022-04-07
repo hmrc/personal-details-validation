@@ -35,9 +35,9 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       val getResponse: WSResponse = wsUrl(resourceUrl).get().futureValue
       getResponse.status mustBe OK
 
-      (getResponse.json \ "id").as[String] mustBe validationId
-      (getResponse.json \ "validationStatus").as[String] mustBe "success"
-      (getResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetails)
+      (getResponse.json \\ "id").head.as[String] mustBe validationId
+      (getResponse.json \\ "validationStatus").head.as[String] mustBe "success"
+      (getResponse.json \\ "personalDetails").head.as[JsValue] mustBe Json.parse(personalDetails)
 
       verifyGAMatchEvent(label = "success")
       verifyGAMatchEvent(label = "success_withNINO")
@@ -57,9 +57,10 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       getResponse.status mustBe OK
 
       val validationId: String = resourceUrl.substring(resourceUrl.lastIndexOf("/") + 1)
-      (getResponse.json \ "id").as[String] mustBe validationId
-      (getResponse.json \ "validationStatus").as[String] mustBe "success"
-      (getResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetailsWithBothNinoAndPostcode)
+
+      (getResponse.json \\ "id").head.as[String] mustBe validationId
+      (getResponse.json \\ "validationStatus").head.as[String] mustBe "success"
+      (getResponse.json \\ "personalDetails").head.as[JsValue] mustBe Json.parse(personalDetailsWithBothNinoAndPostcode)
 
       verifyGAMatchEvent(label = "success")
       verifyGAMatchEvent(label = "success_withPOSTCODE")
@@ -83,8 +84,8 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       val getResponse: WSResponse = wsUrl(resourceUrl).get().futureValue
       getResponse.status mustBe OK
 
-      (getResponse.json \ "id").as[String] mustBe validationId
-      (getResponse.json \ "validationStatus").as[String] mustBe "failure"
+      (getResponse.json \\ "id").head.as[String] mustBe validationId
+      (getResponse.json \\ "validationStatus").head.as[String] mustBe "failure"
       (getResponse.json \ "personalDetails") mustBe a[JsUndefined]
 
       verifyGAMatchEvent(label = "failed_matching")

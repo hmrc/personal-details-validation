@@ -33,7 +33,6 @@ import play.api.libs.json._
 import play.api.mvc.{AnyContentAsEmpty, Request, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import play.modules.reactivemongo.ReactiveMongoComponent
 import scalamock.MockArgumentMatchers
 import support.UnitSpec
 import uk.gov.hmrc.auth.core.AuthConnector
@@ -41,11 +40,12 @@ import uk.gov.hmrc.auth.core.authorise.Predicate
 import uk.gov.hmrc.auth.core.retrieve.{Credentials, Retrieval}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
-import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
+import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.uuid.UUIDProvider
 
+import java.time.{LocalDateTime, ZoneOffset}
 import java.util.UUID.randomUUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -57,8 +57,7 @@ class PersonalDetailsValidationResourceControllerSpec
     with ScalaFutures
     with MockFactory
     with MockArgumentMatchers
-    with TableDrivenPropertyChecks
-    with MongoSpecSupport {
+    with TableDrivenPropertyChecks {
 
   "create" should {
 
@@ -235,7 +234,7 @@ class PersonalDetailsValidationResourceControllerSpec
       forAll { personalDetailsValidation: PersonalDetailsValidation =>
         (mockRepository.get(_: ValidationId)(_: ExecutionContext))
           .expects(personalDetailsValidation.id, *)
-          .returns(Future.successful(Some(personalDetailsValidation)))
+          .returns(Future.successful(Some(PersonalDetailsValidationWithCreateTimeStamp(personalDetailsValidation, LocalDateTime.now(ZoneOffset.UTC)))))
 
         val response = controller.get(personalDetailsValidation.id)(request).futureValue
 
@@ -247,11 +246,11 @@ class PersonalDetailsValidationResourceControllerSpec
       forAll { personalDetailsValidation: PersonalDetailsValidation =>
         (mockRepository.get(_: ValidationId)(_: ExecutionContext))
           .expects(personalDetailsValidation.id, *)
-          .returns(Future.successful(Some(personalDetailsValidation)))
+          .returns(Future.successful(Some(PersonalDetailsValidationWithCreateTimeStamp(personalDetailsValidation, LocalDateTime.now(ZoneOffset.UTC)))))
 
         val response = controller.get(personalDetailsValidation.id)(request).futureValue
 
-        (jsonBodyOf(response) \ "id").as[String] shouldBe personalDetailsValidation.id.value.toString
+        ((jsonBodyOf(response) \ "personalDetailsValidation") \ "id").as[String] shouldBe personalDetailsValidation.id.value.toString
       }
     }
 
@@ -262,11 +261,11 @@ class PersonalDetailsValidationResourceControllerSpec
       forAll { personalDetailsValidation: SuccessfulPersonalDetailsValidation =>
         (mockRepository.get(_: ValidationId)(_: ExecutionContext))
           .expects(personalDetailsValidation.id, *)
-          .returns(Future.successful(Some(personalDetailsValidation)))
+          .returns(Future.successful(Some(PersonalDetailsValidationWithCreateTimeStamp(personalDetailsValidation, LocalDateTime.now(ZoneOffset.UTC)))))
 
         val response = controller.get(personalDetailsValidation.id)(request).futureValue
 
-        (jsonBodyOf(response) \ "personalDetails").as[PersonalDetails] shouldBe personalDetailsValidation.personalDetails
+        ((jsonBodyOf(response) \ "personalDetailsValidation") \ "personalDetails").as[PersonalDetails] shouldBe personalDetailsValidation.personalDetails
       }
     }
 
@@ -275,11 +274,11 @@ class PersonalDetailsValidationResourceControllerSpec
       forAll { personalDetailsValidation: FailedPersonalDetailsValidation =>
         (mockRepository.get(_: ValidationId)(_: ExecutionContext))
           .expects(personalDetailsValidation.id, *)
-          .returns(Future.successful(Some(personalDetailsValidation)))
+          .returns(Future.successful(Some(PersonalDetailsValidationWithCreateTimeStamp(personalDetailsValidation, LocalDateTime.now(ZoneOffset.UTC)))))
 
         val response = controller.get(personalDetailsValidation.id)(request).futureValue
 
-        (jsonBodyOf(response) \ "personalDetails") shouldBe a[JsUndefined]
+        ((jsonBodyOf(response) \ "personalDetailsValidation") \ "personalDetails") shouldBe a[JsUndefined]
       }
     }
 
@@ -293,11 +292,11 @@ class PersonalDetailsValidationResourceControllerSpec
       s"return validationStatus as $status if repository returned ${personalDetailsValidation.getClass.getSimpleName}" in new Setup {
         (mockRepository.get(_: ValidationId)(_: ExecutionContext))
           .expects(personalDetailsValidation.id, *)
-          .returns(Future.successful(Some(personalDetailsValidation)))
+          .returns(Future.successful(Some(PersonalDetailsValidationWithCreateTimeStamp(personalDetailsValidation, LocalDateTime.now()))))
 
         val response: Result = controller.get(personalDetailsValidation.id)(request).futureValue
 
-        (jsonBodyOf(response) \ "validationStatus").as[String] shouldBe status
+        ((jsonBodyOf(response) \ "personalDetailsValidation") \ "validationStatus").as[String] shouldBe status
       }
     }
   }
@@ -315,12 +314,10 @@ class PersonalDetailsValidationResourceControllerSpec
     val personalDetailsValidationMongoRepositoryConfig: PersonalDetailsValidationMongoRepositoryConfig =
       app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
 
-    val reactiveMongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
-      override def mongoConnector: MongoConnector = mongoConnectorForTest
-    }
+    val mongoComponent: MongoComponent = app.injector.instanceOf[MongoComponent]
 
     val personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository =
-      new PersonalDetailsValidationRetryRepository(personalDetailsValidationMongoRepositoryConfig, reactiveMongoComponent)
+      new PersonalDetailsValidationRetryRepository(personalDetailsValidationMongoRepositoryConfig, mongoComponent)
 
     val mockValidator: PersonalDetailsValidator = mock[PersonalDetailsValidator]
     val origin: Some[String] = Some("Test")
