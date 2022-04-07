@@ -21,6 +21,7 @@ import cats.implicits._
 import com.google.inject.ImplementedBy
 import play.api.mvc.Request
 import uk.gov.hmrc.config.AppConfig
+import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
@@ -64,12 +65,7 @@ class PersonalDetailsValidatorImpl @Inject() (
       matchResult <- doMatch(personalDetails)
       personalDetailsValidation <- toPersonalDetailsValidation(matchResult, personalDetails, maybeCredId)
       _ <- {
-        if (maybeCredId.isDefined) {
-          val attempts: EitherT[Future, Exception, Int] = personalDetailsValidationRetryRepository.getAttempts(maybeCredId).map(attempts => attempts)
-          attempts.map{ attempts =>
-            personalDetailsValidationRetryRepository.recordAttempt(maybeCredId.get, attempts)
-          }
-        }
+        if (maybeCredId.isDefined) { personalDetailsValidationRetryRepository.recordAttempt(maybeCredId.get) }
         personalDetailsValidationRepository.create(personalDetailsValidation)
       }
       _ = sendEvents(matchResult, eventDetailsToSend(matchResult, personalDetails), origin)

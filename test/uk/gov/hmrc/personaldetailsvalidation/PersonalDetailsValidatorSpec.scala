@@ -25,23 +25,24 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.mvc.{AnyContentAsEmpty, Request}
 import play.api.test.FakeRequest
+import play.modules.reactivemongo.ReactiveMongoComponent
 import support.UnitSpec
 import uk.gov.hmrc.config.AppConfig
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
 import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
-import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.personaldetailsvalidation.model.{FailedPersonalDetailsValidation, PersonalDetails, PersonalDetailsValidation, PersonalDetailsWithNino, PersonalDetailsWithNinoAndGender, PersonalDetailsWithPostCode, SuccessfulPersonalDetailsValidation}
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import java.util.UUID.randomUUID
 import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
 import scala.concurrent.{ExecutionContext, Future}
 
-class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory  with GuiceOneAppPerSuite {
+class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoSpecSupport with GuiceOneAppPerSuite {
 
   "validate" should {
 
@@ -193,7 +194,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory  with Guice
       "store them as FailedPersonalDetailsValidation for unsuccessful match " +
       "and return the ValidationId" in new Setup {
 
-      await(personalDetailsValidationRetryRepository.collection.drop().toFuture())
+      await(personalDetailsValidationRetryRepository.drop)
       val personalDetails: PersonalDetails = personalDetailsObjects.generateOne
       val matchResult: MatchFailed = MatchFailed("some error")
 
@@ -282,10 +283,12 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory  with Guice
     val personalDetailsValidationMongoRepositoryConfig: PersonalDetailsValidationMongoRepositoryConfig =
       app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
 
-    val mongoComponent: MongoComponent = app.injector.instanceOf[MongoComponent]
+    val reactiveMongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
+      override def mongoConnector: MongoConnector = mongoConnectorForTest
+    }
 
     val personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository =
-      new PersonalDetailsValidationRetryRepository(personalDetailsValidationMongoRepositoryConfig, mongoComponent)
+      new PersonalDetailsValidationRetryRepository(personalDetailsValidationMongoRepositoryConfig, reactiveMongoComponent)
 
     implicit val uuidProvider: UUIDProvider = stub[UUIDProvider]
     uuidProvider.apply _ when() returns randomUUID()

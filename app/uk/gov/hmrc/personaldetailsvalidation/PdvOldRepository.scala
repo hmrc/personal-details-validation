@@ -18,13 +18,14 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import akka.Done
 import cats.data.EitherT
-import org.mongodb.scala.model.Filters
-import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, PersonalDetailsValidationWithCreateTimeStamp, ValidationId}
+import play.modules.reactivemongo.ReactiveMongoComponent
+import uk.gov.hmrc.mongo.ReactiveRepository
+import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.mongoEntity
+import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
+import uk.gov.hmrc.personaldetailsvalidation.formats.TinyTypesFormats.personalDetailsValidationIdFormats
+import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, ValidationId}
 
 import javax.inject.{Inject, Singleton}
-import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -35,21 +36,18 @@ import scala.concurrent.{ExecutionContext, Future}
  */
 
 @Singleton
-class PdvOldRepository @Inject()(mongo: MongoComponent)(implicit ec: ExecutionContext)
-  extends PlayMongoRepository[PersonalDetailsValidationWithCreateTimeStamp](
-    mongoComponent = mongo,
+class PdvOldRepository @Inject()(mongoComponent: ReactiveMongoComponent)
+  extends ReactiveRepository[PersonalDetailsValidation, ValidationId](
     collectionName = "personal-details-validation", // the original collection name (7G of old data)
-    domainFormat = PersonalDetailsValidationWithCreateTimeStamp.format,
-    indexes = Seq(),
-    replaceIndexes = true
+    mongo = mongoComponent.mongoConnector.db,
+    domainFormat = mongoEntity(personalDetailsValidationFormats),
+    idFormat = personalDetailsValidationIdFormats
   ) with PdvRepository {
 
   override def create(personalDetails: PersonalDetailsValidation)(implicit ec: ExecutionContext): EitherT[Future, Exception, Done] =
     throw new RuntimeException("Trying create a journey document in the old PDV collection - this is no longer allowed")
 
-  override def get(personalDetailsValidationId: ValidationId)(implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidationWithCreateTimeStamp]] = {
-    val completeFilter = Filters.and(Filters.eq("_id_", personalDetailsValidationId))
-    collection.find(completeFilter).toFuture().map(_.headOption)
-  }
+  override def get(personalDetailsValidationId: ValidationId)(implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]] =
+    findById(personalDetailsValidationId)
 
 }
