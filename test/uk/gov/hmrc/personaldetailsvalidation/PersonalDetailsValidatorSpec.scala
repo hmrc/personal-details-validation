@@ -54,7 +54,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
       val gender = "F"
       val personalDetailsWithGender = personalDetails.addGender(gender)
 
-      val matchResult: MatchSuccessful = MatchSuccessful(personalDetails)
+      val matchResult: MatchSuccessful = MatchSuccessful(personalDetailsWithGender)
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
@@ -66,7 +66,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
 
       (mockAppConfig.returnNinoFromCid _).expects().returning(false).repeat(2)
 
-      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _: Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, personalDetails, origin, headerCarrier, request, executionContext)
 
       (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
@@ -103,7 +103,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
       (mockAppConfig.returnNinoFromCid _).expects().returning(true).repeat(1)
 
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(matchResult, inputPersonalDetails, origin, headerCarrier, request, executionContext)
+        .expects(matchResult, inputPersonalDetails.addGender("F"), origin, headerCarrier, request, executionContext)
 
       (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(origin, headerCarrier, request, executionContext)
@@ -125,6 +125,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
       val enteredNino: Nino = adjustedNino(personalDetails.nino)
       val enteredPersonalDetails: PersonalDetailsWithNino = personalDetails.copy(nino = enteredNino)
       val gender = "F"
+      val enteredPersonalDetailsWithGender = enteredPersonalDetails.addGender(gender)
 
       val matchResult: MatchSuccessful = MatchSuccessful(personalDetails)
 

@@ -44,6 +44,6 @@ case class Gender(gender: String)
 
 object Gender {
 
-  implicit val reads: Reads[Option[Gender]] = (__ \ "person" \ "sexId").readNullable[String].map(gender => gender.map(Gender(_)))
+  implicit val reads: Reads[Option[Gender]] = (__ \ "person" \ "sex").readNullable[String].map(gender => gender.map(Gender(_)))
 
 }

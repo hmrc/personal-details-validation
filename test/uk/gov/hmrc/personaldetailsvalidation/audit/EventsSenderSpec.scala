@@ -88,13 +88,13 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
       val matchedPersonDetails = personalDetails.copy(nino = Nino("AA000003C"))
 
       (platformAnalyticsConnector.sendEvent(_: GAEvent, _: Option[String], _: Option[PersonalDetails])(_: HeaderCarrier, _: ExecutionContext))
-        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success"), origin, Some(personalDetails),  headerCarrier, executionContext)
+        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success"), origin, Some(matchedPersonDetails),  headerCarrier, executionContext)
 
       (platformAnalyticsConnector.sendEvent(_: GAEvent, _: Option[String], _: Option[PersonalDetails])(_: HeaderCarrier, _: ExecutionContext))
-        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_withNINO"), origin, Some(personalDetails),  headerCarrier, executionContext)
+        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_withNINO"), origin, Some(matchedPersonDetails),  headerCarrier, executionContext)
 
       (platformAnalyticsConnector.sendEvent(_: GAEvent, _: Option[String], _: Option[PersonalDetails])(_: HeaderCarrier, _: ExecutionContext))
-        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_nino_suffix_different_from_cid"), origin, Some(personalDetails), headerCarrier, executionContext)
+        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_nino_suffix_different_from_cid"), origin, Some(matchedPersonDetails), headerCarrier, executionContext)
 
       val matchResult = MatchSuccessful(matchedPersonDetails)
 
@@ -112,13 +112,13 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
       val matchedPersonDetails = new PersonalDetailsWithPostCode(personalDetails.firstName, personalDetails.lastName, personalDetails.dateOfBirth, "SE1 9NT")
 
       (platformAnalyticsConnector.sendEvent(_: GAEvent, _: Option[String], _: Option[PersonalDetails])(_: HeaderCarrier, _: ExecutionContext))
-        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success"), origin, Some(matchedPersonDetails), headerCarrier, executionContext)
+        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success"), origin, Some(personalDetails), headerCarrier, executionContext)
 
       (platformAnalyticsConnector.sendEvent(_: GAEvent, _: Option[String], _: Option[PersonalDetails])(_: HeaderCarrier, _: ExecutionContext))
-        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_withPOSTCODE"), origin, Some(matchedPersonDetails), headerCarrier, executionContext)
+        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_withPOSTCODE"), origin, Some(personalDetails), headerCarrier, executionContext)
 
       (platformAnalyticsConnector.sendEvent(_: GAEvent, _: Option[String], _: Option[PersonalDetails])(_: HeaderCarrier, _: ExecutionContext))
-        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_postcode_suffix"), origin, Some(matchedPersonDetails), headerCarrier, executionContext)
+        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "success_postcode_suffix"), origin, Some(personalDetails), headerCarrier, executionContext)
 
       val matchResult = MatchSuccessful(personalDetails)
 
