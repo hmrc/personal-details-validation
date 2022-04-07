@@ -17,7 +17,7 @@
 package uk.gov.hmrc.personaldetailsvalidation
 
 import play.api.Logging
-import play.api.libs.json.{Reads, __}
+import play.api.libs.json.{Format, JsValue, Json, Reads, __}
 import uk.gov.hmrc.domain._
 import uk.gov.hmrc.http._
 
