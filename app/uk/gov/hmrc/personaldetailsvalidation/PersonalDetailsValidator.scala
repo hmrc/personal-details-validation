@@ -87,8 +87,7 @@ class PersonalDetailsValidatorImpl @Inject() (
                                  (implicit ec: ExecutionContext, hc: HeaderCarrier): EitherT[Future, Exception, PersonalDetailsValidation] =
     matchResult match {
       case MatchSuccessful(pd: PersonalDetails) =>
-        EitherT(toPersonalDetails(pd, optionallyHaving) map (PersonalDetailsValidation.successful(_)) map (_.asRight[Exception]))
-
+        EitherT(toPersonalDetails(pd, optionallyHaving) map (pd => PersonalDetailsValidation.successful(pd)) map (_.asRight[Exception]))
       case MatchFailed(_) =>
         personalDetailsValidationRetryRepository.getAttempts(maybeCredId).map(attempts => PersonalDetailsValidation.failed(maybeCredId, Some(attempts + 1)))
     }
@@ -102,7 +101,8 @@ class PersonalDetailsValidatorImpl @Inject() (
 
   def toPersonalDetailsWithGender(personalDetails: PersonalDetails)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[PersonalDetails] =
     personalDetails.maybeNino match {
-      case Some(nino) => citizenDetailsConnector.findDesignatoryDetails(nino)
+      case Some(nino) =>
+        citizenDetailsConnector.findDesignatoryDetails(nino)
         .map(_.fold (personalDetails)(gender => personalDetails.addGender(gender.gender)))
       case _ => Future.successful(personalDetails)
     }
