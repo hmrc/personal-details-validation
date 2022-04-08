@@ -68,9 +68,16 @@ class PersonalDetailsValidatorImpl @Inject() (
         if (maybeCredId.isDefined) { personalDetailsValidationRetryRepository.recordAttempt(maybeCredId.get) }
         personalDetailsValidationRepository.create(personalDetailsValidation)
       }
-      _ = sendEvents(matchResult, eventDetailsToSend(matchResult, personalDetails), origin)
+      _ = sendEvents(addValidatedPersonalDetailsToMatchResult(personalDetailsValidation, matchResult), eventDetailsToSend(matchResult, personalDetails), origin)
     } yield personalDetailsValidation
   }.leftMap { error => sendErrorEvents(personalDetails, origin); error }
+
+  def addValidatedPersonalDetailsToMatchResult (personalDetailsValidation: PersonalDetailsValidation, matchResult: MatchResult) : MatchResult = {
+    (personalDetailsValidation, matchResult) match {
+      case (spdv: SuccessfulPersonalDetailsValidation, ms:MatchSuccessful) => ms.copy(matchedPerson = spdv.personalDetails)
+      case _ => matchResult
+    }
+  }
 
   def eventDetailsToSend(matchResult: MatchResult, personalDetails: PersonalDetails): PersonalDetails = {
     if (appConfig.returnNinoFromCid)
