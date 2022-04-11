@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.test
 
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime, ZoneOffset}
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{Format, JsValue, Json}
@@ -39,7 +39,7 @@ class TestController @Inject()(personalDetailsValidationRepository: PersonalDeta
   def upsertTestValidation: Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[PersonalDetailsTestValidationData] { personalDetails =>
       val personData = PersonalDetailsWithNino(firstName = "NA - Test Data", lastName = "NA - Test Data", dateOfBirth = LocalDate.now(), nino = personalDetails.nino)
-      val validationData = SuccessfulPersonalDetailsValidation(ValidationId(personalDetails.validationId), personData)
+      val validationData = SuccessfulPersonalDetailsValidation(ValidationId(personalDetails.validationId), personalDetails = personData, createdAt = LocalDateTime.now(ZoneOffset.UTC))
       personalDetailsValidationRepository.create(validationData)
       Future.successful(Created)
     }

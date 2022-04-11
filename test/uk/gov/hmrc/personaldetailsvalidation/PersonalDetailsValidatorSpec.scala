@@ -25,24 +25,23 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.mvc.{AnyContentAsEmpty, Request}
 import play.api.test.FakeRequest
-import play.modules.reactivemongo.ReactiveMongoComponent
 import support.UnitSpec
 import uk.gov.hmrc.config.AppConfig
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
+import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
-import uk.gov.hmrc.personaldetailsvalidation.model.{FailedPersonalDetailsValidation, PersonalDetails, PersonalDetailsValidation, PersonalDetailsWithNino, PersonalDetailsWithNinoAndGender, PersonalDetailsWithPostCode, SuccessfulPersonalDetailsValidation}
+import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import java.util.UUID.randomUUID
 import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
 import scala.concurrent.{ExecutionContext, Future}
 
-class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoSpecSupport with GuiceOneAppPerSuite {
+class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceOneAppPerSuite {
 
   "validate" should {
 
@@ -52,7 +51,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
       val personalDetails: PersonalDetails = personalDetailsObjects.generateOne
 
       val gender = "F"
-      val personalDetailsWithGender = personalDetails.addGender(gender)
+      val personalDetailsWithGender: PersonalDetails = personalDetails.addGender(gender)
 
       val matchResult: MatchSuccessful = MatchSuccessful(personalDetailsWithGender)
 
@@ -72,13 +71,13 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
       (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(origin, headerCarrier, request, executionContext)
 
-      val personalDetailsValidation: SuccessfulPersonalDetailsValidation = PersonalDetailsValidation.successful(personalDetailsWithGender)
-
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
-        .expects(personalDetailsValidation, executionContext)
+        .expects(*, executionContext)
         .returning(EitherT.rightT[Future, Exception](Done))
 
-      await(validator.validate(personalDetails, origin, maybeCredId).value) shouldBe Right(personalDetailsValidation)
+      await(validator.validate(personalDetails, origin, maybeCredId).value).map { personalDetailsValidation =>
+        personalDetailsValidation.id shouldBe Right(personalDetailsValidation).value.id
+      }
     }
 
     "match the given postccode personal details with matching service, " +
@@ -108,13 +107,13 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
       (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(origin, headerCarrier, request, executionContext)
 
-      val personalDetailsValidation: SuccessfulPersonalDetailsValidation = PersonalDetailsValidation.successful(inputPersonalDetails.addNino(matchedPersonalDetails.nino).addGender(gender))
-
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
-        .expects(personalDetailsValidation, executionContext)
+        .expects(*, executionContext)
         .returning(EitherT.rightT[Future, Exception](Done))
 
-      await(validator.validate(inputPersonalDetails, origin, maybeCredId).value) shouldBe Right(personalDetailsValidation)
+      await(validator.validate(inputPersonalDetails, origin, maybeCredId).value).map { personalDetailsValidation =>
+        personalDetailsValidation.id shouldBe Right(personalDetailsValidation).value.id
+      }
     }
 
     "match the given personal details with matching service, with a different suffix, " +
@@ -125,7 +124,6 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
       val enteredNino: Nino = adjustedNino(personalDetails.nino)
       val enteredPersonalDetails: PersonalDetailsWithNino = personalDetails.copy(nino = enteredNino)
       val gender = "F"
-      val enteredPersonalDetailsWithGender = enteredPersonalDetails.addGender(gender)
 
       val matchResult: MatchSuccessful = MatchSuccessful(personalDetails)
 
@@ -145,13 +143,13 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
       (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(origin, headerCarrier, request, executionContext)
 
-      val personalDetailsValidation: SuccessfulPersonalDetailsValidation = PersonalDetailsValidation.successful(enteredPersonalDetails.addGender(gender))
-
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
-        .expects(personalDetailsValidation, executionContext)
+        .expects(*, executionContext)
         .returning(EitherT.rightT[Future, Exception](Done))
 
-      await(validator.validate(enteredPersonalDetails, origin, maybeCredId).value) shouldBe Right(personalDetailsValidation)
+      await(validator.validate(enteredPersonalDetails, origin, maybeCredId).value).map { personalDetailsValidation =>
+        personalDetailsValidation.id shouldBe Right(personalDetailsValidation).value.id
+      }
     }
 
     "match the given personal details with matching service, with a different suffix, " +
@@ -181,20 +179,20 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
       (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(origin, headerCarrier, request, executionContext)
 
-      val personalDetailsValidation: SuccessfulPersonalDetailsValidation = PersonalDetailsValidation.successful(personalDetails.addGender(gender))
-
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
-        .expects(personalDetailsValidation, executionContext)
+        .expects(*, executionContext)
         .returning(EitherT.rightT[Future, Exception](Done))
 
-      await(validator.validate(enteredPersonalDetails, origin, maybeCredId).value) shouldBe Right(personalDetailsValidation)
+      await(validator.validate(enteredPersonalDetails, origin, maybeCredId).value).map { personalDetailsValidation =>
+        personalDetailsValidation.id shouldBe Right(personalDetailsValidation).value.id
+      }
     }
 
     "match the given personal details with matching service, " +
       "store them as FailedPersonalDetailsValidation for unsuccessful match " +
       "and return the ValidationId" in new Setup {
 
-      await(personalDetailsValidationRetryRepository.drop)
+      await(personalDetailsValidationRetryRepository.collection.drop().toFuture())
       val personalDetails: PersonalDetails = personalDetailsObjects.generateOne
       val matchResult: MatchFailed = MatchFailed("some error")
 
@@ -210,13 +208,13 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
       (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(origin, headerCarrier, request, executionContext)
 
-      val personalDetailsValidation: FailedPersonalDetailsValidation = PersonalDetailsValidation.failed(maybeCredId, Some(1))
-
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
-        .expects(personalDetailsValidation, executionContext)
+        .expects(*, executionContext)
         .returning(EitherT.rightT[Future, Exception](Done))
 
-      await(validator.validate(personalDetails, origin, maybeCredId).value) shouldBe Right(personalDetailsValidation)
+      await(validator.validate(personalDetails, origin, maybeCredId).value).map { personalDetailsValidation =>
+        personalDetailsValidation.id shouldBe Right(personalDetailsValidation).value.id
+      }
     }
 
     "return matching error when the call to match fails" in new Setup {
@@ -283,12 +281,10 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with MongoS
     val personalDetailsValidationMongoRepositoryConfig: PersonalDetailsValidationMongoRepositoryConfig =
       app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
 
-    val reactiveMongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
-      override def mongoConnector: MongoConnector = mongoConnectorForTest
-    }
+    val mongoComponent: MongoComponent = app.injector.instanceOf[MongoComponent]
 
     val personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository =
-      new PersonalDetailsValidationRetryRepository(personalDetailsValidationMongoRepositoryConfig, reactiveMongoComponent)
+      new PersonalDetailsValidationRetryRepository(personalDetailsValidationMongoRepositoryConfig, mongoComponent)
 
     implicit val uuidProvider: UUIDProvider = stub[UUIDProvider]
     uuidProvider.apply _ when() returns randomUUID()
