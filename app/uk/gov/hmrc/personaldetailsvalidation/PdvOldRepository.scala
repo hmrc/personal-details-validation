@@ -18,16 +18,16 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import akka.Done
 import cats.data.EitherT
-import play.modules.reactivemongo.ReactiveMongoComponent
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.mongoEntity
+import org.mongodb.scala.model.Filters
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
+import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
-import uk.gov.hmrc.personaldetailsvalidation.formats.TinyTypesFormats.personalDetailsValidationIdFormats
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, ValidationId}
 
 import javax.inject.{Inject, Singleton}
+import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
-
 /**
  * This repository contains the old, 7G of PDV journey data that needs to be removed,
  * once all journeys have switched to using the new repository.  The old repository's TTL
@@ -36,18 +36,22 @@ import scala.concurrent.{ExecutionContext, Future}
  */
 
 @Singleton
-class PdvOldRepository @Inject()(mongoComponent: ReactiveMongoComponent)
-  extends ReactiveRepository[PersonalDetailsValidation, ValidationId](
+class PdvOldRepository @Inject()(mongoComponent: MongoComponent)(implicit ec: ExecutionContext)
+  extends PlayMongoRepository[PersonalDetailsValidation](
     collectionName = "personal-details-validation", // the original collection name (7G of old data)
-    mongo = mongoComponent.mongoConnector.db,
-    domainFormat = mongoEntity(personalDetailsValidationFormats),
-    idFormat = personalDetailsValidationIdFormats
+    mongoComponent = mongoComponent,
+    domainFormat = personalDetailsValidationFormats,
+    indexes = Seq(),
+    replaceIndexes = true,
+    extraCodecs = Seq(Codecs.playFormatCodec(PersonalDetailsValidationFormat.SuccessfulPersonalDetailsValidationFormat), Codecs.playFormatCodec(PersonalDetailsValidationFormat.FailedPersonalDetailsValidationFormat))
   ) with PdvRepository {
 
   override def create(personalDetails: PersonalDetailsValidation)(implicit ec: ExecutionContext): EitherT[Future, Exception, Done] =
     throw new RuntimeException("Trying create a journey document in the old PDV collection - this is no longer allowed")
 
-  override def get(personalDetailsValidationId: ValidationId)(implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]] =
-    findById(personalDetailsValidationId)
+  override def get(personalDetailsValidationId: ValidationId)(implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]] ={
+    val completeFilter = Filters.and(Filters.eq("_id_", personalDetailsValidationId))
+    collection.find(completeFilter).toFuture().map(_.headOption)
+  }
 
 }

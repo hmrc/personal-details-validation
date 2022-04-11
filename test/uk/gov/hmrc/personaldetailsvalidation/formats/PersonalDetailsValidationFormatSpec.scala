@@ -29,6 +29,8 @@ import support.UnitSpec
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.uuid.UUIDProvider
 
+import java.time.{LocalDateTime, ZoneOffset}
+
 class PersonalDetailsValidationFormatSpec
   extends UnitSpec
     with ScalaCheckDrivenPropertyChecks {
@@ -83,7 +85,7 @@ class PersonalDetailsValidationFormatSpec
       import PersonalDetailsFormat._
       val badPostcodes = List("ZZ1 1ZZ","YI1 1YY")
 
-      val personalDetailsWithPostCode=personalDetailsWithPostCodeObjects.generateOne
+      val personalDetailsWithPostCode = personalDetailsWithPostCodeObjects.generateOne
 
       badPostcodes.foreach { invalidPostCode: String =>
         an [JsResultException] should be thrownBy
@@ -93,7 +95,8 @@ class PersonalDetailsValidationFormatSpec
 
     "allow to serialise SuccessfulPersonalDetailsValidation to JSON" in new Setup {
       forAll { personalDetailsWithNino: PersonalDetailsWithNino =>
-        toJson[PersonalDetailsValidation](PersonalDetailsValidation.successful(personalDetailsWithNino)) shouldBe Json.obj(
+        val createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)
+        Json.toJson[PersonalDetailsValidation](PersonalDetailsValidation.successful(personalDetailsWithNino, createdAt)) shouldBe Json.obj(
           "id" -> ValidationId(uuidProvider()),
           "validationStatus" -> "success",
           "personalDetails" -> Json.obj(
@@ -101,22 +104,26 @@ class PersonalDetailsValidationFormatSpec
             "lastName" -> personalDetailsWithNino.lastName,
             "dateOfBirth" -> personalDetailsWithNino.dateOfBirth,
             "nino" -> personalDetailsWithNino.nino
-          )
+          ),
+        "createdAt" -> createdAt
         )
       }
     }
 
     "allow to serialise FailedPersonalDetailsValidation to JSON" in new Setup {
-      toJson[PersonalDetailsValidation](PersonalDetailsValidation.failed(Some("credentialId"), Some(0))) shouldBe Json.obj(
+      val createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)
+      toJson[PersonalDetailsValidation](PersonalDetailsValidation.failed(Some("credentialId"), Some(0), createdAt)) shouldBe Json.obj(
         "id" -> ValidationId(uuidProvider()),
         "validationStatus" -> "failure",
         "credentialId" -> "credentialId",
-        "attempts" -> 0
+        "attempts" -> 0,
+        "createdAt" -> createdAt
       )
     }
 
     "allow to deserialise SuccessfulPersonalDetailsValidation to JSON" in new Setup {
       forAll { personalDetails: PersonalDetailsWithNino =>
+        val createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)
         val personalDetailsWithNino = personalDetails
         Json.obj(
           "id" -> ValidationId(uuidProvider()),
@@ -126,18 +133,21 @@ class PersonalDetailsValidationFormatSpec
             "lastName" -> personalDetailsWithNino.lastName,
             "dateOfBirth" -> personalDetailsWithNino.dateOfBirth,
             "nino" -> personalDetailsWithNino.nino
-          )
-        ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.successful(personalDetails)
+          ),
+          "createdAt" -> createdAt
+        ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.successful(personalDetails, createdAt)
       }
     }
 
     "allow to deserialise FailedPersonalDetailsValidation to JSON" in new Setup {
+      val createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)
       Json.obj(
         "id" -> ValidationId(),
         "validationStatus" -> "failure",
         "credentialId" -> "credentialId",
-        "attempts" -> 0
-      ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.failed(Some("credentialId"), Some(0))
+        "attempts" -> 0,
+        "createdAt" -> createdAt
+      ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.failed(Some("credentialId"), Some(0), createdAt)
     }
   }
 

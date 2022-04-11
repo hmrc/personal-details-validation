@@ -33,7 +33,6 @@ import play.api.libs.json._
 import play.api.mvc.{AnyContentAsEmpty, Request, Result}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import play.modules.reactivemongo.ReactiveMongoComponent
 import scalamock.MockArgumentMatchers
 import support.UnitSpec
 import uk.gov.hmrc.auth.core.AuthConnector
@@ -41,7 +40,7 @@ import uk.gov.hmrc.auth.core.authorise.Predicate
 import uk.gov.hmrc.auth.core.retrieve.{Credentials, Retrieval}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
-import uk.gov.hmrc.mongo.{MongoConnector, MongoSpecSupport}
+import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.uuid.UUIDProvider
@@ -57,8 +56,7 @@ class PersonalDetailsValidationResourceControllerSpec
     with ScalaFutures
     with MockFactory
     with MockArgumentMatchers
-    with TableDrivenPropertyChecks
-    with MongoSpecSupport {
+    with TableDrivenPropertyChecks {
 
   "create" should {
 
@@ -315,12 +313,10 @@ class PersonalDetailsValidationResourceControllerSpec
     val personalDetailsValidationMongoRepositoryConfig: PersonalDetailsValidationMongoRepositoryConfig =
       app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
 
-    val reactiveMongoComponent: ReactiveMongoComponent = new ReactiveMongoComponent {
-      override def mongoConnector: MongoConnector = mongoConnectorForTest
-    }
+    val mongoComponent: MongoComponent = app.injector.instanceOf[MongoComponent]
 
     val personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository =
-      new PersonalDetailsValidationRetryRepository(personalDetailsValidationMongoRepositoryConfig, reactiveMongoComponent)
+      new PersonalDetailsValidationRetryRepository(personalDetailsValidationMongoRepositoryConfig, mongoComponent)
 
     val mockValidator: PersonalDetailsValidator = mock[PersonalDetailsValidator]
     val origin: Some[String] = Some("Test")

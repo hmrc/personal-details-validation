@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.model
 
-import java.util.UUID
-
 import uk.gov.hmrc.uuid.UUIDProvider
 import uk.gov.voa.valuetype.{StringOptions, StringValue, ValueType}
+
+import java.time.{LocalDateTime, ZoneOffset}
+import java.util.UUID
 
 case class ValidationId(value: UUID) extends ValueType[UUID]
 
@@ -46,18 +47,24 @@ sealed trait PersonalDetailsValidation {
 }
 
 case class SuccessfulPersonalDetailsValidation(id: ValidationId,
-                                               personalDetails: PersonalDetails)
+                                               validationStatus: String = "success",
+                                               personalDetails: PersonalDetails,
+                                               createdAt: LocalDateTime)
   extends PersonalDetailsValidation
 
-case class FailedPersonalDetailsValidation(id: ValidationId, maybeCredId: Option[String] = None, attempt: Option[Int] = None)
+case class FailedPersonalDetailsValidation(id: ValidationId,
+                                           validationStatus: String = "failure",
+                                           maybeCredId: Option[String] = None,
+                                           attempt: Option[Int] = None,
+                                           createdAt: LocalDateTime)
   extends PersonalDetailsValidation
 
 object PersonalDetailsValidation {
 
-  def successful(personalDetails: PersonalDetails)
-                (implicit uuidProvider: UUIDProvider) =
-    SuccessfulPersonalDetailsValidation(ValidationId(), personalDetails)
+  def successful(personalDetails: PersonalDetails, createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC))
+                (implicit uuidProvider: UUIDProvider): SuccessfulPersonalDetailsValidation =
+    SuccessfulPersonalDetailsValidation(ValidationId(), personalDetails = personalDetails, createdAt = createdAt)
 
-  def failed(maybeCredId: Option[String], attempts: Option[Int])(implicit uuidProvider: UUIDProvider) =
-    FailedPersonalDetailsValidation(ValidationId(), maybeCredId, attempts)
+  def failed(maybeCredId: Option[String], attempts: Option[Int], createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC))(implicit uuidProvider: UUIDProvider): FailedPersonalDetailsValidation =
+    FailedPersonalDetailsValidation(ValidationId(), maybeCredId = maybeCredId, attempt = attempts, createdAt = createdAt)
 }

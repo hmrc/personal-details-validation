@@ -21,6 +21,8 @@ import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.audit.model.DataEvent
 import PostCodeGenerator._
 
+import java.time.{LocalDateTime, ZoneOffset}
+
 object ObjectGenerators extends ValueGenerators {
 
   implicit val personalDetailsWithNinoObjects: Gen[PersonalDetailsWithNino] = for {
@@ -50,11 +52,11 @@ object ObjectGenerators extends ValueGenerators {
   implicit val successfulPersonalDetailsValidationObjects: Gen[SuccessfulPersonalDetailsValidation] = for {
     id <- validationIds
     personalDetails <- personalDetailsWithNinoObjects
-  } yield SuccessfulPersonalDetailsValidation(id, personalDetails)
+  } yield SuccessfulPersonalDetailsValidation(id, "success", personalDetails, LocalDateTime.now(ZoneOffset.UTC))
 
   implicit val failedPersonalDetailsValidationObjects: Gen[FailedPersonalDetailsValidation] =
     validationIds.map{id =>
-      FailedPersonalDetailsValidation(id, maybeCredId, attempt)
+      FailedPersonalDetailsValidation(id, "failure", maybeCredId, attempt, LocalDateTime.now(ZoneOffset.UTC))
     }
 
   implicit val personalDetailsValidationObjects: Gen[PersonalDetailsValidation] = booleans flatMap {

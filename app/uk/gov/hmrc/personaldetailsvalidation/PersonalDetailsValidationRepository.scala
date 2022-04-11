@@ -18,56 +18,46 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import akka.Done
 import cats.data.EitherT
-import play.api.libs.json._
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.play.json.ImplicitBSONHandlers._
-import uk.gov.hmrc.datetime.CurrentTimeProvider
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats.mongoEntity
-import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat._
-import uk.gov.hmrc.personaldetailsvalidation.formats.TinyTypesFormats._
+import org.mongodb.scala.model.Indexes.ascending
+import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions}
+import play.api.Logging
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
+import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat
 import uk.gov.hmrc.personaldetailsvalidation.model._
-import uk.gov.hmrc.play.json.ops._
 
+import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class PersonalDetailsValidationRepository @Inject()(config: PersonalDetailsValidationMongoRepositoryConfig,
-                                                    mongoComponent: ReactiveMongoComponent,
-                                                    pdvOldRepository: PdvOldRepository)(implicit currentTimeProvider: CurrentTimeProvider)
-  extends ReactiveRepository[PersonalDetailsValidation, ValidationId](
+                                                    mongoComponent: MongoComponent,
+                                                    pdvOldRepository: PdvOldRepository)(implicit executionContext: ExecutionContext)
+  extends PlayMongoRepository[PersonalDetailsValidation](
     collectionName = "pdv-journey", // new collection name
-    mongo = mongoComponent.mongoConnector.db,
-    domainFormat = mongoEntity(personalDetailsValidationFormats),
-    idFormat = personalDetailsValidationIdFormats
-  ) with PdvRepository with TtlIndexedReactiveRepository[PersonalDetailsValidation, ValidationId] {
+    mongoComponent = mongoComponent,
+    domainFormat = PersonalDetailsValidationFormat.personalDetailsValidationFormats,
+    indexes = Seq(
+      IndexModel(
+        ascending("createdAt"),
+        indexOptions = IndexOptions().name("expireAfterSeconds").expireAfter(config.collectionTtl.getSeconds, TimeUnit.SECONDS)
+      )
+    ),
+    replaceIndexes = true,
+    extraCodecs = Seq(Codecs.playFormatCodec(PersonalDetailsValidationFormat.SuccessfulPersonalDetailsValidationFormat), Codecs.playFormatCodec(PersonalDetailsValidationFormat.FailedPersonalDetailsValidationFormat))
+  ) with PdvRepository with Logging {
 
+  def create(personalDetailsValidation: PersonalDetailsValidation)(implicit executionContext: ExecutionContext): EitherT[Future, Exception, Done] = {
 
-  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
-
-   // TODO on startup, AFTER journeys are all using the new collection, add a hook to drop the OLD collection (if exists)
-   //   Once collection is successfully dropped (check Grafana) the hook can be removed:
-   //    mongo()
-   //      .collection[JSONCollection]("personal-details-validation")
-   //      .drop(failIfNotFound = false)
-
-    super.ensureIndexes.zipWith(maybeCreateTtlIndex)(_ ++ _)
-  }
-
-  override val ttl: Long = config.collectionTtl.getSeconds
-
-  def create(personalDetailsValidation: PersonalDetailsValidation)
-            (implicit ec: ExecutionContext): EitherT[Future, Exception, Done] = {
-
-    val document: JsObject =
-      domainFormatImplicit.writes(personalDetailsValidation).as[JsObject].withCreatedTimeStamp(createdAtField)
-
-    EitherT(collection.insert(ordered = false).one(document).map(_ => Right(Done))
-      .recover {
-        case ex: Exception => Left(ex)
-      })
+    EitherT(
+      collection.insertOne(personalDetailsValidation).toFuture()
+        .map(_ => Right(Done))
+        .recover {
+          case ex: Exception => Left(ex)
+        }
+    )
   }
 
   /**
@@ -76,15 +66,15 @@ class PersonalDetailsValidationRepository @Inject()(config: PersonalDetailsValid
    * While we are transitioning to the new collection, we need to fallback to looking in the
    * OLD collection for journeys which were started with the previous version of code (only needed for max 24 hours - TTL period)
    */
-  def get(personalDetailsValidationId: ValidationId)
-         (implicit ec: ExecutionContext): Future[Option[PersonalDetailsValidation]] = {
-    findById(personalDetailsValidationId)
+  def get(personalDetailsValidationId: ValidationId)(implicit executionContext: ExecutionContext): Future[Option[PersonalDetailsValidation]] = {
+    val completeFilter = Filters.eq("id", personalDetailsValidationId.value.toString)
+    collection.find(completeFilter).toFuture().map(_.headOption)
       .flatMap {
         case Some(result) => Future.successful(Some(result))
         case None =>
           // NOTE: this fallback no longer needed once these messages disappear in production
           logger.warn(s"[VER-1979] Journey with validation id: $personalDetailsValidationId not found, looking in old 7G collection")
-          pdvOldRepository.findById(personalDetailsValidationId) // fallback to old collection
+          pdvOldRepository.collection.find(completeFilter).toFuture().map(_.headOption) // fallback to old collection
       }
   }
 

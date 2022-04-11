@@ -16,8 +16,7 @@
 
 package generators
 
-import java.time.{Instant, LocalDate, ZoneId, ZonedDateTime}
-
+import java.time.{Instant, LocalDate, LocalDateTime, ZoneId, ZonedDateTime}
 import org.scalacheck.{Arbitrary, Gen}
 import uk.gov.hmrc.model.NonEmptyString
 
@@ -62,6 +61,7 @@ trait Generators {
   implicit val instants: Gen[Instant] = Gen.choose(minTimestamp, maxTimestamp).map(Instant.ofEpochMilli)
 
   implicit val localDates: Gen[LocalDate] = instants.map(toDate)
+  implicit val localDateTime: Gen[LocalDateTime] = instants.map(toDateTime)
 
   object Implicits {
 
@@ -116,6 +116,7 @@ trait Generators {
     val maxTimestamp = Instant.parse("2100-01-01T00:00:00.000Z").toEpochMilli
 
     def toDate(i: Instant) = ZonedDateTime.ofInstant(i, EuropeLondon).toLocalDate
+    def toDateTime(i: Instant) = ZonedDateTime.ofInstant(i, EuropeLondon).toLocalDateTime
   }
 }
 

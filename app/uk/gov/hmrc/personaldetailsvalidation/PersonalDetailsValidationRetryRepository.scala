@@ -18,67 +18,60 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import akka.Done
 import cats.data.EitherT
-import org.joda.time.{DateTime, DateTimeZone}
+import org.mongodb.scala.model.Indexes.ascending
+import org.mongodb.scala.model._
 import play.api.libs.json._
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.indexes.Index
-import reactivemongo.api.indexes.IndexType.Descending
-import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
+import java.time.{LocalDateTime, ZoneOffset}
+import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
-case class Retry(credentialId: String, attempts: Option[Int])
+case class Retry(credentialId: String, attempts: Option[Int], createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC))
 
 object Retry {
-  implicit val dateTimeFormats: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
+  implicit val dateTimeFormats: Format[LocalDateTime] = MongoJavatimeFormats.localDateTimeFormat
   implicit val format: OFormat[Retry] = Json.format[Retry]
 }
 
 
 @Singleton
 class PersonalDetailsValidationRetryRepository @Inject()(config: PersonalDetailsValidationMongoRepositoryConfig,
-                                                         mongoComponent: ReactiveMongoComponent)(implicit ec: ExecutionContext)
-  extends ReactiveRepository[Retry, BSONObjectID](
+                                                         mongo: MongoComponent)(implicit ec: ExecutionContext)
+  extends PlayMongoRepository[Retry](
     collectionName = "personal-details-validation-retry-store",
-    mongo = mongoComponent.mongoConnector.db,
+    mongoComponent = mongo,
     domainFormat = Retry.format,
-    idFormat = ReactiveMongoFormats.objectIdFormats) with TtlIndexedReactiveRepository[Retry, BSONObjectID] {
-
-  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
-    super.ensureIndexes.zipWith(maybeCreateTtlIndex)(_ ++ _)
-  }
-
-  override def indexes: Seq[Index] = {
-    Seq(Index(
-      Seq(retryKey -> Descending),
-      name = Some("credentialIdUnique"),
-      unique = true
-    ))
-  }
-
-  override val ttl: Long = config.collectionTtl.getSeconds
+    indexes = Seq(
+      IndexModel(
+        ascending("createdAt"),
+        indexOptions = IndexOptions().name("expireAfterSeconds").expireAfter(config.collectionTtl.getSeconds, TimeUnit.SECONDS)
+      ),
+      IndexModel(
+        keys = Indexes.descending("credentialId"),
+        indexOptions = IndexOptions().name("credentialIdUnique").unique(true)
+      )
+    ),
+    replaceIndexes = true
+  )  {
 
   //user's CredId is the retry key
   lazy val retryKey = "credentialId"
 
-  def recordAttempt(maybeCredId: String): Future[Done] = {
-    import Json.{obj, toJson}
-    val selector = obj(retryKey -> maybeCredId)
-    val update = obj(
-      "$inc" -> obj("attempts" -> 1),
-      "$setOnInsert" -> obj(createdAtField -> toJson(DateTime.now.withZone(DateTimeZone.UTC))(Retry.dateTimeFormats))
-    )
-    findAndUpdate(selector, update, upsert = true, fetchNewObject = true).map(_ => Done).recover{ case _ => Done }
+  def recordAttempt(maybeCredId: String, attempts: Int = 0): Future[Done] = {
+    val update = Retry(maybeCredId, Some(attempts + 1))
+    collection.replaceOne(Filters.eq(retryKey, maybeCredId), update, ReplaceOptions().upsert(true)).toFuture().map(_ => Done)
   }
 
   def getAttempts(maybeCredId: Option[String])(implicit ec: ExecutionContext): EitherT[Future, Exception, Int] = {
     EitherT(
       maybeCredId.fold(Future.successful(Right(0))){ credId =>
-        find(retryKey -> credId).map { personalDetailsValidation =>
+        val completeFilter = Filters.and(Filters.eq(retryKey, credId))
+        collection.find(completeFilter).toFuture().map { personalDetailsValidation =>
           personalDetailsValidation.last match {
             case maybeRetry: Retry => Right(maybeRetry.attempts.getOrElse(0))
             case _ => Right(0)
