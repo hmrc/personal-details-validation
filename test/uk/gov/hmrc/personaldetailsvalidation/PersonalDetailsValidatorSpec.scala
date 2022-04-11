@@ -253,11 +253,9 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
 
       (mockAppConfig.returnNinoFromCid _).expects().returning(false)
 
-      val personalDetailsValidation: SuccessfulPersonalDetailsValidation = PersonalDetailsValidation.successful(personalDetails.addGender(gender))
-
       val exception = new RuntimeException("error")
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
-        .expects(personalDetailsValidation, executionContext)
+        .expects(*, executionContext)
         .returning(EitherT.leftT[Future, Done](exception))
 
       (matchingEventsSender.sendErrorEvents(_: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
