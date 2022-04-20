@@ -45,7 +45,7 @@ class PersonalDetailsValidationRepository @Inject()(config: PersonalDetailsValid
         indexOptions = IndexOptions().name("expireAfterSeconds").expireAfter(config.collectionTtl.getSeconds, TimeUnit.SECONDS)
       )
     ),
-    replaceIndexes = true,
+    replaceIndexes = false,
     extraCodecs = Seq(Codecs.playFormatCodec(PersonalDetailsValidationFormat.SuccessfulPersonalDetailsValidationFormat), Codecs.playFormatCodec(PersonalDetailsValidationFormat.FailedPersonalDetailsValidationFormat))
   ) with PdvRepository with Logging {
 
