@@ -16,16 +16,17 @@ private object AppDependencies {
 
   private def test(scope: String = "test,it") = Seq(
     "com.typesafe.play" %% "play-test" % PlayVersion.current % scope,
-    "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
+    "org.scalacheck" %% "scalacheck" % "1.14.3" % "test",
     "org.scalamock" %% "scalamock" % "5.0.0" % "test",
     "com.itv" %% "scalapact-circe-0-9" % "2.3.16" % "test, it",
     "com.itv" %% "scalapact-http4s-0-18" % "2.3.16" % "test, it",
     "com.itv" %% "scalapact-scalatest" % "2.3.16" % "test, it",
-    "org.scalatest" %% "scalatest" % "3.0.9" % scope,
+    "org.scalatest" %% "scalatest" % "3.1.4" % scope,
+    "org.scalatestplus" %% "scalacheck-1-14" % "3.1.4.0" % "test",
     "org.pegdown" % "pegdown" % "1.6.0" % scope,
-    "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % "it",
+    "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0" % "test, it",
     "uk.gov.hmrc" %% "service-integration-test" % "1.1.0-play-27" % scope,
-    "uk.gov.hmrc" %% "reactivemongo-test" % "5.0.0-play-28" % "test",
+    "uk.gov.hmrc.mongo" %% "hmrc-mongo-test-play-28" % "0.62.0" % "test",
     "com.github.tomakehurst" % "wiremock-jre8" % "2.27.2" % "it"
   )
 }

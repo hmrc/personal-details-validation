@@ -18,6 +18,7 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import akka.Done
 import cats.data.EitherT
+import org.mongodb.scala._
 import org.mongodb.scala.model.Indexes.ascending
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions}
 import play.api.Logging
@@ -33,21 +34,36 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class PersonalDetailsValidationRepository @Inject()(config: PersonalDetailsValidationMongoRepositoryConfig,
-                                                    mongoComponent: MongoComponent,
-                                                    pdvOldRepository: PdvOldRepository)(implicit executionContext: ExecutionContext)
+                                                    mongoComponent: MongoComponent)(implicit executionContext: ExecutionContext)
   extends PlayMongoRepository[PersonalDetailsValidation](
-    collectionName = "pdv-journey", // new collection name
+    collectionName = "pdv-journey",
     mongoComponent = mongoComponent,
     domainFormat = PersonalDetailsValidationFormat.personalDetailsValidationFormats,
     indexes = Seq(
       IndexModel(
         ascending("createdAt"),
         indexOptions = IndexOptions().name("expireAfterSeconds").expireAfter(config.collectionTtl.getSeconds, TimeUnit.SECONDS)
+      ),
+      IndexModel(
+        ascending("id"), // primary key for fetch
+        indexOptions = IndexOptions().name("pk_id")
       )
     ),
     replaceIndexes = false,
     extraCodecs = Seq(Codecs.playFormatCodec(PersonalDetailsValidationFormat.SuccessfulPersonalDetailsValidationFormat), Codecs.playFormatCodec(PersonalDetailsValidationFormat.FailedPersonalDetailsValidationFormat))
   ) with PdvRepository with Logging {
+
+  // On startup, we add a hook to drop the OLD collection (if exists)
+  // Once collection is successfully dropped (check Grafana) this code can be removed:
+  //
+  val oldCollectionName =  "personal-details-validation"
+
+  mongoComponent.database.listCollectionNames().toFuture().map { names =>
+    if (names.contains(oldCollectionName)) {
+      logger.warn("[VER-2047] Dropping old personal-details-validation collection...")
+      mongoComponent.database.getCollection(oldCollectionName).drop().toFuture()
+    }
+  }
 
   def create(personalDetailsValidation: PersonalDetailsValidation)(implicit executionContext: ExecutionContext): EitherT[Future, Exception, Done] = {
 
@@ -62,20 +78,10 @@ class PersonalDetailsValidationRepository @Inject()(config: PersonalDetailsValid
 
   /**
    * Fetch a journey record by validation id
-   *
-   * While we are transitioning to the new collection, we need to fallback to looking in the
-   * OLD collection for journeys which were started with the previous version of code (only needed for max 24 hours - TTL period)
    */
   def get(personalDetailsValidationId: ValidationId)(implicit executionContext: ExecutionContext): Future[Option[PersonalDetailsValidation]] = {
     val completeFilter = Filters.eq("id", personalDetailsValidationId.value.toString)
     collection.find(completeFilter).toFuture().map(_.headOption)
-      .flatMap {
-        case Some(result) => Future.successful(Some(result))
-        case None =>
-          // NOTE: this fallback no longer needed once these messages disappear in production
-          logger.warn(s"[VER-1979] Journey with validation id: $personalDetailsValidationId not found, looking in old 7G collection")
-          pdvOldRepository.collection.find(completeFilter).toFuture().map(_.headOption) // fallback to old collection
-      }
   }
 
 }

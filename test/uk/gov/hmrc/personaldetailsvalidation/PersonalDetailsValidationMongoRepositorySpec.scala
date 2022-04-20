@@ -19,7 +19,6 @@ package uk.gov.hmrc.personaldetailsvalidation
 import akka.Done
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
-import mongo.MongoIndexVerifier
 import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.model.{Filters, IndexModel}
 import org.scalamock.scalatest.MockFactory
@@ -28,19 +27,18 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Configuration
 import support.UnitSpec
 import uk.gov.hmrc.datetime.CurrentTimeProvider
-import uk.gov.hmrc.mongo.{MongoComponent, MongoSpecSupport}
-import uk.gov.hmrc.personaldetailsvalidation.model.{SuccessfulPersonalDetailsValidation, ValidationId}
+import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
+import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, SuccessfulPersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.uuid.UUIDProvider
 
-import java.time.{Duration, LocalDateTime}
+import java.time.{Duration, LocalDateTime, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.SECONDS
 
 class PersonalDetailsValidationMongoRepositorySpec
   extends UnitSpec
     with GuiceOneAppPerSuite
-    with MongoSpecSupport
-    with MongoIndexVerifier
+    with DefaultPlayMongoRepositorySupport[PersonalDetailsValidation]
     with MockFactory
     with ScalaFutures
     with IntegrationPatience {
@@ -75,23 +73,14 @@ class PersonalDetailsValidationMongoRepositorySpec
 
   "get" should {
 
-    "return None if document not found in either new or old collection" in new Setup {
+    "return None if document not found" in new Setup {
       repository.get(ValidationId()).futureValue shouldBe None
     }
 
-    "return Document if document found in new collection" in new Setup {
+    "return Document if document found in collection" in new Setup {
 
       val pdvDoc: SuccessfulPersonalDetailsValidation = successfulPersonalDetailsValidationObjects.generateOne
       repository.create(pdvDoc).value.futureValue shouldBe Right(Done)
-      repository.get(pdvDoc.id).futureValue shouldBe Some(pdvDoc)
-    }
-
-    "return Document if document not in new collection, but found in old collection" in new Setup {
-
-      // manually insert a doc into the old repo (create method here is banned)
-      val pdvDoc: SuccessfulPersonalDetailsValidation = successfulPersonalDetailsValidationObjects.generateOne
-
-      await(pdvOldRepository.collection.insertOne(pdvDoc).toFuture())
       repository.get(pdvDoc.id).futureValue shouldBe Some(pdvDoc)
     }
 
@@ -100,7 +89,9 @@ class PersonalDetailsValidationMongoRepositorySpec
   "repository" should {
 
     "create ttl on collection" in new Setup {
-      val indexes: Seq[IndexModel] = repository.indexes
+      val indexes: Seq[IndexModel] = repository
+        .indexes
+        .filter(_.getOptions.getName == "expireAfterSeconds")
 
       indexes.size shouldBe 1
       indexes.head.getKeys.toBsonDocument shouldBe BsonDocument("createdAt" -> 1)
@@ -112,24 +103,20 @@ class PersonalDetailsValidationMongoRepositorySpec
   private trait Setup {
 
     implicit val uuidProvider: UUIDProvider = new UUIDProvider()
-    implicit val ttlSeconds: Long = 100
-    val mongoComponent: MongoComponent = app.injector.instanceOf[MongoComponent]
-
     implicit val currentTimeProvider: CurrentTimeProvider = stub[CurrentTimeProvider]
 
-    val config: PersonalDetailsValidationMongoRepositoryConfig = new PersonalDetailsValidationMongoRepositoryConfig(mock[Configuration]) {
-      override lazy val collectionTtl: Duration = Duration.ofSeconds(ttlSeconds)
-    }
+    currentTimeProvider.apply _ when() returns LocalDateTime.now(ZoneOffset.UTC)
 
-    val pdvOldRepository: PdvOldRepository = new PdvOldRepository(mongoComponent)
-
-    val currentTime: LocalDateTime = LocalDateTime.now()
-
-    currentTimeProvider.apply _ when() returns currentTime
-
-    val repository = new PersonalDetailsValidationRepository(config, mongoComponent, pdvOldRepository)
     await(repository.collection.drop().toFuture())
 
   }
+
+  implicit val ttlSeconds: Long = 100
+
+  val config: PersonalDetailsValidationMongoRepositoryConfig = new PersonalDetailsValidationMongoRepositoryConfig(mock[Configuration]) {
+    override lazy val collectionTtl: Duration = Duration.ofSeconds(ttlSeconds)
+  }
+
+  override protected def repository = new PersonalDetailsValidationRepository(config, mongoComponent)
 
 }
