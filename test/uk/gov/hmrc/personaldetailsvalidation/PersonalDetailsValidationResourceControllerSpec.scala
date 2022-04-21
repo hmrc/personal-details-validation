@@ -28,6 +28,8 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json.toJson
 import play.api.libs.json._
 import play.api.mvc.{AnyContentAsEmpty, Request, Result}
@@ -57,6 +59,9 @@ class PersonalDetailsValidationResourceControllerSpec
     with MockFactory
     with MockArgumentMatchers
     with TableDrivenPropertyChecks {
+
+  override def fakeApplication(): Application =
+    new GuiceApplicationBuilder().configure(Map("metrics.enabled" -> "false")).build()
 
   "create" should {
 

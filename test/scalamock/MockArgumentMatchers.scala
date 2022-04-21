@@ -16,10 +16,9 @@
 
 package scalamock
 
-
 import org.scalamock.matchers.{MatcherBase, Matchers => ScalamockMatchers}
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{Matchers => ScalatestMatchers}
+import org.scalatest.matchers.should.{Matchers => ScalatestMatchers}
 
 import scala.reflect.ClassTag
 

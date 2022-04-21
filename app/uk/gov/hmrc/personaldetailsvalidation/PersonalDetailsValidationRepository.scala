@@ -56,10 +56,9 @@ class PersonalDetailsValidationRepository @Inject()(config: PersonalDetailsValid
   // On startup, we add a hook to drop the OLD collection (if exists)
   // Once collection is successfully dropped (check Grafana) this code can be removed:
   //
-  val oldCollectionName =  "personal-details-validation"
-
-  mongoComponent.database.listCollectionNames().toFuture().map { names =>
-    if (names.contains(oldCollectionName)) {
+  mongoComponent.database.listCollectionNames().toFuture().map { collectionNames =>
+    val oldCollectionName =  "personal-details-validation"
+    if (collectionNames.contains(oldCollectionName)) {
       logger.warn("[VER-2047] Dropping old personal-details-validation collection...")
       mongoComponent.database.getCollection(oldCollectionName).drop().toFuture()
     }

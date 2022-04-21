@@ -19,10 +19,13 @@ package uk.gov.hmrc.personaldetailsvalidation
 import akka.Done
 import cats.data.EitherT
 import cats.implicits.catsStdInstancesForFuture
+import com.codahale.metrics.SharedMetricRegistries
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
 import org.scalamock.scalatest.MockFactory
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.{AnyContentAsEmpty, Request}
 import play.api.test.FakeRequest
 import support.UnitSpec
@@ -42,6 +45,9 @@ import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
 import scala.concurrent.{ExecutionContext, Future}
 
 class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceOneAppPerSuite {
+
+  override def fakeApplication(): Application =
+    new GuiceApplicationBuilder().configure(Map("metrics.enabled" -> "false")).build()
 
   "validate" should {
 
@@ -268,6 +274,9 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
   }
 
   private trait Setup {
+
+    SharedMetricRegistries.clear()
+
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
     implicit val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
 
