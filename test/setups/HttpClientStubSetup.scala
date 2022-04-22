@@ -20,7 +20,7 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import com.typesafe.config.Config
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.Matchers._
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import play.api.libs.json.{JsObject, JsValue, Json, Writes}
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.http.{HttpClient, HttpResponse}
