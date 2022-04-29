@@ -1,16 +1,15 @@
 import play.core.PlayVersion
-import play.sbt.PlayImport._
 import sbt._
 
 private object AppDependencies {
 
   def apply(): Seq[ModuleID] = compile ++ test
-
-
+  
   private val compile = Seq(
     "uk.gov.hmrc"       %% "bootstrap-backend-play-28" % "5.16.0",
     "uk.gov.hmrc.mongo" %% "hmrc-mongo-play-28"        % "0.62.0",
     "uk.gov.hmrc"       %% "domain"                    % "6.0.0-play-28",
+    "uk.gov.hmrc"       %% "reactive-circuit-breaker"  % "3.5.0",
     "org.typelevel"     %% "cats-core"                 % "2.0.0"
   )
 

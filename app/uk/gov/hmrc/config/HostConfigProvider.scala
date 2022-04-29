@@ -31,4 +31,7 @@ class HostConfigProvider @Inject()(configuration: Configuration) {
   def ageDimension: Int = configuration.get[Int]("google-analytics.age-dimension")
   def genderDimension: Int = configuration.get[Int]("google-analytics.gender-dimension")
 
+  def circuitBreakerNumberOfCallsToTrigger: Int   = configuration.getOptional[Int]("circuit-breaker.numberOfCallsToTrigger").getOrElse(20)
+  def circuitBreakerUnavailableDurationInSec: Int = configuration.getOptional[Int]("circuit-breaker.unavailablePeriodDurationInSec").getOrElse(60)
+  def circuitBreakerUnstableDurationInSec: Int    = configuration.getOptional[Int]("circuit-breaker.unstablePeriodDurationInSec").getOrElse(300)
 }

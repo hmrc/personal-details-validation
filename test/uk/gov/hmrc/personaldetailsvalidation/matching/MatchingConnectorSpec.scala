@@ -104,6 +104,9 @@ class MatchingConnectorSpec
 
     private val connectorConfig = new MatchingConnectorConfig(mock[HostConfigProvider]) {
       override lazy val authenticatorBaseUrl = "http://host/authenticator"
+      override def circuitBreakerNumberOfCallsToTrigger: Int   = 20
+      override def circuitBreakerUnavailableDurationInSec: Int = 60
+      override def circuitBreakerUnstableDurationInSec: Int    = 300
     }
 
     val connector = new MatchingConnectorImpl(httpClient, connectorConfig)
