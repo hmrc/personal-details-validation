@@ -20,6 +20,7 @@ import cats.data.EitherT
 import com.google.inject.ImplementedBy
 import play.api.http.Status._
 import play.api.libs.json.JsObject
+import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UnhealthyServiceException, UsingCircuitBreaker}
 import uk.gov.hmrc.http.{HttpClient, _}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector._
@@ -37,7 +38,7 @@ trait MatchingConnector {
 }
 
 @Singleton
-class MatchingConnectorImpl @Inject()(httpClient: HttpClient, connectorConfig: MatchingConnectorConfig) extends MatchingConnector {
+class MatchingConnectorImpl @Inject()(httpClient: HttpClient, connectorConfig: MatchingConnectorConfig) extends MatchingConnector with UsingCircuitBreaker {
 
   import connectorConfig.authenticatorBaseUrl
   import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsFormat._
@@ -45,12 +46,18 @@ class MatchingConnectorImpl @Inject()(httpClient: HttpClient, connectorConfig: M
   def doMatch(personalDetails: PersonalDetails)
              (implicit headerCarrier: HeaderCarrier,
               executionContext: ExecutionContext): EitherT[Future, Exception, MatchResult] =
-    EitherT(httpClient.POST[JsObject, Either[Exception, MatchResult]](
-      url = s"$authenticatorBaseUrl/match",
-      body = personalDetails.toJson
-    ) recover {
-      case ex: Exception => Left(ex)
-    })
+    EitherT(
+      withCircuitBreaker {
+        httpClient.POST[JsObject, Either[Exception, MatchResult]](
+          url = s"$authenticatorBaseUrl/match",
+          body = personalDetails.toJson
+        )
+      } recover {
+        case ex: UnhealthyServiceException =>
+          Left(ex) //GA events (VER-2154& VER-2167) and audit events set up for this circuit breaker (see VER-2152 VER-2153)
+        case ex: Exception => Left(ex)
+      }
+    )
 
   private implicit val matchingResultHttpReads: HttpReads[Either[Exception, MatchResult]] = new HttpReads[Either[Exception, MatchResult]] {
     override def read(method: String, url: String, response: HttpResponse): Either[Exception, MatchResult] = response.status match {
@@ -58,6 +65,20 @@ class MatchingConnectorImpl @Inject()(httpClient: HttpClient, connectorConfig: M
       case UNAUTHORIZED => Right(MatchFailed((response.json \ "errors").as[String]))
       case other => Left(new BadGatewayException(s"Unexpected response from $method $url with status: '$other' and body: ${response.body}"))
     }
+  }
+
+  override protected def circuitBreakerConfig: CircuitBreakerConfig = {
+    CircuitBreakerConfig(
+      this.getClass.getSimpleName,
+      connectorConfig.circuitBreakerNumberOfCallsToTrigger,
+      connectorConfig.circuitBreakerUnavailableDurationInSec,
+      connectorConfig.circuitBreakerUnstableDurationInSec
+    )
+  }
+
+  override def breakOnException(t: Throwable): Boolean = t match {
+    case (_: NotFoundException | _: BadRequestException) => false
+    case _ => true
   }
 }
 
