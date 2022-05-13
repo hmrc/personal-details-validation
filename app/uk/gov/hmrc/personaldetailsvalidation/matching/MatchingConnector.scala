@@ -20,6 +20,7 @@ import cats.data.EitherT
 import com.google.inject.ImplementedBy
 import play.api.http.Status._
 import play.api.libs.json.JsObject
+import uk.gov.hmrc.audit.{GAEvent, PlatformAnalyticsConnector}
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UnhealthyServiceException, UsingCircuitBreaker}
 import uk.gov.hmrc.http.{HttpClient, _}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
@@ -38,7 +39,9 @@ trait MatchingConnector {
 }
 
 @Singleton
-class MatchingConnectorImpl @Inject()(httpClient: HttpClient, connectorConfig: MatchingConnectorConfig) extends MatchingConnector with UsingCircuitBreaker {
+class MatchingConnectorImpl @Inject()(httpClient: HttpClient,
+                                      connectorConfig: MatchingConnectorConfig,
+                                      platformAnalyticsConnector: PlatformAnalyticsConnector) extends MatchingConnector with UsingCircuitBreaker {
 
   import connectorConfig.authenticatorBaseUrl
   import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsFormat._
@@ -54,8 +57,11 @@ class MatchingConnectorImpl @Inject()(httpClient: HttpClient, connectorConfig: M
         )
       } recover {
         case ex: UnhealthyServiceException =>
+          platformAnalyticsConnector.sendEvent(GAEvent("sos_iv", "circuit_breaker", "pdv_unavailable_circuit-breaker"), None)
           Left(ex) //GA events (VER-2154& VER-2167) and audit events set up for this circuit breaker (see VER-2152 VER-2153)
-        case ex: Exception => Left(ex)
+        case ex: Exception =>
+          platformAnalyticsConnector.sendEvent(GAEvent("sos_iv", "circuit_breaker", s"${ex.getClass}"), None)
+          Left(ex)
       }
     )
 
