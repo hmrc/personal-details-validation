@@ -58,9 +58,8 @@ class MatchingConnectorImpl @Inject()(httpClient: HttpClient,
       } recover {
         case ex: UnhealthyServiceException =>
           platformAnalyticsConnector.sendEvent(GAEvent("sos_iv", "circuit_breaker", "pdv_unavailable_circuit-breaker"), None)
-          Left(ex) //GA events (VER-2154& VER-2167) and audit events set up for this circuit breaker (see VER-2152 VER-2153)
+          Left(ex)
         case ex: Exception =>
-          platformAnalyticsConnector.sendEvent(GAEvent("sos_iv", "circuit_breaker", s"${ex.getClass}"), None)
           Left(ex)
       }
     )

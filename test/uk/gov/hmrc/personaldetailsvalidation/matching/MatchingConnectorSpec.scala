@@ -100,8 +100,6 @@ class MatchingConnectorSpec
         .withPayload(payload)
         .throwing(exception)
 
-      (mockPlatformAnalyticsConnector.sendEvent(_: GAEvent, _: Option[String], _: Option[PersonalDetails])(_: HeaderCarrier, _: ExecutionContext))
-        .expects(GAEvent("sos_iv", "circuit_breaker", "class java.lang.RuntimeException"), None, None, *, *)
       connector.doMatch(personalDetails).value.futureValue shouldBe Left(exception)
     }
   }
