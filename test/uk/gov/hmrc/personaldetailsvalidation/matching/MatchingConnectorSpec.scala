@@ -24,11 +24,15 @@ import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
 import setups.HttpClientStubSetup
 import support.UnitSpec
+import uk.gov.hmrc.audit.{GAEvent, PlatformAnalyticsConnector}
+import uk.gov.hmrc.circuitbreaker.UnhealthyServiceException
 import uk.gov.hmrc.config.HostConfigProvider
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
+import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -75,6 +79,19 @@ class MatchingConnectorSpec
       }
     }
 
+    "return Left when authenticator went down" in new Setup {
+
+      val exception = new UnhealthyServiceException("some error")
+
+      expectPost(toUrl = "http://host/authenticator/match")
+        .withPayload(payload)
+        .throwing(exception)
+
+      (mockPlatformAnalyticsConnector.sendEvent(_: GAEvent, _: Option[String], _: Option[PersonalDetails])(_: HeaderCarrier, _: ExecutionContext))
+        .expects(GAEvent("sos_iv", "circuit_breaker", "pdv_unavailable_circuit-breaker"), None, None, *, *)
+      connector.doMatch(personalDetails).value.futureValue shouldBe Left(exception)
+    }
+
     "return Left when POST to /authenticator/match returns a failed Future" in new Setup {
 
       val exception = new RuntimeException("some error")
@@ -102,6 +119,8 @@ class MatchingConnectorSpec
       "nino" -> personalDetails.nino
     )
 
+    val mockPlatformAnalyticsConnector: PlatformAnalyticsConnector = mock[PlatformAnalyticsConnector]
+
     private val connectorConfig = new MatchingConnectorConfig(mock[HostConfigProvider]) {
       override lazy val authenticatorBaseUrl = "http://host/authenticator"
       override def circuitBreakerNumberOfCallsToTrigger: Int   = 20
@@ -109,7 +128,7 @@ class MatchingConnectorSpec
       override def circuitBreakerUnstableDurationInSec: Int    = 300
     }
 
-    val connector = new MatchingConnectorImpl(httpClient, connectorConfig)
+    val connector = new MatchingConnectorImpl(httpClient, connectorConfig, mockPlatformAnalyticsConnector)
 
     implicit val patienceConfig: PatienceConfig = PatienceConfig(timeout = 5 seconds, interval = 100 millis)
   }
