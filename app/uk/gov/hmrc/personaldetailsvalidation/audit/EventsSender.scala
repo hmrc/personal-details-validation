@@ -76,6 +76,11 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
     platformAnalyticsConnector.sendEvent(gaEvent("begin"), origin)
   }
 
+  def sentCircuitBreakerEvent(personalDetails: PersonalDetails)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+    platformAnalyticsConnector.sendEvent(GAEvent("sos_iv", "circuit_breaker", "pdv_unavailable_circuit-breaker"), None, Some(personalDetails))
+    auditConnector.sendEvent(auditDataFactory.createCircuitBreakerEvent(personalDetails))
+  }
+
   private implicit class PersonalDetailsOps(target: PersonalDetails) {
     def hasSameNinoSuffixAs(other: PersonalDetails): Boolean = {
       (target, other) match {

@@ -23,6 +23,7 @@ import play.api.libs.json.JsObject
 import uk.gov.hmrc.audit.{GAEvent, PlatformAnalyticsConnector}
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UnhealthyServiceException, UsingCircuitBreaker}
 import uk.gov.hmrc.http.{HttpClient, _}
+import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector._
 import uk.gov.hmrc.personaldetailsvalidation.model._
@@ -41,7 +42,7 @@ trait MatchingConnector {
 @Singleton
 class MatchingConnectorImpl @Inject()(httpClient: HttpClient,
                                       connectorConfig: MatchingConnectorConfig,
-                                      platformAnalyticsConnector: PlatformAnalyticsConnector) extends MatchingConnector with UsingCircuitBreaker {
+                                      eventsSender: EventsSender) extends MatchingConnector with UsingCircuitBreaker {
 
   import connectorConfig.authenticatorBaseUrl
   import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsFormat._
@@ -57,7 +58,7 @@ class MatchingConnectorImpl @Inject()(httpClient: HttpClient,
         )
       } recover {
         case ex: UnhealthyServiceException =>
-          platformAnalyticsConnector.sendEvent(GAEvent("sos_iv", "circuit_breaker", "pdv_unavailable_circuit-breaker"), None)
+          eventsSender.sentCircuitBreakerEvent(personalDetails)
           Left(ex)
         case ex: Exception =>
           Left(ex)
