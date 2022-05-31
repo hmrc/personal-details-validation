@@ -43,6 +43,18 @@ private[personaldetailsvalidation] class AuditDataEventFactory(auditConfig: Audi
   def createErrorEvent(personalDetails: PersonalDetails)
                       (implicit hc: HeaderCarrier, request: Request[_]): DataEvent = createEvent(personalDetails, "technicalError")
 
+  def createCircuitBreakerEvent(personalDetails: PersonalDetails)(implicit hc: HeaderCarrier): DataEvent = {
+    val personalVerifier: Map[AuditType, String] = personalDetails match {
+      case details: PersonalDetailsNino => Map("unconfirmedNino" -> details.nino.value)
+      case details: PersonalDetailsWithPostCode => Map("unconfirmedPostCode" -> details.postCode.value)
+    }
+    DataEvent(
+      auditSource = auditConfig.appName,
+      auditType = "CircuitBreakerUnhealthyService",
+      detail = Map("unavailableServiceName" -> "authenticator") ++ personalVerifier
+    )
+  }
+
   private def createEvent(personalDetails: PersonalDetails, matchingStatus: String, otherDetails: Map[String, String] = Map.empty)
                          (implicit hc: HeaderCarrier, request: Request[_]): DataEvent = {
     val nino = personalDetails match {

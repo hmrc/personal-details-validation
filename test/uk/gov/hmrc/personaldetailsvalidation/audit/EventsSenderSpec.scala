@@ -203,6 +203,29 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
     }
   }
 
+  "sentCircuitBreakerEvent" should {
+
+    "send sentCircuitBreakerEvent when authenticator is down" in new Setup {
+
+      override val dataEvent: DataEvent = DataEvent(
+        auditSource = "personal-details-validation",
+        auditType = "CircuitBreakerUnhealthyService",
+        detail = Map("unavailableServiceName" -> "authenticator") ++ Map("unconfirmedNino" -> "AA000003D")
+      )
+
+      (platformAnalyticsConnector.sendEvent(_: GAEvent, _ : Option[String], _: Option[PersonalDetails])(_: HeaderCarrier, _: ExecutionContext))
+        .expects(GAEvent("sos_iv", "circuit_breaker", "pdv_unavailable_circuit-breaker"), None, Some(personalDetails), *, *)
+
+      (auditDataEventFactory.createCircuitBreakerEvent(_: PersonalDetails)(_: HeaderCarrier))
+        .expects(personalDetails, headerCarrier).returning(dataEvent)
+
+      (auditConnector.sendEvent(_: DataEvent)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(dataEvent, headerCarrier, executionContext)
+
+      sender.sentCircuitBreakerEvent(personalDetails)
+    }
+  }
+
   trait Setup {
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
     implicit val request = FakeRequest()

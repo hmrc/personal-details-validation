@@ -29,6 +29,7 @@ import uk.gov.hmrc.circuitbreaker.UnhealthyServiceException
 import uk.gov.hmrc.config.HostConfigProvider
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
+import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
 
@@ -83,12 +84,9 @@ class MatchingConnectorSpec
 
       val exception = new UnhealthyServiceException("some error")
 
-      expectPost(toUrl = "http://host/authenticator/match")
-        .withPayload(payload)
-        .throwing(exception)
+      expectPost(toUrl = "http://host/authenticator/match").withPayload(payload).throwing(exception)
 
-      (mockPlatformAnalyticsConnector.sendEvent(_: GAEvent, _: Option[String], _: Option[PersonalDetails])(_: HeaderCarrier, _: ExecutionContext))
-        .expects(GAEvent("sos_iv", "circuit_breaker", "pdv_unavailable_circuit-breaker"), None, None, *, *)
+      (mockEventsSender.sentCircuitBreakerEvent(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext)).expects(personalDetails, *, *)
       connector.doMatch(personalDetails).value.futureValue shouldBe Left(exception)
     }
 
@@ -119,7 +117,7 @@ class MatchingConnectorSpec
       "nino" -> personalDetails.nino
     )
 
-    val mockPlatformAnalyticsConnector: PlatformAnalyticsConnector = mock[PlatformAnalyticsConnector]
+    val mockEventsSender: EventsSender = mock[EventsSender]
 
     private val connectorConfig = new MatchingConnectorConfig(mock[HostConfigProvider]) {
       override lazy val authenticatorBaseUrl = "http://host/authenticator"
@@ -128,7 +126,7 @@ class MatchingConnectorSpec
       override def circuitBreakerUnstableDurationInSec: Int    = 300
     }
 
-    val connector = new MatchingConnectorImpl(httpClient, connectorConfig, mockPlatformAnalyticsConnector)
+    val connector = new MatchingConnectorImpl(httpClient, connectorConfig, mockEventsSender)
 
     implicit val patienceConfig: PatienceConfig = PatienceConfig(timeout = 5 seconds, interval = 100 millis)
   }
