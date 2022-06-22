@@ -27,8 +27,9 @@ import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector._
 import uk.gov.hmrc.personaldetailsvalidation.model._
-
 import javax.inject.{Inject, Singleton}
+import play.api.Logging
+
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[MatchingConnectorImpl])
@@ -42,7 +43,7 @@ trait MatchingConnector {
 @Singleton
 class MatchingConnectorImpl @Inject()(httpClient: HttpClient,
                                       connectorConfig: MatchingConnectorConfig,
-                                      eventsSender: EventsSender) extends MatchingConnector with UsingCircuitBreaker {
+                                      eventsSender: EventsSender) extends MatchingConnector with UsingCircuitBreaker with Logging {
 
   import connectorConfig.authenticatorBaseUrl
   import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsFormat._
@@ -58,9 +59,11 @@ class MatchingConnectorImpl @Inject()(httpClient: HttpClient,
         )
       } recover {
         case ex: UnhealthyServiceException =>
+          logger.warn(s"VER-2153 UnhealthyServiceException raised, CB status is : ${this.circuitBreaker.currentState}")
           eventsSender.sentCircuitBreakerEvent(personalDetails)
           Left(ex)
         case ex: Exception =>
+          logger.warn(s"VER-2153 ${ex.getMessage} raised, CB status is : ${this.circuitBreaker.currentState}")
           Left(ex)
       }
     )
