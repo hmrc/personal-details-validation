@@ -53,13 +53,14 @@ class MatchingConnectorImpl @Inject()(httpClient: HttpClient,
               executionContext: ExecutionContext): EitherT[Future, Exception, MatchResult] =
     EitherT(
       withCircuitBreaker {
+        logger.warn(s"VER-2153 CB status ${this.circuitBreaker.currentState}")
         httpClient.POST[JsObject, Either[Exception, MatchResult]](
           url = s"$authenticatorBaseUrl/match",
           body = personalDetails.toJson
         )
       } recover {
         case ex: UnhealthyServiceException =>
-          logger.error(s"VER-2153 UnhealthyServiceException raised, CB status is : ${this.circuitBreaker.currentState}")
+          logger.warn(s"VER-2153 UnhealthyServiceException raised, CB status is : ${this.circuitBreaker.currentState}")
           eventsSender.sentCircuitBreakerEvent(personalDetails)
           Left(ex)
         case ex: Exception =>
@@ -72,7 +73,10 @@ class MatchingConnectorImpl @Inject()(httpClient: HttpClient,
     override def read(method: String, url: String, response: HttpResponse): Either[Exception, MatchResult] = response.status match {
       case OK => Right(MatchSuccessful(response.json.as[PersonalDetails]))
       case UNAUTHORIZED => Right(MatchFailed((response.json \ "errors").as[String]))
-      case other => Left(new BadGatewayException(s"Unexpected response from $method $url with status: '$other' and body: ${response.body}"))
+      case other => {
+        logger.warn(s"VER-2153 error in matchingResultHttpReads : " + other)
+        Left(new BadGatewayException(s"Unexpected response from $method $url with status: '$other' and body: ${response.body}"))
+      }
     }
   }
 
