@@ -59,11 +59,11 @@ class MatchingConnectorImpl @Inject()(httpClient: HttpClient,
         )
       } recover {
         case ex: UnhealthyServiceException =>
-          logger.warn(s"VER-2153 UnhealthyServiceException raised, CB status is : ${this.circuitBreaker.currentState}")
+          logger.error(s"VER-2153 UnhealthyServiceException raised, CB status is : ${this.circuitBreaker.currentState}")
           eventsSender.sentCircuitBreakerEvent(personalDetails)
           Left(ex)
         case ex: Exception =>
-          logger.warn(s"VER-2153 ${ex.getMessage} raised, CB status is : ${this.circuitBreaker.currentState}")
+          logger.error(s"VER-2153 ${ex.getMessage} raised, CB status is : ${this.circuitBreaker.currentState}")
           Left(ex)
       }
     )
