@@ -51,7 +51,9 @@ private[personaldetailsvalidation] class AuditDataEventFactory(auditConfig: Audi
     DataEvent(
       auditSource = auditConfig.appName,
       auditType = "CircuitBreakerUnhealthyService",
+      tags = Map("transactionName" -> "CircuitBreakerUnhealthyEvent"),
       detail = Map("unavailableServiceName" -> "authenticator") ++ personalVerifier
+
     )
   }
 
