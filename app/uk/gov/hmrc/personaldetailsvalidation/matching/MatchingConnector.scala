@@ -77,8 +77,8 @@ class MatchingConnectorImpl @Inject()(httpClient: HttpClient,
     CircuitBreakerConfig(
       this.getClass.getSimpleName,
       connectorConfig.circuitBreakerNumberOfCallsToTrigger,
-      connectorConfig.circuitBreakerUnavailableDurationInSec,
-      connectorConfig.circuitBreakerUnstableDurationInSec
+      connectorConfig.circuitBreakerUnavailableDuration,
+      connectorConfig.circuitBreakerUnstableDuration
     )
   }
 

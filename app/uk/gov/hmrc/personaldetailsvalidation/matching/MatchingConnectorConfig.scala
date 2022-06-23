@@ -25,6 +25,6 @@ private class MatchingConnectorConfig @Inject()(hostProvider: HostConfigProvider
   lazy val authenticatorBaseUrl: String = hostProvider.hostFor("authenticator") + "/authenticator"
 
   def circuitBreakerNumberOfCallsToTrigger: Int   = hostProvider.circuitBreakerNumberOfCallsToTrigger
-  def circuitBreakerUnavailableDurationInSec: Int = hostProvider.circuitBreakerUnavailableDurationInSec * 1000
-  def circuitBreakerUnstableDurationInSec: Int    = hostProvider.circuitBreakerUnstableDurationInSec * 1000
+  def circuitBreakerUnavailableDuration: Int = hostProvider.circuitBreakerUnavailableDurationInSec * 1000
+  def circuitBreakerUnstableDuration: Int    = hostProvider.circuitBreakerUnstableDurationInSec * 1000
 }
