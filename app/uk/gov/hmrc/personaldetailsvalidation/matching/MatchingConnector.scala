@@ -69,7 +69,7 @@ class MatchingConnectorImpl @Inject()(httpClient: HttpClient,
     override def read(method: String, url: String, response: HttpResponse): Either[Exception, MatchResult] = response.status match {
       case OK => Right(MatchSuccessful(response.json.as[PersonalDetails]))
       case UNAUTHORIZED => Right(MatchFailed((response.json \ "errors").as[String]))
-      case other => Left(new BadGatewayException(s"Unexpected response from $method $url with status: '$other' and body: ${response.body}"))
+      case other => throw new BadGatewayException(s"Unexpected response from $method $url with status: '$other' and body: ${response.body}")
     }
   }
 
