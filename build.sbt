@@ -47,7 +47,7 @@ lazy val microservice = Project(appName, file("."))
       "-language:reflectiveCalls",
       "-language:postfixOps"
     ),
-    scalaVersion := "2.12.13",
+    scalaVersion := "2.12.15",
     libraryDependencies ++= AppDependencies(),
     retrieveManaged := true
   )

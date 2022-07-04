@@ -6,9 +6,9 @@ private object AppDependencies {
   def apply(): Seq[ModuleID] = compile ++ test
   
   private val compile = Seq(
-    "uk.gov.hmrc"       %% "bootstrap-backend-play-28" % "5.16.0",
-    "uk.gov.hmrc.mongo" %% "hmrc-mongo-play-28"        % "0.62.0",
-    "uk.gov.hmrc"       %% "domain"                    % "6.0.0-play-28",
+    "uk.gov.hmrc"       %% "bootstrap-backend-play-28" % "5.25.0",
+    "uk.gov.hmrc.mongo" %% "hmrc-mongo-play-28"        % "0.66.0",
+    "uk.gov.hmrc"       %% "domain"                    % "8.1.0-play-28",
     "uk.gov.hmrc"       %% "reactive-circuit-breaker"  % "3.5.0",
     "org.typelevel"     %% "cats-core"                 % "2.0.0"
   )
@@ -32,7 +32,7 @@ private object AppDependencies {
 
     "org.scalamock" %% "scalamock" % "5.2.0" % "test,it",
 
-    "uk.gov.hmrc" %% "service-integration-test" % "1.1.0-play-28" % "test,it",
-    "uk.gov.hmrc.mongo" %% "hmrc-mongo-test-play-28" % "0.62.0" % "test,it"
+    "uk.gov.hmrc" %% "service-integration-test" % "1.3.0-play-28" % "test,it",
+    "uk.gov.hmrc.mongo" %% "hmrc-mongo-test-play-28" % "0.66.0" % "test,it"
   )
 }
