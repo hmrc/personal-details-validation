@@ -31,7 +31,7 @@ lazy val scoverageSettings: Seq[Def.Setting[_ >: String with Double with Boolean
 }
 
 lazy val microservice = Project(appName, file("."))
-  .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin, SbtArtifactory): _*)
+  .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtDistributablesPlugin): _*)
   .settings(majorVersion := 0)
   .settings(scalaSettings: _*)
   .disablePlugins(JUnitXmlReportPlugin)
@@ -47,7 +47,7 @@ lazy val microservice = Project(appName, file("."))
       "-language:reflectiveCalls",
       "-language:postfixOps"
     ),
-    scalaVersion := "2.12.13",
+    scalaVersion := "2.12.15",
     libraryDependencies ++= AppDependencies(),
     retrieveManaged := true
   )
@@ -62,7 +62,6 @@ lazy val microservice = Project(appName, file("."))
     parallelExecution in IntegrationTest := false
   )
   .settings(resolvers ++= Seq(
-    Resolver.bintrayRepo("hmrc", "releases"),
     Resolver.jcenterRepo
   ))
   .settings(

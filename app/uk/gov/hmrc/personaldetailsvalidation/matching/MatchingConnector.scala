@@ -20,7 +20,6 @@ import cats.data.EitherT
 import com.google.inject.ImplementedBy
 import play.api.http.Status._
 import play.api.libs.json.JsObject
-import uk.gov.hmrc.audit.{GAEvent, PlatformAnalyticsConnector}
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UnhealthyServiceException, UsingCircuitBreaker}
 import uk.gov.hmrc.http.{HttpClient, _}
 import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
