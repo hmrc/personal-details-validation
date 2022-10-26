@@ -67,6 +67,9 @@ class PersonalDetailsValidationRetryRepository @Inject()(config: PersonalDetails
     collection.replaceOne(Filters.eq(retryKey, maybeCredId), update, ReplaceOptions().upsert(true)).toFuture().map(_ => Done)
   }
 
+  def deleteAttempts(credId: String): Future[Done] =
+    collection.deleteOne(Filters.eq(retryKey, credId)).toFuture().map(_ => Done)
+
   def getAttempts(maybeCredId: Option[String])(implicit ec: ExecutionContext): EitherT[Future, Exception, Int] = {
     EitherT(
       maybeCredId.fold(Future.successful(Right(0))){ credId =>
