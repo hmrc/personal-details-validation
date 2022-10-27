@@ -271,6 +271,43 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
 
       await(validator.validate(personalDetails, origin, maybeCredId).value) shouldBe Left(exception)
     }
+
+    "reset attempts when matching is successful for a given credId" in new Setup {
+      val inputPersonalDetails: PersonalDetailsWithPostCode = personalDetailsWithPostCodeObjects.generateOne
+      val matchedPersonalDetails: PersonalDetailsWithNino = personalDetailsWithNinoObjects.generateOne
+      val gender = "F"
+      val matchResult: MatchSuccessful = MatchSuccessful(inputPersonalDetails.addNino(matchedPersonalDetails.nino).addGender(gender))
+
+      await(personalDetailsValidationRetryRepository.recordAttempt(maybeCredId.get,3))
+      await(personalDetailsValidationRetryRepository.getAttempts(maybeCredId).value) shouldBe Right(4)
+
+      (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(inputPersonalDetails, headerCarrier, executionContext)
+        .returning(EitherT.rightT[Future, Exception](matchResult))
+
+      (citizenDetailsConnector.findDesignatoryDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
+        .expects(*, headerCarrier, executionContext)
+        .returning(Future.successful(Some(Gender(gender))))
+
+      (mockAppConfig.returnNinoFromCid _).expects().returning(true).repeat(1)
+
+      (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _: Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(matchResult, inputPersonalDetails, origin, headerCarrier, request, executionContext)
+
+      (matchingEventsSender.sendBeginEvent(_: Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
+        .expects(origin, headerCarrier, request, executionContext)
+
+      (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
+        .expects(*, executionContext)
+        .returning(EitherT.rightT[Future, Exception](Done))
+
+      await(validator.validate(inputPersonalDetails, origin, maybeCredId).value).map { personalDetailsValidation =>
+        personalDetailsValidation.id shouldBe Right(personalDetailsValidation).value.id
+      }
+
+      await(personalDetailsValidationRetryRepository.getAttempts(maybeCredId).value) shouldBe Right(0)
+    }
+
   }
 
   private trait Setup {

@@ -66,8 +66,9 @@ class PersonalDetailsValidatorImpl @Inject() (
       _ <- {
         if (maybeCredId.isDefined) {
           val attempts: EitherT[Future, Exception, Int] = personalDetailsValidationRetryRepository.getAttempts(maybeCredId).map(attempts => attempts)
-          attempts.map { attempts =>
-            personalDetailsValidationRetryRepository.recordAttempt(maybeCredId.get, attempts)
+          personalDetailsValidation match {
+            case _ : SuccessfulPersonalDetailsValidation => personalDetailsValidationRetryRepository.deleteAttempts(maybeCredId.get)
+            case _ => attempts.map { attempts => personalDetailsValidationRetryRepository.recordAttempt(maybeCredId.get, attempts) }
           }
         }
         personalDetailsValidationRepository.create(personalDetailsValidation)
