@@ -16,27 +16,26 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.formats
 
-import java.util.UUID.randomUUID
-import java.util.UUID
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
 import org.scalacheck.Gen
 import org.scalamock.scalatest.MockFactory
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
-import play.api.libs.json.{JsResultException, Json}
 import play.api.libs.json.Json.toJson
+import play.api.libs.json.{JsResultException, Json}
 import support.UnitSpec
+import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat._
+import uk.gov.hmrc.personaldetailsvalidation.formats.TinyTypesFormats._
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import java.time.{LocalDateTime, ZoneOffset}
+import java.util.UUID
+import java.util.UUID.randomUUID
 
 class PersonalDetailsValidationFormatSpec
   extends UnitSpec
     with ScalaCheckDrivenPropertyChecks {
-
-  import PersonalDetailsValidationFormat._
-  import TinyTypesFormats._
 
   implicit val stringsOfAtLeast2Characters: Gen[String] = for {
     length <- Gen.chooseNum(2, 10)
@@ -85,7 +84,7 @@ class PersonalDetailsValidationFormatSpec
       import PersonalDetailsFormat._
       val badPostcodes = List("ZZ1 1ZZ","YI1 1YY")
 
-      val personalDetailsWithPostCode = personalDetailsWithPostCodeObjects.generateOne
+      val personalDetailsWithPostCode: PersonalDetailsWithPostCode = personalDetailsWithPostCodeObjects.generateOne
 
       badPostcodes.foreach { invalidPostCode: String =>
         an [JsResultException] should be thrownBy
@@ -105,7 +104,8 @@ class PersonalDetailsValidationFormatSpec
             "dateOfBirth" -> personalDetailsWithNino.dateOfBirth,
             "nino" -> personalDetailsWithNino.nino
           ),
-        "createdAt" -> createdAt
+        "createdAt" -> createdAt,
+        "deceased" -> false
         )
       }
     }

@@ -74,8 +74,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _: Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, personalDetails, origin, headerCarrier, request, executionContext)
 
-      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(origin, headerCarrier, request, executionContext)
+      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: ExecutionContext))
+        .expects(origin, headerCarrier, executionContext)
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(*, executionContext)
@@ -95,7 +95,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       val inputPersonalDetails: PersonalDetailsWithPostCode = personalDetailsWithPostCodeObjects.generateOne
       val matchedPersonalDetails: PersonalDetailsWithNino = personalDetailsWithNinoObjects.generateOne
       val gender = "F"
-      val eventPersonalDetails = inputPersonalDetails.addNino(matchedPersonalDetails.nino).addGender(gender)
+      val eventPersonalDetails: PersonalDetails = inputPersonalDetails.addNino(matchedPersonalDetails.nino).addGender(gender)
       val matchResult: MatchSuccessful = MatchSuccessful(eventPersonalDetails)
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
@@ -111,8 +111,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, inputPersonalDetails, origin, headerCarrier, request, executionContext)
 
-      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(origin, headerCarrier, request, executionContext)
+      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: ExecutionContext))
+        .expects(origin, headerCarrier, executionContext)
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(*, executionContext)
@@ -132,7 +132,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       val enteredPersonalDetails: PersonalDetailsWithNino = personalDetails.copy(nino = enteredNino)
       val gender = "F"
 
-      val eventPersonalDetails = enteredPersonalDetails.addGender(gender)
+      val eventPersonalDetails: PersonalDetails = enteredPersonalDetails.addGender(gender)
       val matchResult: MatchSuccessful = MatchSuccessful(eventPersonalDetails)
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
@@ -148,8 +148,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, enteredPersonalDetails, origin,  headerCarrier, request, executionContext)
 
-      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(origin, headerCarrier, request, executionContext)
+      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: ExecutionContext))
+        .expects(origin, headerCarrier, executionContext)
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(*, executionContext)
@@ -184,8 +184,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(MatchSuccessful(personalDetails.addGender(gender)), personalDetails, origin, headerCarrier, request, executionContext)
 
-      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(origin, headerCarrier, request, executionContext)
+      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: ExecutionContext))
+        .expects(origin, headerCarrier, executionContext)
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(*, executionContext)
@@ -213,8 +213,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, personalDetails, origin,  headerCarrier, request, executionContext)
 
-      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(origin, headerCarrier, request, executionContext)
+      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: ExecutionContext))
+        .expects(origin, headerCarrier, executionContext)
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(*, executionContext)
@@ -236,8 +236,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (matchingEventsSender.sendErrorEvents(_: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(personalDetails, origin,  headerCarrier, request, executionContext)
 
-      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(origin, headerCarrier, request, executionContext)
+      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: ExecutionContext))
+        .expects(origin, headerCarrier, executionContext)
 
       await( validator.validate(personalDetails, origin, maybeCredId).value) shouldBe Left(exception)
     }
@@ -248,8 +248,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
 
       val matchResult: MatchSuccessful = MatchSuccessful(personalDetails)
 
-      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(origin, headerCarrier, request, executionContext)
+      (matchingEventsSender.sendBeginEvent(_ : Option[String])(_: HeaderCarrier, _: ExecutionContext))
+        .expects(origin, headerCarrier, executionContext)
 
       (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
         .expects(personalDetails, headerCarrier, executionContext)
@@ -294,8 +294,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _: Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, inputPersonalDetails, origin, headerCarrier, request, executionContext)
 
-      (matchingEventsSender.sendBeginEvent(_: Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
-        .expects(origin, headerCarrier, request, executionContext)
+      (matchingEventsSender.sendBeginEvent(_: Option[String])(_: HeaderCarrier, _: ExecutionContext))
+        .expects(origin, headerCarrier, executionContext)
 
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
         .expects(*, executionContext)

@@ -49,7 +49,8 @@ sealed trait PersonalDetailsValidation {
 case class SuccessfulPersonalDetailsValidation(id: ValidationId,
                                                validationStatus: String = "success",
                                                personalDetails: PersonalDetails,
-                                               createdAt: LocalDateTime)
+                                               createdAt: LocalDateTime,
+                                               deceased: Boolean = false)
   extends PersonalDetailsValidation
 
 case class FailedPersonalDetailsValidation(id: ValidationId,
@@ -61,9 +62,9 @@ case class FailedPersonalDetailsValidation(id: ValidationId,
 
 object PersonalDetailsValidation {
 
-  def successful(personalDetails: PersonalDetails, createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC))
+  def successful(personalDetails: PersonalDetails, createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC), deceased: Boolean = false)
                 (implicit uuidProvider: UUIDProvider): SuccessfulPersonalDetailsValidation =
-    SuccessfulPersonalDetailsValidation(ValidationId(), personalDetails = personalDetails, createdAt = createdAt)
+    SuccessfulPersonalDetailsValidation(ValidationId(), personalDetails = personalDetails, createdAt = createdAt, deceased = deceased)
 
   def failed(maybeCredId: Option[String], attempts: Option[Int], createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC))(implicit uuidProvider: UUIDProvider): FailedPersonalDetailsValidation =
     FailedPersonalDetailsValidation(ValidationId(), maybeCredId = maybeCredId, attempt = attempts, createdAt = createdAt)
