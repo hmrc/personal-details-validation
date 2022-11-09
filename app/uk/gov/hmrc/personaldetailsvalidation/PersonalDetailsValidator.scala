@@ -25,7 +25,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful, NoLivingMatch}
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.uuid.UUIDProvider
 
@@ -100,6 +100,8 @@ class PersonalDetailsValidatorImpl @Inject() (
     matchResult match {
       case MatchSuccessful(pd: PersonalDetails) =>
         EitherT(toPersonalDetails(pd, optionallyHaving) map (pd => PersonalDetailsValidation.successful(pd)) map (_.asRight[Exception]))
+      case NoLivingMatch =>
+        EitherT(Future.successful(PersonalDetailsValidation.successful(optionallyHaving, deceased = true)).map(_.asRight[Exception]))
       case MatchFailed(_) =>
         personalDetailsValidationRetryRepository.getAttempts(maybeCredId).map(attempts => PersonalDetailsValidation.failed(maybeCredId, Some(attempts + 1)))
     }

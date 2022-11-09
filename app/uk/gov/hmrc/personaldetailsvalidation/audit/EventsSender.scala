@@ -21,7 +21,7 @@ import play.api.mvc.Request
 import uk.gov.hmrc.audit.{GAEvent, PlatformAnalyticsConnector}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful, NoLivingMatch}
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
@@ -33,10 +33,15 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
                                                                 auditDataFactory: AuditDataEventFactory) {
 
   def sendEvents(matchResult: MatchResult, personalDetails: PersonalDetails, origin: Option[String])(implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): Unit = {
-    sendGAMatchResultEvent(matchResult, origin)
-    sendGAMatchResultForNinoOrPostcodeEvent(matchResult, personalDetails, origin)
-    sendGASuffixMatchingEvent(matchResult, personalDetails, origin)
-    auditConnector.sendEvent(auditDataFactory.createEvent(matchResult, personalDetails))
+
+    matchResult match {
+      case NoLivingMatch => //todo: any event?
+      case _ => sendGAMatchResultEvent(matchResult, origin)
+        sendGAMatchResultForNinoOrPostcodeEvent(matchResult, personalDetails, origin)
+        sendGASuffixMatchingEvent(matchResult, personalDetails, origin)
+        auditConnector.sendEvent(auditDataFactory.createEvent(matchResult, personalDetails))
+    }
+
   }
 
   private def sendGAMatchResultEvent(matchResult: MatchResult, origin: Option[String])(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
@@ -72,7 +77,7 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
     auditConnector.sendEvent(auditDataFactory.createErrorEvent(personalDetails))
   }
 
-  def sendBeginEvent(origin: Option[String])(implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): Unit = {
+  def sendBeginEvent(origin: Option[String])(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
     platformAnalyticsConnector.sendEvent(gaEvent("begin"), origin)
   }
 

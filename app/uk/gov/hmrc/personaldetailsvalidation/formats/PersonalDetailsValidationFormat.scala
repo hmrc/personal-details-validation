@@ -45,8 +45,9 @@ object PersonalDetailsValidationFormat {
         (json \ "id").validate[ValidationId] and
           (json \ "personalDetails").validate[PersonalDetails] and
           ((json \ "createdAt").validate[LocalDateTime] or
-            Reads.pure[LocalDateTime](LocalDateTime.now(ZoneOffset.UTC)).reads(Json.toJson(LocalDateTime.now(ZoneOffset.UTC))))
-        ) ((id, pd, dt) => SuccessfulPersonalDetailsValidation(id, "success", pd, dt))
+            Reads.pure[LocalDateTime](LocalDateTime.now(ZoneOffset.UTC)).reads(Json.toJson(LocalDateTime.now(ZoneOffset.UTC)))) and
+          ((json \ "deceased").validate[Boolean] or Reads.pure[Boolean](false).reads(Json.toJson(false)))
+        ) ((id, pd, dt, deceased) => SuccessfulPersonalDetailsValidation(id, "success", pd, dt, deceased))
 
       lazy val toFailedPersonalDetailsValidation: JsResult[FailedPersonalDetailsValidation] =
         ((json \ "id").validate[ValidationId] and
@@ -65,11 +66,12 @@ object PersonalDetailsValidationFormat {
     }
 
     val writes: Writes[PersonalDetailsValidation] = Writes[PersonalDetailsValidation] {
-      case SuccessfulPersonalDetailsValidation(id, _, personalDetails: PersonalDetails, createdAt: LocalDateTime) => Json.obj(
+      case SuccessfulPersonalDetailsValidation(id, _, personalDetails: PersonalDetails, createdAt: LocalDateTime, deceased) => Json.obj(
         "id" -> id,
         "validationStatus" -> Success.value,
         "personalDetails" -> personalDetails,
-        "createdAt" -> createdAt
+        "createdAt" -> createdAt,
+        "deceased" -> deceased
       )
       case FailedPersonalDetailsValidation(id, _, maybeCredId, attempt, createdAt: LocalDateTime) => Json.obj(
         "id" -> id,

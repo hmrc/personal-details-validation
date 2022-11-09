@@ -23,7 +23,7 @@ import play.api.libs.json.JsObject
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UnhealthyServiceException, UsingCircuitBreaker}
 import uk.gov.hmrc.http.{HttpClient, _}
 import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful, NoLivingMatch}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector._
 import uk.gov.hmrc.personaldetailsvalidation.model._
 
@@ -67,6 +67,7 @@ class MatchingConnectorImpl @Inject()(httpClient: HttpClient,
   private implicit val matchingResultHttpReads: HttpReads[Either[Exception, MatchResult]] = new HttpReads[Either[Exception, MatchResult]] {
     override def read(method: String, url: String, response: HttpResponse): Either[Exception, MatchResult] = response.status match {
       case OK => Right(MatchSuccessful(response.json.as[PersonalDetails]))
+      case FAILED_DEPENDENCY => Right(NoLivingMatch)
       case UNAUTHORIZED => Right(MatchFailed((response.json \ "errors").as[String]))
       case other => throw new BadGatewayException(s"Unexpected response from $method $url with status: '$other' and body: ${response.body}")
     }
@@ -96,6 +97,8 @@ object MatchingConnector {
     case class MatchSuccessful(matchedPerson: PersonalDetails) extends MatchResult
 
     case class MatchFailed(errors: String) extends MatchResult
+
+    case object NoLivingMatch extends MatchResult
 
   }
 
