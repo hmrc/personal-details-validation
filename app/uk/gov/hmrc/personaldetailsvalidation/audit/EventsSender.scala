@@ -77,10 +77,6 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
     auditConnector.sendEvent(auditDataFactory.createErrorEvent(personalDetails))
   }
 
-  def sendBeginEvent(origin: Option[String])(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
-    platformAnalyticsConnector.sendEvent(gaEvent("begin"), origin)
-  }
-
   def sentCircuitBreakerEvent(personalDetails: PersonalDetails)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
     platformAnalyticsConnector.sendEvent(GAEvent("sos_iv", "circuit_breaker", "pdv_unavailable_circuit-breaker"), None, Some(personalDetails))
     auditConnector.sendEvent(auditDataFactory.createCircuitBreakerEvent(personalDetails))

@@ -59,7 +59,6 @@ class PersonalDetailsValidatorImpl @Inject() (
 
   def validate(personalDetails: PersonalDetails, origin: Option[String], maybeCredId: Option[String])
               (implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): EitherT[Future, Exception, PersonalDetailsValidation] = {
-    sendBeginEvent(origin)
     for {
       matchResult <- doMatch(personalDetails)
       personalDetailsValidation <- toPersonalDetailsValidation(matchResult, personalDetails, maybeCredId)
