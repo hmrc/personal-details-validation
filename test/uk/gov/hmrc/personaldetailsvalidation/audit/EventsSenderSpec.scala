@@ -192,17 +192,6 @@ class EventsSenderSpec extends UnitSpec with MockFactory with ScalaFutures {
     }
   }
 
-  "sendEBeginEvents" should {
-
-    "send begin event" in new Setup {
-
-      (platformAnalyticsConnector.sendEvent(_: GAEvent, _ : Option[String], _: Option[PersonalDetails])(_: HeaderCarrier, _: ExecutionContext))
-        .expects(GAEvent("sos_iv", "personal_detail_validation_result", "begin"), origin, None, headerCarrier, executionContext)
-
-      sender.sendBeginEvent(origin)
-    }
-  }
-
   "sentCircuitBreakerEvent" should {
 
     "send sentCircuitBreakerEvent when authenticator is down" in new Setup {

@@ -24,7 +24,6 @@ import play.api.libs.json.{JsString, Json}
 import play.api.test.Helpers._
 import setups.HttpClientStubSetup
 import support.UnitSpec
-import uk.gov.hmrc.audit.{GAEvent, PlatformAnalyticsConnector}
 import uk.gov.hmrc.circuitbreaker.UnhealthyServiceException
 import uk.gov.hmrc.config.HostConfigProvider
 import uk.gov.hmrc.domain.Nino
