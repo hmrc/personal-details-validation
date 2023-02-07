@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,8 @@ import akka.Done
 import javax.inject.{Inject, Singleton}
 import play.api.Logging
 import play.api.libs.json.{Json, OWrites}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
+import play.api.mvc.Request
+import uk.gov.hmrc.http.{HeaderCarrier, HeaderNames, HttpClient, HttpResponse}
 import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
 import uk.gov.hmrc.random.RandomIntProvider
 
@@ -31,7 +32,7 @@ import scala.concurrent.ExecutionContext
 class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConfig: PlatformAnalyticsConnectorConfig, randomIntProvider: RandomIntProvider)
   extends Logging {
 
-  def sendEvent(event: GAEvent, loginOrigin: Option[String], maybePersonalDetails: Option[PersonalDetails] = None)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+  def sendEvent(event: GAEvent, loginOrigin: Option[String], maybePersonalDetails: Option[PersonalDetails] = None)(implicit request: Request[_], hc: HeaderCarrier, ec: ExecutionContext): Unit = {
     val origin = loginOrigin.getOrElse(hc.otherHeaders.toMap.getOrElse("origin", "Unknown-Origin"))
 
     implicit val dimensionWrites: OWrites[DimensionValue] = Json.writes[DimensionValue]
@@ -45,7 +46,10 @@ class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConf
     ).flatten
 
     val newEvent = Event(event.category, event.action, event.label, dimensions)
-    val analyticsRequest = AnalyticsRequest(hc.gaUserId.getOrElse(randomGaUserId), Seq(newEvent))
+
+    val gaClientId: String = getGaClientId()
+
+    val analyticsRequest = AnalyticsRequest(gaClientId, Seq(newEvent))
 
     logger.info(s"Sending ga event $analyticsRequest")
 
@@ -57,6 +61,16 @@ class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConf
     }
   }
 
-  private def randomGaUserId = s"GA1.1.${Math.abs(randomIntProvider())}.${Math.abs(randomIntProvider())}"
+  def getGaClientId()(implicit request: Request[_], hc: HeaderCarrier, ec: ExecutionContext): String = {
+    val gaClientId: Option[String] = request.cookies.get("_ga").map(_.value)
+    val xSessionId: Option[String] = request.headers.get(HeaderNames.xSessionId)
+    val gaIdInHc: Option[String] = hc.gaUserId
+
+    val gaId: Option[String] = if (gaClientId.isDefined) gaClientId else if (xSessionId.isDefined) xSessionId else gaIdInHc
+
+    lazy val randomGaUserId = s"GA1.1.${Math.abs(randomIntProvider())}.${Math.abs(randomIntProvider())}"
+
+    gaId.getOrElse(randomGaUserId)
+  }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import cats.data.EitherT
 import com.google.inject.ImplementedBy
 import play.api.http.Status._
 import play.api.libs.json.JsObject
+import play.api.mvc.Request
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UnhealthyServiceException, UsingCircuitBreaker}
 import uk.gov.hmrc.http.{HttpClient, _}
 import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
@@ -34,7 +35,7 @@ import scala.concurrent.{ExecutionContext, Future}
 trait MatchingConnector {
 
   def doMatch(personalDetails: PersonalDetails)
-             (implicit headerCarrier: HeaderCarrier, executionContext: ExecutionContext): EitherT[Future, Exception, MatchResult]
+             (implicit request: Request[_], headerCarrier: HeaderCarrier, executionContext: ExecutionContext): EitherT[Future, Exception, MatchResult]
 
 }
 
@@ -47,7 +48,7 @@ class MatchingConnectorImpl @Inject()(httpClient: HttpClient,
   import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsFormat._
 
   def doMatch(personalDetails: PersonalDetails)
-             (implicit headerCarrier: HeaderCarrier,
+             (implicit request: Request[_], headerCarrier: HeaderCarrier,
               executionContext: ExecutionContext): EitherT[Future, Exception, MatchResult] =
     EitherT(
       withCircuitBreaker {

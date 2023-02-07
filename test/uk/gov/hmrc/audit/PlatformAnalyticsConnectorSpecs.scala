@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@ import org.scalamock.scalatest.MockFactory
 import org.scalamock.scalatest.proxy.AsyncMockFactory
 import play.api.LoggerLike
 import play.api.libs.json.{JsObject, Json, Writes}
+import play.api.mvc.Request
+import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import setups.HttpClientStubSetup
 import support.UnitSpec
@@ -94,7 +96,7 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MockFactory {
 
       logger.when('error)(*,*,*)
 
-      connector.sendEvent(gaEvent, origin, None)(headerCarrier.copy(gaUserId = Option(gaUserId)), executionContext)
+      connector.sendEvent(gaEvent, origin, None)(request, headerCarrier.copy(gaUserId = Option(gaUserId)), executionContext)
 
       logger.verify('error)(
         argAssert { (message: () => String) =>
@@ -176,6 +178,8 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MockFactory {
 
     val connector = new PlatformAnalyticsConnector(httpClient, connectorConfig, randomIntProvider)
     val mockHttpClient: HttpClient = mock[HttpClient]
+
+    implicit val request: Request[_] = FakeRequest()
   }
 
 }
