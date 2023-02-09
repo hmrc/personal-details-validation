@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,14 +44,14 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
 
   }
 
-  private def sendGAMatchResultEvent(matchResult: MatchResult, origin: Option[String])(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+  private def sendGAMatchResultEvent(matchResult: MatchResult, origin: Option[String])(implicit request: Request[_], hc: HeaderCarrier, ec: ExecutionContext): Unit = {
     matchResult match {
       case MatchSuccessful(matchPd) => platformAnalyticsConnector.sendEvent(gaEvent("success"), origin, Some(matchPd))
       case MatchFailed(_) => platformAnalyticsConnector.sendEvent(gaEvent("failed_matching"), origin)
     }
   }
 
-  private def sendGAMatchResultForNinoOrPostcodeEvent(matchResult: MatchResult, personalDetails: PersonalDetails, origin: Option[String])(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+  private def sendGAMatchResultForNinoOrPostcodeEvent(matchResult: MatchResult, personalDetails: PersonalDetails, origin: Option[String])(implicit request: Request[_], hc: HeaderCarrier, ec: ExecutionContext): Unit = {
     (matchResult, personalDetails) match {
       case (MatchSuccessful(matchPd), _: PersonalDetailsWithNino) => platformAnalyticsConnector.sendEvent(gaEvent("success_withNINO"), origin, Some(matchPd))
       case (MatchSuccessful(matchPd), _: PersonalDetailsWithNinoAndGender) => platformAnalyticsConnector.sendEvent(gaEvent("success_withNINO"), origin, Some(matchPd))
@@ -63,7 +63,7 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
   }
 
   private def sendGASuffixMatchingEvent(matchResult: MatchResult, externalPerson: PersonalDetails, origin: Option[String])
-                                       (implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = (matchResult, externalPerson) match {
+                                       (implicit request: Request[_], hc: HeaderCarrier, ec: ExecutionContext): Unit = (matchResult, externalPerson) match {
     case (MatchSuccessful(matchPd: PersonalDetailsWithNino), _) if externalPerson.hasSameNinoSuffixAs(matchPd) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_same_as_cid"), origin, Some(matchPd))
     case (MatchSuccessful(matchPd: PersonalDetailsWithNinoAndGender), _) if externalPerson.hasSameNinoSuffixAs(matchPd) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_same_as_cid"), origin, Some(matchPd))
     case (MatchSuccessful(matchPd), _: PersonalDetailsWithNino) => platformAnalyticsConnector.sendEvent(gaEvent("success_nino_suffix_different_from_cid"), origin, Some(matchPd))
@@ -77,7 +77,7 @@ private[personaldetailsvalidation] class EventsSender @Inject()(platformAnalytic
     auditConnector.sendEvent(auditDataFactory.createErrorEvent(personalDetails))
   }
 
-  def sentCircuitBreakerEvent(personalDetails: PersonalDetails)(implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+  def sentCircuitBreakerEvent(personalDetails: PersonalDetails)(implicit request: Request[_], hc: HeaderCarrier, ec: ExecutionContext): Unit = {
     platformAnalyticsConnector.sendEvent(GAEvent("sos_iv", "circuit_breaker", "pdv_unavailable_circuit-breaker"), None, Some(personalDetails))
     auditConnector.sendEvent(auditDataFactory.createCircuitBreakerEvent(personalDetails))
   }

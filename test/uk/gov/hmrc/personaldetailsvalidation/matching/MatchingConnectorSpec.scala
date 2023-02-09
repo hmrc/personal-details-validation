@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,9 @@ import generators.Generators.Implicits._
 import generators.ObjectGenerators._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
-import play.api.libs.json.{JsString, Json}
+import play.api.libs.json.{JsObject, JsString, Json}
+import play.api.mvc.Request
+import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import setups.HttpClientStubSetup
 import support.UnitSpec
@@ -30,7 +32,7 @@ import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
 import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
-import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
+import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsWithNino}
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -46,7 +48,7 @@ class MatchingConnectorSpec
 
     "return MatchSuccessful when POST to authenticator's /authenticator/match returns OK" in new Setup {
 
-      val matchingResponsePayload = payload + ("nino" -> JsString(ninoWithDifferentSuffix.value))
+      val matchingResponsePayload: JsObject = payload + ("nino" -> JsString(ninoWithDifferentSuffix.value))
 
       expectPost(toUrl = "http://host/authenticator/match")
         .withPayload(payload)
@@ -85,7 +87,7 @@ class MatchingConnectorSpec
 
       expectPost(toUrl = "http://host/authenticator/match").withPayload(payload).throwing(exception)
 
-      (mockEventsSender.sentCircuitBreakerEvent(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext)).expects(personalDetails, *, *)
+      (mockEventsSender.sentCircuitBreakerEvent(_: PersonalDetails)(_: Request[_], _: HeaderCarrier, _: ExecutionContext)).expects(personalDetails, *, *, *)
       connector.doMatch(personalDetails).value.futureValue shouldBe Left(exception)
     }
 
@@ -104,12 +106,13 @@ class MatchingConnectorSpec
   private trait Setup extends HttpClientStubSetup {
 
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
+    implicit val request: Request[_] = FakeRequest()
 
-    val nino = Nino("AA000003D")
-    val ninoWithDifferentSuffix = Nino("AA000003C")
-    val generatedPersonalDetails = personalDetailsWithNinoObjects.generateOne
-    val personalDetails = generatedPersonalDetails.copy(nino = nino)
-    val payload = Json.obj(
+    val nino: Nino = Nino("AA000003D")
+    val ninoWithDifferentSuffix: Nino = Nino("AA000003C")
+    val generatedPersonalDetails: PersonalDetailsWithNino = personalDetailsWithNinoObjects.generateOne
+    val personalDetails: PersonalDetailsWithNino = generatedPersonalDetails.copy(nino = nino)
+    val payload: JsObject = Json.obj(
       "firstName" -> personalDetails.firstName,
       "lastName" -> personalDetails.lastName,
       "dateOfBirth" -> personalDetails.dateOfBirth,

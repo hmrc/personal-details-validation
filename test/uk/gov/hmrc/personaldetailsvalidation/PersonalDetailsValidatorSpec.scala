@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,8 +61,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
 
       val matchResult: MatchSuccessful = MatchSuccessful(personalDetailsWithGender)
 
-      (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(personalDetails, headerCarrier, executionContext)
+      (matchingConnector.doMatch(_: PersonalDetails)(_: Request[_], _: HeaderCarrier, _: ExecutionContext))
+        .expects(personalDetails, *, headerCarrier, executionContext)
         .returning(EitherT.rightT[Future, Exception](matchResult))
 
       (citizenDetailsConnector.findDesignatoryDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
@@ -95,8 +95,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       val eventPersonalDetails: PersonalDetails = inputPersonalDetails.addNino(matchedPersonalDetails.nino).addGender(gender)
       val matchResult: MatchSuccessful = MatchSuccessful(eventPersonalDetails)
 
-      (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(inputPersonalDetails, headerCarrier, executionContext)
+      (matchingConnector.doMatch(_: PersonalDetails)(_: Request[_], _: HeaderCarrier, _: ExecutionContext))
+        .expects(inputPersonalDetails, *, headerCarrier, executionContext)
         .returning(EitherT.rightT[Future, Exception](matchResult))
 
       (citizenDetailsConnector.findDesignatoryDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
@@ -129,8 +129,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       val eventPersonalDetails: PersonalDetails = enteredPersonalDetails.addGender(gender)
       val matchResult: MatchSuccessful = MatchSuccessful(eventPersonalDetails)
 
-      (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(enteredPersonalDetails, headerCarrier, executionContext)
+      (matchingConnector.doMatch(_: PersonalDetails)(_: Request[_], _: HeaderCarrier, _: ExecutionContext))
+        .expects(enteredPersonalDetails, *, headerCarrier, executionContext)
         .returning(EitherT.rightT[Future, Exception](matchResult))
 
       (citizenDetailsConnector.findDesignatoryDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
@@ -162,8 +162,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
 
       val matchResult: MatchSuccessful = MatchSuccessful(personalDetails)
 
-      (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(enteredPersonalDetails, headerCarrier, executionContext)
+      (matchingConnector.doMatch(_: PersonalDetails)(_: Request[_], _: HeaderCarrier, _: ExecutionContext))
+        .expects(enteredPersonalDetails, *, headerCarrier, executionContext)
         .returning(EitherT.rightT[Future, Exception](matchResult))
 
       (citizenDetailsConnector.findDesignatoryDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
@@ -192,8 +192,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       val personalDetails: PersonalDetails = personalDetailsObjects.generateOne
       val matchResult: MatchFailed = MatchFailed("some error")
 
-      (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(personalDetails, headerCarrier, executionContext)
+      (matchingConnector.doMatch(_: PersonalDetails)(_: Request[_], _: HeaderCarrier, _: ExecutionContext))
+        .expects(personalDetails, *, headerCarrier, executionContext)
         .returning(EitherT.rightT[Future, Exception](matchResult))
 
       (mockAppConfig.returnNinoFromCid _).expects().returning(false)
@@ -214,8 +214,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       val personalDetails: PersonalDetails = personalDetailsObjects.generateOne
 
       val exception = new RuntimeException("error")
-      (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(personalDetails, headerCarrier, executionContext)
+      (matchingConnector.doMatch(_: PersonalDetails)(_: Request[_], _: HeaderCarrier, _: ExecutionContext))
+        .expects(personalDetails, *, headerCarrier, executionContext)
         .returning(EitherT.leftT[Future, MatchResult](exception))
 
       (matchingEventsSender.sendErrorEvents(_: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
@@ -230,8 +230,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
 
       val matchResult: MatchSuccessful = MatchSuccessful(personalDetails)
 
-      (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(personalDetails, headerCarrier, executionContext)
+      (matchingConnector.doMatch(_: PersonalDetails)(_: Request[_], _: HeaderCarrier, _: ExecutionContext))
+        .expects(personalDetails, *, headerCarrier, executionContext)
         .returning(EitherT.rightT[Future, Exception](matchResult))
 
       (citizenDetailsConnector.findDesignatoryDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
@@ -260,8 +260,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       await(personalDetailsValidationRetryRepository.recordAttempt(maybeCredId.get,3))
       await(personalDetailsValidationRetryRepository.getAttempts(maybeCredId).value) shouldBe Right(4)
 
-      (matchingConnector.doMatch(_: PersonalDetails)(_: HeaderCarrier, _: ExecutionContext))
-        .expects(inputPersonalDetails, headerCarrier, executionContext)
+      (matchingConnector.doMatch(_: PersonalDetails)(_: Request[_], _: HeaderCarrier, _: ExecutionContext))
+        .expects(inputPersonalDetails, *, headerCarrier, executionContext)
         .returning(EitherT.rightT[Future, Exception](matchResult))
 
       (citizenDetailsConnector.findDesignatoryDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))

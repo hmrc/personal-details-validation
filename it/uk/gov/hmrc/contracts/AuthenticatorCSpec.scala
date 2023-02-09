@@ -7,6 +7,8 @@ import com.itv.scalapact.http._
 import com.itv.scalapact.json._
 import play.api.http.Status.UNAUTHORIZED
 import play.api.libs.json.Json
+import play.api.mvc.Request
+import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
@@ -97,6 +99,7 @@ class AuthenticatorCSpec extends BaseIntegrationSpec {
   }
 
   private trait Setup {
+    implicit val request: Request[_] = FakeRequest()
     val authConnector = app.injector.instanceOf[MatchingConnectorImpl]
   }
 }
