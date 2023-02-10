@@ -63,6 +63,9 @@ class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConf
   def getGaClientId()(implicit request: Request[_], hc: HeaderCarrier, ec: ExecutionContext): String = {
     val gaIdInHeaders: Option[String] = request.headers.get("_ga")
     lazy val randomGaUserId = s"GA1.1.${Math.abs(randomIntProvider())}.${Math.abs(randomIntProvider())}"
+    if (gaIdInHeaders.isEmpty) {
+      logger.info("Unable to get users' _gaId - No gaClientId found in request")
+    }
     gaIdInHeaders.getOrElse(randomGaUserId)
   }
 
