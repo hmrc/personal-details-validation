@@ -17,15 +17,14 @@
 package uk.gov.hmrc.audit
 
 import akka.Done
-
-import javax.inject.{Inject, Singleton}
 import play.api.Logging
 import play.api.libs.json.{Json, OWrites}
 import play.api.mvc.Request
-import uk.gov.hmrc.http.{HeaderCarrier, HeaderNames, HttpClient, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
 import uk.gov.hmrc.random.RandomIntProvider
 
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
@@ -62,15 +61,12 @@ class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConf
   }
 
   def getGaClientId()(implicit request: Request[_], hc: HeaderCarrier, ec: ExecutionContext): String = {
-    val gaClientId: Option[String] = request.cookies.get("_ga").map(_.value)
-    val xSessionId: Option[String] = request.headers.get(HeaderNames.xSessionId)
-    val gaIdInHc: Option[String] = hc.gaUserId
-
-    val gaId: Option[String] = if (gaClientId.isDefined) gaClientId else if (xSessionId.isDefined) xSessionId else gaIdInHc
-
+    val gaIdInHeaders: Option[String] = request.headers.get("_ga")
     lazy val randomGaUserId = s"GA1.1.${Math.abs(randomIntProvider())}.${Math.abs(randomIntProvider())}"
-
-    gaId.getOrElse(randomGaUserId)
+    if (gaIdInHeaders.isEmpty) {
+      logger.info("Unable to get users' _gaId - No gaClientId found in request")
+    }
+    gaIdInHeaders.getOrElse(randomGaUserId)
   }
 
 }
