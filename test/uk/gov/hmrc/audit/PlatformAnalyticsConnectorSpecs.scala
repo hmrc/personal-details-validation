@@ -106,6 +106,7 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MockFactory {
 
       override def payload(gaUserId: String): JsObject = Json.obj(
         "gaClientId" -> s"$gaUserId",
+        "gaTrackingId" -> s"${connectorConfig.analyticsToken}",
         "events" -> Json.arr(Json.obj(
           "category" -> s"${gaEvent.category}",
           "action" -> s"${gaEvent.action}",
@@ -148,6 +149,7 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MockFactory {
 
     def payload(gaUserId: String): JsObject = Json.obj(
       "gaClientId" -> s"$gaUserId",
+      "gaTrackingId" -> s"${connectorConfig.analyticsToken}",
       "events" -> Json.arr(Json.obj(
         "category" -> s"${gaEvent.category}",
         "action" -> s"${gaEvent.action}",
@@ -161,6 +163,7 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MockFactory {
       override lazy val gaGenderDimension: Int = 1
       override lazy val gaOriginDimension: Int = 2
       override lazy val gaAgeDimension: Int = 3
+      override lazy val analyticsToken: String = "UA-43414424-30"
     }
 
     val origin: Some[String] = Some("Test")

@@ -31,7 +31,9 @@ import scala.concurrent.ExecutionContext
 class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConfig: PlatformAnalyticsConnectorConfig, randomIntProvider: RandomIntProvider)
   extends Logging {
 
-  def sendEvent(event: GAEvent, loginOrigin: Option[String], maybePersonalDetails: Option[PersonalDetails] = None)(implicit request: Request[_], hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+  def sendEvent(event: GAEvent, loginOrigin: Option[String], maybePersonalDetails: Option[PersonalDetails] = None)
+               (implicit request: Request[_], hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+
     val origin = loginOrigin.getOrElse(hc.otherHeaders.toMap.getOrElse("origin", "Unknown-Origin"))
 
     implicit val dimensionWrites: OWrites[DimensionValue] = Json.writes[DimensionValue]
@@ -48,7 +50,7 @@ class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConf
 
     val gaClientId: String = getGaClientId()
 
-    val analyticsRequest = AnalyticsRequest(gaClientId, Seq(newEvent))
+    val analyticsRequest = AnalyticsRequest(gaClientId, connectorConfig.analyticsToken, Seq(newEvent))
 
     logger.info(s"Sending ga event $analyticsRequest")
 

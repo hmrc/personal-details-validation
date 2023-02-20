@@ -22,4 +22,4 @@ case class DimensionValue(index: Int, value: String)
 
 case class Event(category: String, action: String, label: String, dimensions: Seq[DimensionValue])
 
-case class AnalyticsRequest(gaClientId: String, events: Seq[Event])
+case class AnalyticsRequest(gaClientId: String, gaTrackingId: String, events: Seq[Event])
