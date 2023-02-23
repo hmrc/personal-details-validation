@@ -27,6 +27,7 @@ import uk.gov.hmrc.http.Host
 class HostConfigProvider @Inject()(configuration: Configuration) {
 
   def hostFor(serviceName: String): Host = configuration.loadMandatory[Host](serviceName)
+  def analyticsToken: String = configuration.loadMandatory("google-analytics.token")
   def originDimension: Int = configuration.get[Int]("google-analytics.origin-dimension")
   def ageDimension: Int = configuration.get[Int]("google-analytics.age-dimension")
   def genderDimension: Int = configuration.get[Int]("google-analytics.gender-dimension")
