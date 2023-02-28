@@ -51,10 +51,10 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MockFactory {
     "send event to platform analytics using gaUserId from header carrier" in new Setup {
 
       (mockHttpClient.POST[JsObject, HttpResponse](_: String, _: JsObject, _: Seq[(String, String)])(_ : Writes[JsObject], _ : HttpReads[HttpResponse], _ : HeaderCarrier, _ : ExecutionContext))
-        .expects(*, payload(gaUserId), *, *, *, *, *).returning(Future.successful(HttpResponse(200, "")))
+        .expects(*, payload(), *, *, *, *, *).returning(Future.successful(HttpResponse(200, "")))
 
       expectPost(toUrl = s"${connectorConfig.baseUrl}/platform-analytics/event")
-        .withPayload(payload(gaUserId))
+        .withPayload(payload())
         .returning(OK)
 
       connector.sendEvent(gaEvent, origin, None)
@@ -63,14 +63,8 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MockFactory {
     }
 
     "send event to platform analytics using random gaUserId if gaUserId absent in header carrier" in new Setup {
-      val randomValue1: Int = Random.nextInt()
-      val randomValue2: Int = Random.nextInt()
-
-      randomIntProvider.apply _ when() returns randomValue1 noMoreThanOnce()
-      randomIntProvider.apply _ when() returns randomValue2
-
       expectPost(toUrl = s"${connectorConfig.baseUrl}/platform-analytics/event")
-        .withPayload(payload(s"GA1.1.${Math.abs(randomValue1)}.${Math.abs(randomValue2)}"))
+        .withPayload(payload())
         .returning(OK)
 
       connector.sendEvent(gaEvent, origin, None)
@@ -84,7 +78,7 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MockFactory {
       val httpResponseBody = "some-error-response-body"
 
       expectPost(toUrl = s"${connectorConfig.baseUrl}/platform-analytics/event")
-        .withPayload(payload(gaUserId))
+        .withPayload(payload())
         .returning(httpResponseStatus, httpResponseBody)
 
       logger.when('error)(*,*,*)
@@ -104,8 +98,7 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MockFactory {
 
     "send event to platform analytics using gender and age" in new Setup {
 
-      override def payload(gaUserId: String): JsObject = Json.obj(
-        "gaClientId" -> s"$gaUserId",
+      override def payload(): JsObject = Json.obj(
         "gaTrackingId" -> s"${connectorConfig.analyticsToken}",
         "events" -> Json.arr(Json.obj(
           "category" -> s"${gaEvent.category}",
@@ -119,14 +112,8 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MockFactory {
         ))
       )
 
-      val randomValue1: Int = Random.nextInt()
-      val randomValue2: Int = Random.nextInt()
-
-      randomIntProvider.apply _ when() returns randomValue1 noMoreThanOnce()
-      randomIntProvider.apply _ when() returns randomValue2
-
       expectPost(toUrl = s"${connectorConfig.baseUrl}/platform-analytics/event")
-        .withPayload(payload(s"GA1.1.${Math.abs(randomValue1)}.${Math.abs(randomValue2)}"))
+        .withPayload(payload())
         .returning(OK)
 
       connector.sendEvent(gaEvent, origin, Some(PersonalDetailsWithNinoAndGender("firstName", "lastName", LocalDate.now().minusYears(20), Nino("AA000003D"), "genderF")))
@@ -147,8 +134,7 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MockFactory {
 
     val mockHostConfigProvider: HostConfigProvider = mock[HostConfigProvider]
 
-    def payload(gaUserId: String): JsObject = Json.obj(
-      "gaClientId" -> s"$gaUserId",
+    def payload(): JsObject = Json.obj(
       "gaTrackingId" -> s"${connectorConfig.analyticsToken}",
       "events" -> Json.arr(Json.obj(
         "category" -> s"${gaEvent.category}",
@@ -167,12 +153,11 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MockFactory {
     }
 
     val origin: Some[String] = Some("Test")
-    val randomIntProvider: RandomIntProvider = stub[RandomIntProvider]
     val logger: LoggerLike with Stub = Proxy.stub[LoggerLike]
     // TODO: logger is not used ... in-fact, this test does not even appear to be RAN??
     // TODO: Not sure why this entire class is here
 
-    val connector = new PlatformAnalyticsConnector(httpClient, connectorConfig, randomIntProvider)
+    val connector = new PlatformAnalyticsConnector(httpClient, connectorConfig)
     val mockHttpClient: HttpClient = mock[HttpClient]
 
     implicit val request: Request[_] = FakeRequest()
