@@ -22,13 +22,12 @@ import play.api.libs.json.{Json, OWrites}
 import play.api.mvc.Request
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
 import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
-import uk.gov.hmrc.random.RandomIntProvider
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 @Singleton
-class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConfig: PlatformAnalyticsConnectorConfig, randomIntProvider: RandomIntProvider)
+class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConfig: PlatformAnalyticsConnectorConfig)
   extends Logging {
 
   def sendEvent(event: GAEvent, loginOrigin: Option[String], maybePersonalDetails: Option[PersonalDetails] = None)
@@ -48,7 +47,7 @@ class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConf
 
     val newEvent = Event(event.category, event.action, event.label, dimensions)
 
-    val gaClientId: String = getGaClientId()
+    val gaClientId = request.headers.get("_ga")
 
     val analyticsRequest = AnalyticsRequest(gaClientId, connectorConfig.analyticsToken, Seq(newEvent))
 
@@ -60,15 +59,6 @@ class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConf
     ).map(_ => Done).recover {
       case ex: Exception => logger.error("Unexpected response from platform-analytics", ex); Done
     }
-  }
-
-  def getGaClientId()(implicit request: Request[_], hc: HeaderCarrier, ec: ExecutionContext): String = {
-    val gaIdInHeaders: Option[String] = request.headers.get("_ga")
-    lazy val randomGaUserId = s"GA1.1.${Math.abs(randomIntProvider())}.${Math.abs(randomIntProvider())}"
-    if (gaIdInHeaders.isEmpty) {
-      logger.info("Unable to get users' _gaId - No gaClientId found in request")
-    }
-    gaIdInHeaders.getOrElse(randomGaUserId)
   }
 
 }
