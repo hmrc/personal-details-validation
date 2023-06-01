@@ -309,7 +309,9 @@ class PersonalDetailsValidationResourceControllerSpec
 
     implicit val materializer: Materializer = app.materializer
     implicit val uuidProvider: UUIDProvider = stub[UUIDProvider]
-    uuidProvider.apply _ when() returns randomUUID()
+    // uuidProvider.apply _ when() returns randomUUID()
+    (uuidProvider.apply _).expects().returning(randomUUID)
+
 
     val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
 

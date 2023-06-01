@@ -22,7 +22,7 @@ import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.personaldetailsvalidation._
 import uk.gov.hmrc.personaldetailsvalidation.model._
 
-import java.time.{LocalDateTime, ZoneOffset}
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 
 
 object PersonalDetailsValidationFormat {
@@ -31,7 +31,7 @@ object PersonalDetailsValidationFormat {
   import TinyTypesFormats._
   import model.ValidationStatus._
 
-  implicit val dateTimeFormats: Format[LocalDateTime] = MongoJavatimeFormats.localDateTimeFormat
+  implicit val dateTimeFormats: Format[Instant] = MongoJavatimeFormats.instantFormat
 
   implicit val SuccessfulPersonalDetailsValidationFormat: OFormat[SuccessfulPersonalDetailsValidation] = Json.format[SuccessfulPersonalDetailsValidation]
 

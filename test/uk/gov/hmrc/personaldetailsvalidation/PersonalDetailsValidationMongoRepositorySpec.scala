@@ -27,7 +27,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Configuration
 import support.UnitSpec
 import uk.gov.hmrc.datetime.CurrentTimeProvider
-import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
+import uk.gov.hmrc.mongo.test.{DefaultPlayMongoRepositorySupport, MongoSupport}
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, SuccessfulPersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.uuid.UUIDProvider
 
@@ -38,7 +38,7 @@ import scala.concurrent.duration.SECONDS
 class PersonalDetailsValidationMongoRepositorySpec
   extends UnitSpec
     with GuiceOneAppPerSuite
-    with DefaultPlayMongoRepositorySupport[PersonalDetailsValidation]
+    with MongoSupport
     with MockFactory
     with ScalaFutures
     with IntegrationPatience {
@@ -104,8 +104,7 @@ class PersonalDetailsValidationMongoRepositorySpec
 
     implicit val uuidProvider: UUIDProvider = new UUIDProvider()
     implicit val currentTimeProvider: CurrentTimeProvider = stub[CurrentTimeProvider]
-
-    currentTimeProvider.apply _ when() returns LocalDateTime.now(ZoneOffset.UTC)
+    (currentTimeProvider.apply _).expects().returning(LocalDateTime.now(ZoneOffset.UTC))
 
     await(repository.collection.drop().toFuture())
 
@@ -117,6 +116,6 @@ class PersonalDetailsValidationMongoRepositorySpec
     override lazy val collectionTtl: Duration = Duration.ofSeconds(ttlSeconds)
   }
 
-  override protected def repository = new PersonalDetailsValidationRepository(config, mongoComponent)
+  protected def repository = new PersonalDetailsValidationRepository(config, mongoComponent)
 
 }

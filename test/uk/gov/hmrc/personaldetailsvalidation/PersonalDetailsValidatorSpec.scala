@@ -309,7 +309,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       new PersonalDetailsValidationRetryRepository(personalDetailsValidationMongoRepositoryConfig, mongoComponent)
 
     implicit val uuidProvider: UUIDProvider = stub[UUIDProvider]
-    uuidProvider.apply _ when() returns randomUUID()
+    (uuidProvider.apply _).expects().returning(randomUUID)
 
     def adjustedNino(nino: Nino) : Nino = {
       val ninoPrefix = nino.nino.substring(0, 8)

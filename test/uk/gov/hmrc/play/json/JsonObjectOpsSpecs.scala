@@ -28,6 +28,11 @@ class JsonObjectOpsSpecs extends UnitSpec with MockFactory {
 
   "withCreatedTimeStamp" should {
     "timestamp with default fieldName 'createdAt' to provided jsobject" in new Setup {
+      implicit val timeProvider: CurrentTimeProvider = stub[CurrentTimeProvider]
+
+      val currentTime: LocalDateTime = LocalDateTime.now()
+
+      (() => timeProvider.apply()).expects().returning(currentTime)
       Json.obj("foo" -> "bar")
         .withCreatedTimeStamp("createdAt") shouldBe Json.obj(
         "foo" -> "bar",
@@ -36,6 +41,11 @@ class JsonObjectOpsSpecs extends UnitSpec with MockFactory {
     }
 
     "timestamp with provided fieldName to provided jsobject" in new Setup {
+      implicit val timeProvider: CurrentTimeProvider = stub[CurrentTimeProvider]
+
+      val currentTime: LocalDateTime = LocalDateTime.now()
+
+      (() => timeProvider.apply()).expects().returning(currentTime)
       Json.obj("foo" -> "bar")
         .withCreatedTimeStamp("timestamp") shouldBe Json.obj(
         "foo" -> "bar",
@@ -44,11 +54,7 @@ class JsonObjectOpsSpecs extends UnitSpec with MockFactory {
   }
 
   trait Setup extends JsonObjectOps {
-    implicit val timeProvider: CurrentTimeProvider = stub[CurrentTimeProvider]
 
-    val currentTime = LocalDateTime.now()
-
-    timeProvider.apply _ when() returns currentTime
   }
 
 }
