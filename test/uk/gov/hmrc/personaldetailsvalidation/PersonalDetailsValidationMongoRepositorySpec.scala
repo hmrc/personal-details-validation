@@ -26,12 +26,11 @@ import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Configuration
 import support.UnitSpec
-import uk.gov.hmrc.datetime.CurrentTimeProvider
-import uk.gov.hmrc.mongo.test.{DefaultPlayMongoRepositorySupport, MongoSupport}
-import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, SuccessfulPersonalDetailsValidation, ValidationId}
+import uk.gov.hmrc.mongo.test.MongoSupport
+import uk.gov.hmrc.personaldetailsvalidation.model.{SuccessfulPersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.uuid.UUIDProvider
 
-import java.time.{Duration, LocalDateTime, ZoneOffset}
+import java.time.Duration
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.SECONDS
 
@@ -48,7 +47,7 @@ class PersonalDetailsValidationMongoRepositorySpec
       successfulPersonalDetailsValidationObjects.generateOne,
       failedPersonalDetailsValidationObjects.generateOne
     ) foreach { personalDetailsValidation =>
-      s"be able to insert ${personalDetailsValidation.getClass.getSimpleName}" in new Setup {
+      s"be able to insert ${personalDetailsValidation.getClass.getSimpleName}" in {
         repository.create(personalDetailsValidation).value.futureValue shouldBe Right(Done)
         repository.get(personalDetailsValidation.id).futureValue shouldBe Some(personalDetailsValidation)
       }
@@ -74,6 +73,7 @@ class PersonalDetailsValidationMongoRepositorySpec
   "get" should {
 
     "return None if document not found" in new Setup {
+      implicit val uuidProvider: UUIDProvider = new UUIDProvider()
       repository.get(ValidationId()).futureValue shouldBe None
     }
 
@@ -101,13 +101,7 @@ class PersonalDetailsValidationMongoRepositorySpec
   }
 
   private trait Setup {
-
-    implicit val uuidProvider: UUIDProvider = new UUIDProvider()
-    implicit val currentTimeProvider: CurrentTimeProvider = stub[CurrentTimeProvider]
-    (currentTimeProvider.apply _).expects().returning(LocalDateTime.now(ZoneOffset.UTC))
-
     await(repository.collection.drop().toFuture())
-
   }
 
   implicit val ttlSeconds: Long = 100
