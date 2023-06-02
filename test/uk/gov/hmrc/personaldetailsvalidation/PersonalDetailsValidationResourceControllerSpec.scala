@@ -183,7 +183,6 @@ class PersonalDetailsValidationResourceControllerSpec
 
     "return errors if mandatory fields are missing" in new Setup {
       val response: Result = controller.create(origin)(request.withBody(JsNull)).futureValue
-
       (jsonBodyOf(response) \ "errors").as[List[String]] should contain only(
         "firstName is missing",
         "lastName is missing",
@@ -223,8 +222,8 @@ class PersonalDetailsValidationResourceControllerSpec
     implicit val generator: Arbitrary[PersonalDetailsValidation] = asArbitrary(personalDetailsValidationObjects)
 
     "return Not Found http status code if repository does not return personal details validation" in new Setup {
+      (uuidProvider.apply _).expects().returning(randomUUID)
       val validationId: ValidationId = ValidationId()
-
       (mockRepository.get(_: ValidationId)(_: ExecutionContext))
         .expects(validationId, *)
         .returns(Future.successful(None))
@@ -308,8 +307,9 @@ class PersonalDetailsValidationResourceControllerSpec
   private trait Setup {
 
     implicit val materializer: Materializer = app.materializer
-    implicit val uuidProvider: UUIDProvider = stub[UUIDProvider]
-    uuidProvider.apply _ when() returns randomUUID()
+    implicit val uuidProvider: UUIDProvider = mock[UUIDProvider]
+   // (uuidProvider.apply _).expects().returning(randomUUID)
+
 
     val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
 

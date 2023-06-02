@@ -40,7 +40,6 @@ import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchRes
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.uuid.UUIDProvider
 
-import java.util.UUID.randomUUID
 import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -309,7 +308,6 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       new PersonalDetailsValidationRetryRepository(personalDetailsValidationMongoRepositoryConfig, mongoComponent)
 
     implicit val uuidProvider: UUIDProvider = stub[UUIDProvider]
-    uuidProvider.apply _ when() returns randomUUID()
 
     def adjustedNino(nino: Nino) : Nino = {
       val ninoPrefix = nino.nino.substring(0, 8)

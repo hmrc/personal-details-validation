@@ -29,7 +29,6 @@ import uk.gov.hmrc.personaldetailsvalidation.model._
 
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
-import scala.collection.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
