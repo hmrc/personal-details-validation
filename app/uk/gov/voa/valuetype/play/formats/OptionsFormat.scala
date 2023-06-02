@@ -19,8 +19,6 @@ package uk.gov.voa.valuetype.play.formats
 import play.api.libs.json._
 import uk.gov.voa.valuetype._
 
-import scala.language.implicitConversions
-
 object OptionsFormat extends OptionsFormat
 
 trait OptionsFormat {

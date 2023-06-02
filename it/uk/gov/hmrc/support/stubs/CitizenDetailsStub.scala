@@ -1,8 +1,6 @@
 package uk.gov.hmrc.support.stubs
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import com.github.tomakehurst.wiremock.client._
-import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import org.scalatest.concurrent.{Eventually, IntegrationPatience}
 import play.api.http.Status.OK
 import play.api.libs.json.JsValue

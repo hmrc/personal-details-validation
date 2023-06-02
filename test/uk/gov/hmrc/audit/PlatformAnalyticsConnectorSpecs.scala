@@ -30,12 +30,10 @@ import uk.gov.hmrc.config.HostConfigProvider
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpReads, HttpResponse, UpstreamErrorResponse}
 import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetailsWithNinoAndGender
-import uk.gov.hmrc.random.RandomIntProvider
 
 import java.time.LocalDate
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
-import scala.util.Random
 
 class PlatformAnalyticsConnectorSpecs extends UnitSpec with MockFactory {
 
