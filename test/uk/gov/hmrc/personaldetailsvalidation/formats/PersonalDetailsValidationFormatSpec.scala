@@ -135,7 +135,7 @@ class PersonalDetailsValidationFormatSpec
             "nino" -> personalDetailsWithNino.nino
           ),
           "createdAt" -> createdAt
-        ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.successful(personalDetails, createdAt)
+        ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.successful(personalDetails, LocalDateTime.parse(createdAt.toString.dropRight(3)))
       }
     }
 
@@ -147,7 +147,7 @@ class PersonalDetailsValidationFormatSpec
         "credentialId" -> "credentialId",
         "attempts" -> 0,
         "createdAt" -> createdAt
-      ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.failed(Some("credentialId"), Some(0), createdAt)
+      ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.failed(Some("credentialId"), Some(0), LocalDateTime.parse(createdAt.toString.dropRight(3)))
     }
   }
 
