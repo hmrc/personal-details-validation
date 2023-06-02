@@ -52,11 +52,11 @@ object ObjectGenerators extends ValueGenerators {
   implicit val successfulPersonalDetailsValidationObjects: Gen[SuccessfulPersonalDetailsValidation] = for {
     id <- validationIds
     personalDetails <- personalDetailsWithNinoObjects
-  } yield SuccessfulPersonalDetailsValidation(id, "success", personalDetails, LocalDateTime.now(ZoneOffset.UTC))
+  } yield SuccessfulPersonalDetailsValidation(id, "success", personalDetails, LocalDateTime.parse(LocalDateTime.now(ZoneOffset.UTC).toString.dropRight(3)))
 
   implicit val failedPersonalDetailsValidationObjects: Gen[FailedPersonalDetailsValidation] =
     validationIds.map{id =>
-      FailedPersonalDetailsValidation(id, "failure", maybeCredId, attempt, LocalDateTime.now(ZoneOffset.UTC))
+      FailedPersonalDetailsValidation(id, "failure", maybeCredId, attempt, LocalDateTime.parse(LocalDateTime.now(ZoneOffset.UTC).toString.dropRight(3)))
     }
 
   implicit val personalDetailsValidationObjects: Gen[PersonalDetailsValidation] = booleans flatMap {

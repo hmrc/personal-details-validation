@@ -18,20 +18,17 @@ package uk.gov.hmrc.personaldetailsvalidation.formats
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.personaldetailsvalidation._
 import uk.gov.hmrc.personaldetailsvalidation.model._
 
-import java.time.{Instant, LocalDateTime, ZoneOffset}
+import java.time.{LocalDateTime, ZoneOffset}
 
 
-object PersonalDetailsValidationFormat {
+object PersonalDetailsValidationFormat extends JavaDateTimeFormatter {
 
   import PersonalDetailsInternalFormat.repositoryPersonalDetailsReads
   import TinyTypesFormats._
   import model.ValidationStatus._
-
-  implicit val dateTimeFormats: Format[Instant] = MongoJavatimeFormats.instantFormat
 
   implicit val SuccessfulPersonalDetailsValidationFormat: OFormat[SuccessfulPersonalDetailsValidation] = Json.format[SuccessfulPersonalDetailsValidation]
 
