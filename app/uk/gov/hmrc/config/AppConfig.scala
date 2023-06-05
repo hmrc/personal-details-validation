@@ -22,4 +22,5 @@ import play.api.Configuration
 @Singleton
 class AppConfig @Inject() (config: Configuration) {
   def returnNinoFromCid: Boolean = config.getOptional[Boolean]("feature.return-nino-from-cid").getOrElse(false)
+  lazy val isCidDesignatoryDetailsCallEnabled: Boolean = config.getOptional[Boolean]("feature.nps-migration.cid-designatory-details-call.enabled").getOrElse(true)
 }
