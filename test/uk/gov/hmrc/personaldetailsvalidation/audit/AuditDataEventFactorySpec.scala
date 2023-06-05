@@ -17,18 +17,19 @@
 package uk.gov.hmrc.personaldetailsvalidation.audit
 
 import java.time.LocalDate
-
 import generators.Generators.Implicits._
 import generators.Generators.nonEmptyMap
 import generators.ObjectGenerators._
 import org.scalamock.scalatest.MockFactory
 import play.api.Configuration
+import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
 import support.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory._
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.play.audit.model.DataEvent
 
 class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
 
@@ -44,7 +45,7 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
 
     matchingResultAndDetails.foreach { case (matchResult, matchingingDetails) =>
       s"create data event for ${matchResult.getClass.getName.split("\\$").last}" in new Setup {
-        val dataEvent = auditDataFactory.createEvent(matchResult, personalDetails)
+        val dataEvent: DataEvent = auditDataFactory.createEvent(matchResult, personalDetails)
 
         dataEvent.auditSource shouldBe auditConfig.appName
         dataEvent.auditType shouldBe "MatchingResult"
@@ -58,8 +59,8 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
     }
 
     "create data event for a failed match of postCode" in new Setup {
-      val matchResult = MatchFailed("Some Error")
-      val dataEvent = auditDataFactory.createEvent(matchResult, personalDetailsWithPostCode)
+      val matchResult: MatchFailed = MatchFailed("Some Error")
+      val dataEvent: DataEvent = auditDataFactory.createEvent(matchResult, personalDetailsWithPostCode)
 
       dataEvent.auditSource shouldBe auditConfig.appName
       dataEvent.auditType shouldBe "MatchingResult"
@@ -73,7 +74,7 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
     }
 
     "create error data event" in new Setup {
-      val dataEvent = auditDataFactory.createErrorEvent(personalDetails)
+      val dataEvent: DataEvent = auditDataFactory.createErrorEvent(personalDetails)
 
       dataEvent.auditSource shouldBe auditConfig.appName
       dataEvent.auditType shouldBe "MatchingResult"
@@ -87,7 +88,7 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
 
     "create error data event for user without nino" in new Setup {
       val adjustedPerson = new PersonalDetailsWithPostCode(personalDetails.firstName, personalDetails.lastName, personalDetails.dateOfBirth, postCode = "SE1 9NT")
-      val dataEvent = auditDataFactory.createErrorEvent(adjustedPerson)
+      val dataEvent: DataEvent = auditDataFactory.createErrorEvent(adjustedPerson)
 
       dataEvent.auditSource shouldBe auditConfig.appName
       dataEvent.auditType shouldBe "MatchingResult"
@@ -102,19 +103,19 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
 
   trait Setup {
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
-    implicit val request = FakeRequest()
+    implicit val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
 
-    val auditTagsProvider = mock[AuditTagProvider]
-    val auditDetailsProvider = mock[AuditDetailsProvider]
-    val auditConfig = new AuditConfig(mock[Configuration]) {
+    val auditTagsProvider: AuditTagProvider = mock[AuditTagProvider]
+    val auditDetailsProvider: AuditDetailsProvider = mock[AuditDetailsProvider]
+    val auditConfig: AuditConfig = new AuditConfig(mock[Configuration]) {
       override lazy val appName: String = "personal-details-validation"
     }
 
-    val auditTags = nonEmptyMap.generateOne
-    val auditDetails = nonEmptyMap.generateOne
+    val auditTags: Map[String, String] = nonEmptyMap.generateOne
+    val auditDetails: Map[String, String] = nonEmptyMap.generateOne
 
-    auditTagsProvider.apply _ expects(headerCarrier, auditType, request) returns auditTags
-    auditDetailsProvider.apply _ expects (headerCarrier) returns auditDetails
+    (auditTagsProvider.apply _).expects(headerCarrier, auditType, request).returns(auditTags)
+    (auditDetailsProvider.apply _).expects(headerCarrier).returns(auditDetails)
 
     val auditDataFactory = new AuditDataEventFactory(auditConfig, auditTagsProvider, auditDetailsProvider)
 

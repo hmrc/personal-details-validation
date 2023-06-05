@@ -16,11 +16,10 @@
 
 package generators
 
-import java.time.{Instant, LocalDate, LocalDateTime, ZoneId, ZonedDateTime}
 import org.scalacheck.{Arbitrary, Gen}
 import uk.gov.hmrc.model.NonEmptyString
 
-import scala.language.implicitConversions
+import java.time._
 
 trait Generators {
 
