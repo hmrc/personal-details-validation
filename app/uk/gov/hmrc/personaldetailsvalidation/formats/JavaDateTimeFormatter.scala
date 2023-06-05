@@ -33,6 +33,4 @@ trait JavaDateTimeFormatter {
   val localDateTimeFormat: Format[LocalDateTime] =
     Format(localDateTimeReads, localDateTimeWrites)
 
-  implicit val dateTimeFormats: Format[LocalDateTime] = localDateTimeFormat
-
 }

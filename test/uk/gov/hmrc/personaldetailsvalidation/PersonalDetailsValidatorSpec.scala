@@ -68,7 +68,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
         .expects(*, headerCarrier, executionContext)
         .returning(Future.successful(Some(Gender(gender))))
 
-      (mockAppConfig.returnNinoFromCid _).expects().returning(false).repeat(2)
+      (() => mockAppConfig.returnNinoFromCid).expects().returning(false).repeat(2)
 
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _: Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, personalDetails, origin, headerCarrier, request, executionContext)
@@ -102,7 +102,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
         .expects(*, headerCarrier, executionContext)
         .returning(Future.successful(Some(Gender(gender))))
 
-      (mockAppConfig.returnNinoFromCid _).expects().returning(true).repeat(1)
+      (() => mockAppConfig.returnNinoFromCid).expects().returning(true).repeat(1)
 
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, inputPersonalDetails, origin, headerCarrier, request, executionContext)
@@ -136,7 +136,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
         .expects(*, headerCarrier, executionContext)
         .returning(Future.successful(Some(Gender(gender))))
 
-      (mockAppConfig.returnNinoFromCid _).expects().returning(false).repeat(2)
+      (() => mockAppConfig.returnNinoFromCid).expects().returning(false).repeat(2)
 
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, enteredPersonalDetails, origin,  headerCarrier, request, executionContext)
@@ -169,7 +169,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
         .expects(*, headerCarrier, executionContext)
         .returning(Future.successful(Some(Gender(gender))))
 
-      (mockAppConfig.returnNinoFromCid _).expects().returning(true).repeat(2)
+      (() => mockAppConfig.returnNinoFromCid).expects().returning(true).repeat(2)
 
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(MatchSuccessful(personalDetails.addGender(gender)), personalDetails, origin, headerCarrier, request, executionContext)
@@ -195,7 +195,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
         .expects(personalDetails, *, headerCarrier, executionContext)
         .returning(EitherT.rightT[Future, Exception](matchResult))
 
-      (mockAppConfig.returnNinoFromCid _).expects().returning(false)
+      (() => mockAppConfig.returnNinoFromCid).expects().returning(false)
 
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, personalDetails, origin,  headerCarrier, request, executionContext)
@@ -237,7 +237,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
         .expects(*, headerCarrier, executionContext)
         .returning(Future.successful(Some(Gender(gender))))
 
-      (mockAppConfig.returnNinoFromCid _).expects().returning(false)
+      (() => mockAppConfig.returnNinoFromCid).expects().returning(false)
 
       val exception = new RuntimeException("error")
       (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
@@ -267,7 +267,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
         .expects(*, headerCarrier, executionContext)
         .returning(Future.successful(Some(Gender(gender))))
 
-      (mockAppConfig.returnNinoFromCid _).expects().returning(true).repeat(1)
+      (() => mockAppConfig.returnNinoFromCid).expects().returning(true).repeat(1)
 
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _: Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, inputPersonalDetails, origin, headerCarrier, request, executionContext)

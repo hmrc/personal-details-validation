@@ -30,6 +30,8 @@ object PersonalDetailsValidationFormat extends JavaDateTimeFormatter {
   import TinyTypesFormats._
   import model.ValidationStatus._
 
+  implicit val dateTimeFormats: Format[LocalDateTime] = localDateTimeFormat
+
   implicit val SuccessfulPersonalDetailsValidationFormat: OFormat[SuccessfulPersonalDetailsValidation] = Json.format[SuccessfulPersonalDetailsValidation]
 
   implicit val FailedPersonalDetailsValidationFormat: OFormat[FailedPersonalDetailsValidation] = Json.format[FailedPersonalDetailsValidation]

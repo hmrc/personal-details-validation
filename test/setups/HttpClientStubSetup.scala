@@ -17,14 +17,14 @@
 package setups
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import akka.stream.Materializer
 import com.typesafe.config.Config
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import play.api.libs.json.{JsObject, JsValue, Json, Writes}
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.http.{HttpClient, HttpResponse}
 import uk.gov.hmrc.http.hooks.HttpHook
+import uk.gov.hmrc.http.{HttpClient, HttpResponse}
 import uk.gov.hmrc.integration.servicemanager.AhcWsClientFactory
 import uk.gov.hmrc.play.http.ws.WSHttp
 
@@ -96,7 +96,7 @@ trait HttpClientStubSetup extends MockFactory {
     (config.getDurationList(_: String)).expects(*).returning(Collections.emptyList()).anyNumberOfTimes()
     (config.getBoolean _).expects(*).returning(false).anyNumberOfTimes()
 
-    implicit val mat: ActorMaterializer = ActorMaterializer()(actorSystem)
+    implicit val materializer: Materializer = Materializer.matFromSystem(actorSystem)
 
     override val wsClient: WSClient = AhcWsClientFactory.createClient()
 

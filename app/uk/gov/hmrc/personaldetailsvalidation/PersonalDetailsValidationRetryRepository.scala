@@ -23,7 +23,7 @@ import org.mongodb.scala.model._
 import play.api.libs.json._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+import uk.gov.hmrc.personaldetailsvalidation.formats.JavaDateTimeFormatter
 
 import java.time.{LocalDateTime, ZoneOffset}
 import java.util.concurrent.TimeUnit
@@ -32,7 +32,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 case class Retry(credentialId: String, attempts: Option[Int], createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC))
 
-object Retry extends MongoJavatimeFormats {
+object Retry extends JavaDateTimeFormatter {
+  implicit val dateTimeFormats: Format[LocalDateTime] = localDateTimeFormat
   implicit val format: OFormat[Retry] = Json.format[Retry]
 }
 

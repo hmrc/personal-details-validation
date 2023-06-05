@@ -37,7 +37,6 @@ import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDet
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.language.postfixOps
 
 class MatchingConnectorSpec
   extends UnitSpec

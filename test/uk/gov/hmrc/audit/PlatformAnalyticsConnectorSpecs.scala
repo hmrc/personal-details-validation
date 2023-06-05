@@ -79,11 +79,11 @@ class PlatformAnalyticsConnectorSpecs extends UnitSpec with MockFactory {
         .withPayload(payload())
         .returning(httpResponseStatus, httpResponseBody)
 
-      logger.when('error)(*,*,*)
+      logger.when(Symbol("error"))(*,*,*)
 
       connector.sendEvent(gaEvent, origin, None)(request, headerCarrier.copy(gaUserId = Option(gaUserId)), executionContext)
 
-      logger.verify('error)(
+      logger.verify(Symbol("error"))(
         argAssert { (message: () => String) =>
           message() shouldBe "Unexpected response from platform-analytics"
         },
