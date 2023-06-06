@@ -44,8 +44,8 @@ class CitizenDetailsConnectorSpec
 
         connector.findDesignatoryDetails(nino).futureValue shouldBe Some(Gender("F"))
     }
-    "not call CID if isCidDesignatoryDetailsCallEnabled is set to false" in new Setup(false) {
-      withCaptureOfLoggingFrom(connector.testLogger) { logEvents =>
+    "not call CID if cidDesignatoryDetailsCallEnabled is set to false" in new Setup(false) {
+      withCaptureOfLoggingFrom(appConfig.testLogger) { logEvents =>
         connector.findDesignatoryDetails(nino).futureValue shouldBe None
 
         eventually {
@@ -66,7 +66,9 @@ class CitizenDetailsConnectorSpec
         "feature.nps-migration.cid-designatory-details-call.enabled" -> isCidDesignatoryDetailsCallEnabled
       ) ++ additionalConfig
       val config = Configuration.from(configData)
-      lazy val appConfig = new AppConfig(config)
+      lazy val appConfig = new AppConfig(config) {
+        val testLogger: Logger = logger
+      }
 
 
     val hostConfigProvider = mock[HostConfigProvider]
@@ -80,9 +82,7 @@ class CitizenDetailsConnectorSpec
 
     val testBaseUrl: String = s"http://$expectedHost:$expectedPort/citizen-details"
 
-    val connector = new CitizenDetailsConnector(httpClient, connectorConfig, appConfig) {
-      val testLogger: Logger = logger
-    }
+    val connector = new CitizenDetailsConnector(httpClient, connectorConfig, appConfig)
   }
 
   private def testDesignatoryDetails(): JsObject =

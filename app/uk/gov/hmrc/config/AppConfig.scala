@@ -17,10 +17,18 @@
 package uk.gov.hmrc.config
 
 import javax.inject.{Inject, Singleton}
-import play.api.Configuration
+import play.api.{Configuration, Logging}
 
 @Singleton
-class AppConfig @Inject() (config: Configuration) {
+class AppConfig @Inject() (config: Configuration) extends Logging {
   def returnNinoFromCid: Boolean = config.getOptional[Boolean]("feature.return-nino-from-cid").getOrElse(false)
-  lazy val isCidDesignatoryDetailsCallEnabled: Boolean = config.getOptional[Boolean]("feature.nps-migration.cid-designatory-details-call.enabled").getOrElse(true)
+
+  lazy val cidDesignatoryDetailsCallEnabled: Boolean = {
+    val enabled = config
+      .getOptional[Boolean]("feature.nps-migration.cid-designatory-details-call.enabled")
+      .getOrElse(true)
+    if (!enabled) logger.warn("[VER-3530] Designatory details call is DISABLED for NPS Migration")
+    enabled
+  }
+
 }

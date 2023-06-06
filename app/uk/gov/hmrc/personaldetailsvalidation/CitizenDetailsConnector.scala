@@ -31,11 +31,10 @@ class CitizenDetailsConnector @Inject()(http: CoreGet, val config: CitizenDetail
   lazy val cdBaseUrl = config.baseUrl
 
   def findDesignatoryDetails(nino: Nino) (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Option[Gender]] = {
-    if (appConfig.isCidDesignatoryDetailsCallEnabled) {
+    if (appConfig.cidDesignatoryDetailsCallEnabled) {
       val url = s"$cdBaseUrl/$nino/designatory-details"
       http.GET[Option[Gender]](url).recover(toNone(url))
     } else {
-      logger.warn("[VER-3530] Designatory details call is DISABLED for NPS Migration")
       Future.successful(None)
     }
   }
