@@ -20,17 +20,23 @@ import play.api.Logging
 import play.api.libs.json.{Reads, __}
 import uk.gov.hmrc.domain._
 import uk.gov.hmrc.http._
-
 import javax.inject.Inject
+import uk.gov.hmrc.config.AppConfig
+
 import scala.concurrent.{ExecutionContext, Future}
 
-class CitizenDetailsConnector @Inject()(http: CoreGet, val config: CitizenDetailsConnectorConfig) extends Logging {
+class CitizenDetailsConnector @Inject()(http: CoreGet, val config: CitizenDetailsConnectorConfig,
+                                        val appConfig: AppConfig) extends Logging {
 
   lazy val cdBaseUrl = config.baseUrl
 
   def findDesignatoryDetails(nino: Nino) (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Option[Gender]] = {
-    val url = s"$cdBaseUrl/$nino/designatory-details"
-    http.GET[Option[Gender]](url).recover(toNone(url))
+    if (appConfig.cidDesignatoryDetailsCallEnabled) {
+      val url = s"$cdBaseUrl/$nino/designatory-details"
+      http.GET[Option[Gender]](url).recover(toNone(url))
+    } else {
+      Future.successful(None)
+    }
   }
 
   private def toNone[T](url: String): PartialFunction[Throwable, Option[T]] = {
