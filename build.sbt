@@ -1,7 +1,6 @@
 import TestPhases.oneForkedJvmPerTest
 import play.sbt.PlayImport.PlayKeys.playDefaultPort
 import uk.gov.hmrc.DefaultBuildSettings.{addTestReportOption, defaultSettings, scalaSettings}
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
 
 val appName = "personal-details-validation"
 
@@ -24,7 +23,7 @@ lazy val scoverageSettings: Seq[Def.Setting[_ >: String with Double with Boolean
         |.*Routes.*;
         |.*RoutesPrefix.*;""".stripMargin,
 
-    ScoverageKeys.coverageMinimum := 80,
+    ScoverageKeys.coverageMinimumStmtTotal := 80,
     ScoverageKeys.coverageFailOnMinimum := false,
     ScoverageKeys.coverageHighlighting := true
   )
@@ -36,7 +35,6 @@ lazy val microservice = Project(appName, file("."))
   .settings(scalaSettings: _*)
   .disablePlugins(JUnitXmlReportPlugin)
   .settings(playSettings ++ scoverageSettings: _*)
-  .settings(publishingSettings: _*)
   .settings(playDefaultPort := 9967)
   .settings(defaultSettings(): _*)
   .settings(
