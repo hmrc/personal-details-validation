@@ -30,6 +30,8 @@ import scala.concurrent.ExecutionContext
 class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConfig: PlatformAnalyticsConnectorConfig)
   extends Logging {
 
+  private def gaClientId(implicit request: Request[_]): Option[String] = request.cookies.get("_ga").map(_.value)
+
   def sendEvent(event: GAEvent, loginOrigin: Option[String], maybePersonalDetails: Option[PersonalDetails] = None)
                (implicit request: Request[_], hc: HeaderCarrier, ec: ExecutionContext): Unit = {
 
@@ -46,8 +48,6 @@ class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConf
     ).flatten
 
     val newEvent = Event(event.category, event.action, event.label, dimensions)
-
-    val gaClientId = request.headers.get("_ga")
 
     val analyticsRequest = AnalyticsRequest(gaClientId, connectorConfig.analyticsToken, Seq(newEvent))
 
