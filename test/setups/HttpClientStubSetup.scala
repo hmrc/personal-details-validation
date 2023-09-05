@@ -23,10 +23,11 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import play.api.libs.json.{JsObject, JsValue, Json, Writes}
 import play.api.libs.ws.WSClient
+import play.api.libs.ws.ahc.{AhcWSClient, AhcWSClientConfig, StandaloneAhcWSClient}
 import uk.gov.hmrc.http.hooks.HttpHook
 import uk.gov.hmrc.http.{HttpClient, HttpResponse}
-import uk.gov.hmrc.integration.servicemanager.AhcWsClientFactory
 import uk.gov.hmrc.play.http.ws.WSHttp
+import scala.concurrent.duration._
 
 import java.util.Collections
 import scala.concurrent.{ExecutionContext, Future}
@@ -98,7 +99,12 @@ trait HttpClientStubSetup extends MockFactory {
 
     implicit val materializer: Materializer = Materializer.matFromSystem(actorSystem)
 
-    override val wsClient: WSClient = AhcWsClientFactory.createClient()
+    override val wsClient: WSClient = new AhcWSClient(
+      StandaloneAhcWSClient(
+        AhcWSClientConfig(
+          idleConnectionInPoolTimeout = 1.minute)
+      )
+    )
 
     override val hooks: Seq[HttpHook] = Nil
 
