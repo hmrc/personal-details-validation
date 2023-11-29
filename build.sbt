@@ -15,14 +15,7 @@ lazy val scoverageSettings: Seq[Def.Setting[_ >: String with Double with Boolean
   import scoverage._
 
   Seq(
-    ScoverageKeys.coverageExcludedPackages :=
-      """<empty>;
-        |Reverse.*;
-        |.*BuildInfo.*;
-        |.*config.*;
-        |.*Routes.*;
-        |.*RoutesPrefix.*;""".stripMargin,
-
+    ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*.*BuildInfo.*;.*config.*;.*Routes.*;.*RoutesPrefix.*;",
     ScoverageKeys.coverageMinimumStmtTotal := 80,
     ScoverageKeys.coverageFailOnMinimum := false,
     ScoverageKeys.coverageHighlighting := true
@@ -45,12 +38,16 @@ lazy val microservice = Project(appName, file("."))
       "-language:reflectiveCalls",
       "-language:postfixOps"
     ),
-    scalaVersion := "2.13.8",
+    scalaVersion := "2.13.12",
     libraryDependencies ++= AppDependencies(),
     retrieveManaged := true
   )
   .configs(IntegrationTest)
   .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)
+  .settings(
+    // To resolve a bug with version 2.x.x of the scoverage plugin - https://github.com/sbt/sbt/issues/6997
+    libraryDependencySchemes ++= Seq("org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always)
+  )
   .settings(
     IntegrationTest / Keys.fork := false,
     IntegrationTest / unmanagedSourceDirectories := (IntegrationTest / baseDirectory) (base => Seq(base / "it")).value,
