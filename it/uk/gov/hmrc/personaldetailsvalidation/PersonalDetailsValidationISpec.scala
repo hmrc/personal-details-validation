@@ -1,19 +1,36 @@
 package uk.gov.hmrc.personaldetailsvalidation
 
+import ch.qos.logback.classic.Level
+import org.scalatest.LoneElement
+import play.api.Logger
 import play.api.http.ContentTypes.JSON
 import play.api.http.Status._
 import play.api.libs.json.{JsUndefined, JsValue, Json}
 import play.api.libs.ws.WSResponse
+import play.api.test.DefaultAwaitTimeout
 import play.mvc.Http.HeaderNames.{CONTENT_TYPE, LOCATION}
+import uk.gov.hmrc.crypto.PlainText
+import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, PersonalDetailsWithNino, SuccessfulPersonalDetailsValidation, ValidationId}
+import uk.gov.hmrc.personaldetailsvalidation.services.Encryption
+import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
 import uk.gov.hmrc.support.BaseIntegrationSpec
 import uk.gov.hmrc.support.stubs.AuditEventStubs._
-import uk.gov.hmrc.support.stubs.{AuthenticatorStub, CitizenDetailsStub}
 import uk.gov.hmrc.support.stubs.PlatformAnalyticsStub._
+import uk.gov.hmrc.support.stubs.{AuthStub, AuthenticatorStub, CitizenDetailsStub}
 
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, LocalDateTime}
+import java.util.UUID
 import java.util.UUID.randomUUID
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
+class PersonalDetailsValidationISpec
+  extends BaseIntegrationSpec
+    with DefaultAwaitTimeout
+    with LogCapturing
+    with LoneElement {
 
   "POST /personal-details-validation" should {
 
@@ -42,6 +59,168 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       verifyGAMatchEvent(label = "success")
       verifyGAMatchEvent(label = "success_withNINO")
       verifyMatchingStatusInAuditEvent(matchingStatus = "success")
+    }
+
+    "return OK and insert records into both databases when provided personal details can be matched by Authenticator" in new Setup {
+      AuthenticatorStub.expecting(personalDetails).respondWithOK()
+      CitizenDetailsStub.expecting().respondWithOK()
+      AuthStub.stubForAuth(200)
+
+      val createResponse1: Future[WSResponse] = sendCreateValidationResourceRequest(personalDetails, headers)
+      createResponse1.map(
+        response => response.status mustBe CREATED
+      )
+
+      eventually {
+        associationRepository.getRecord(encryptedCredID, encryptedSessionID).futureValue.nonEmpty mustBe true
+      }
+
+      val storedPDV: Future[Option[PersonalDetailsValidation]] = eventually(pdvRepository.get(repoValidationId))
+      storedPDV.map { value =>
+        value.nonEmpty mustBe true
+        value.get.id mustBe repoValidationId
+        value.get mustBe personalDetailsValidation
+      }
+    }
+
+    "return ok if records already exist before hitting the routes" in new Setup {
+      AuthenticatorStub.expecting(personalDetails).respondWithOK()
+      CitizenDetailsStub.expecting().respondWithOK()
+      AuthStub.stubForAuth(200)
+
+      val createResponse1: Future[WSResponse] = sendCreateValidationResourceRequest(personalDetails, headers)
+        createResponse1.map(
+          response => response.status mustBe CREATED
+        )
+
+      val createResponse2: WSResponse = sendCreateValidationResourceRequest(personalDetails, headers).futureValue
+      createResponse2.status mustBe CREATED
+      val responseID: String = (createResponse2.json \ "id").as[String]
+
+      eventually {
+        associationRepository.getRecord(encryptedCredID, encryptedSessionID).futureValue.nonEmpty mustBe true
+      }
+
+      eventually {
+        pdvRepository
+          .get(ValidationId(UUID.fromString(responseID)))
+          .map {
+            case Some(SuccessfulPersonalDetailsValidation(_, _, personalDetails, _, _)) => Some(personalDetails)
+            case _ => None
+          }
+          .futureValue mustBe Some(personalDetailsValidation.personalDetails)
+      }
+    }
+
+    "return OK and insert in to PDV repo but not association repo when missing session id" in new Setup {
+      withCaptureOfLoggingFrom(Logger("uk.gov.hmrc.personaldetailsvalidation.services.RepoControlService")) { logEvents =>
+        AuthenticatorStub.expecting(personalDetails).respondWithOK()
+        CitizenDetailsStub.expecting().respondWithOK()
+        AuthStub.stubForAuth(200)
+
+        val createResponse1: Future[WSResponse] = sendCreateValidationResourceRequest(personalDetails, headersMissingSessionId)
+        createResponse1.map(
+          response => response.status mustBe CREATED
+        )
+
+        eventually {
+          logEvents
+            .filter(_.getLevel == Level.WARN)
+            .loneElement
+            .getMessage mustBe "adding to Association database rejected due to sessionID does not exist"
+        }
+
+        val storedPDV: Future[Option[PersonalDetailsValidation]] = eventually(pdvRepository.get(repoValidationId))
+        storedPDV.map { value =>
+          value.nonEmpty mustBe true
+          value.get.id mustBe repoValidationId
+          value.get mustBe personalDetailsValidation
+        }
+      }
+    }
+
+    "return OK and insert in to PDV repo but not association repo when session id is empty" in new Setup {
+      withCaptureOfLoggingFrom(Logger("uk.gov.hmrc.personaldetailsvalidation.services.RepoControlService")) { logEvents =>
+
+        AuthenticatorStub.expecting(personalDetails).respondWithOK()
+        CitizenDetailsStub.expecting().respondWithOK()
+        AuthStub.stubForAuth(200)
+
+        val createResponse1: Future[WSResponse] = sendCreateValidationResourceRequest(personalDetails, headersEmptySessionId)
+        createResponse1.map(
+          response => response.status mustBe CREATED
+        )
+
+        eventually {
+          logEvents
+            .filter(_.getLevel == Level.WARN)
+            .loneElement
+            .getMessage mustBe "adding to Association database rejected due to sessionID containing empty string"
+        }
+
+        val storedPDV: Future[Option[PersonalDetailsValidation]] = eventually(pdvRepository.get(repoValidationId))
+        storedPDV.map { value =>
+          value.nonEmpty mustBe true
+          value.get.id mustBe repoValidationId
+          value.get mustBe personalDetailsValidation
+        }
+      }
+    }
+
+    "return OK and insert in to PDV repo but not association repo when cred id is none" in new Setup {
+      withCaptureOfLoggingFrom(Logger("uk.gov.hmrc.personaldetailsvalidation.services.RepoControlService")) { logEvents =>
+
+        AuthenticatorStub.expecting(personalDetails).respondWithOK()
+        CitizenDetailsStub.expecting().respondWithOK()
+        AuthStub.stubForAuth(200, AuthStub.authBodyNoCredID)
+
+        val createResponse1: Future[WSResponse] = sendCreateValidationResourceRequest(personalDetails, headers)
+        createResponse1.map(
+          response => response.status mustBe CREATED
+        )
+
+        eventually {
+          logEvents
+            .filter(_.getLevel == Level.WARN)
+            .loneElement
+            .getMessage mustBe "adding to Association database rejected due to credID does not exist"
+        }
+
+        val storedPDV: Future[Option[PersonalDetailsValidation]] = eventually(pdvRepository.get(repoValidationId))
+        storedPDV.map { value =>
+          value.nonEmpty mustBe true
+          value.get.id mustBe repoValidationId
+          value.get mustBe personalDetailsValidation
+        }
+      }
+    }
+
+    "return OK and insert in to PDV repo but not association repo when cred id is empty" in new Setup {
+      withCaptureOfLoggingFrom(Logger("uk.gov.hmrc.personaldetailsvalidation.services.RepoControlService")) { logEvents =>
+
+        AuthenticatorStub.expecting(personalDetails).respondWithOK()
+        CitizenDetailsStub.expecting().respondWithOK()
+        AuthStub.stubForAuth(200, AuthStub.authBody(""))
+
+        val createResponse1: Future[WSResponse] = sendCreateValidationResourceRequest(personalDetails, headers)
+        createResponse1.map(
+          response => response.status mustBe CREATED
+        )
+
+        eventually {
+          logEvents
+            .filter(_.getLevel == Level.WARN)
+            .loneElement
+            .getMessage mustBe "adding to Association database rejected due to credID containing empty string"
+        }
+
+        val storedPDV: Future[Option[PersonalDetailsValidation]] = eventually(pdvRepository.get(repoValidationId))
+        storedPDV.map { value =>
+          value.nonEmpty mustBe true
+          value.get.id mustBe repoValidationId
+          value.get mustBe personalDetailsValidation
+        }
+      }
     }
 
     "return OK with success validation status when provided personal details, that contain postcode, can be matched by Authenticator. Include nino in response" in new Setup {
@@ -147,6 +326,25 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
   }
 
   private trait Setup {
+    private val testSessionId: String = s"session-${UUID.randomUUID().toString}"
+    val headers: List[(String, String)] = List(("X-Session-ID", testSessionId), ("Authorization" , "Bearer123"))
+    val headersMissingSessionId: List[(String, String)] = List(("Authorization" , "Bearer123"))
+    val headersEmptySessionId: List[(String, String)] = List(("X-Session-ID", ""), ("Authorization" , "Bearer123"))
+
+    val associationRepository: AssociationMongoRepository = app.injector.instanceOf[AssociationMongoRepository]
+    val pdvRepository: PersonalDetailsValidationRepository = app.injector.instanceOf[PersonalDetailsValidationRepository]
+
+    private val dateFormat: String = "yyyy-MM-dd HH:mm:ss.SSSSSS"
+    private val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern(dateFormat)
+    private val lastUpdated: LocalDateTime = LocalDateTime.now()
+    val repoValidationId: ValidationId = ValidationId(UUID.randomUUID())
+
+    implicit val encryption: Encryption = app.injector.instanceOf[Encryption]
+    val encryptedCredID: String = encryption.crypto.encrypt(PlainText(AuthStub.credId)).value
+    val encryptedSessionID: String = encryption.crypto.encrypt(PlainText(testSessionId)).value
+    private val testPersonalDetails: PersonalDetailsWithNino = PersonalDetailsWithNino("Jim","Ferguson",LocalDate.parse("1948-04-23 12:00:00.000000", formatter),Nino("AA000003D"))
+    val personalDetailsValidation: SuccessfulPersonalDetailsValidation = SuccessfulPersonalDetailsValidation(repoValidationId,"success", testPersonalDetails, lastUpdated)
+
 
     val personalDetails: String =
       """
@@ -188,9 +386,10 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
         |}
       """.stripMargin
 
-    def sendCreateValidationResourceRequest(body: String): Future[WSResponse] =
+    def sendCreateValidationResourceRequest(body: String, headers: List[(String,String)]= List.empty): Future[WSResponse] =
       wsUrl("/personal-details-validation")
         .addHttpHeaders(CONTENT_TYPE -> JSON)
+        .addHttpHeaders(headers: _*)
         .post(body)
   }
 

@@ -17,7 +17,7 @@ trait BaseIntegrationSpec
     with WiremockSpecSupport
     with Eventually {
 
-  override val wiremockedServices: List[String] = List("authenticator", "platform-analytics", "citizen-details")
+  override val wiremockedServices: List[String] = List("authenticator", "platform-analytics", "citizen-details", "auth")
 
   protected def additionalConfiguration = Map.empty[String, Any]
 
