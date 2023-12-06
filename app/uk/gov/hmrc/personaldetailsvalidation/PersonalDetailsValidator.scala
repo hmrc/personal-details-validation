@@ -27,7 +27,9 @@ import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful, NoLivingMatch}
 import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.personaldetailsvalidation.services.RepoControlService
 import uk.gov.hmrc.uuid.UUIDProvider
+import uk.gov.hmrc.personaldetailsvalidation.services.Encryption
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -49,10 +51,10 @@ trait PersonalDetailsValidator {
 class PersonalDetailsValidatorImpl @Inject() (
   matchingConnector: MatchingConnector,
   citizenDetailsConnector: CitizenDetailsConnector,
-  personalDetailsValidationRepository: PdvRepository,
+  repoControlService: RepoControlService,
   personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository,
   matchingEventsSender: EventsSender,
-  appConfig: AppConfig)(implicit uuidProvider: UUIDProvider) extends PersonalDetailsValidator {
+  appConfig: AppConfig)(implicit uuidProvider: UUIDProvider, encryption: Encryption) extends PersonalDetailsValidator {
 
   import matchingConnector._
   import matchingEventsSender._
@@ -70,7 +72,7 @@ class PersonalDetailsValidatorImpl @Inject() (
             case _ => attempts.map { attempts => personalDetailsValidationRetryRepository.recordAttempt(maybeCredId.get, attempts) }
           }
         }
-        personalDetailsValidationRepository.create(personalDetailsValidation)
+        repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation, maybeCredId, hc)
       }
       _ = sendEvents(addValidatedPersonalDetailsToMatchResult(personalDetailsValidation, matchResult), eventDetailsToSend(matchResult, personalDetails), origin)
     } yield personalDetailsValidation
