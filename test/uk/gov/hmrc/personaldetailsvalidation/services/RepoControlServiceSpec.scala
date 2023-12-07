@@ -26,7 +26,7 @@ import generators.Generators.Implicits._
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.{Application, Configuration}
 import play.api.inject.guice.GuiceApplicationBuilder
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier, SessionId}
 import uk.gov.hmrc.support.wiremock.WiremockConfiguration.{wiremockHost, wiremockPort}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -66,16 +66,15 @@ class RepoControlServiceSpec extends UnitSpec with MockFactory with GuiceOneAppP
   }
 
   trait Setup {
-//    lazy val config: Map[String, String] = Map(
-//      s"microservice.services.bas-proxy.host" -> s"$wiremockHost",
-//      s"microservice.services.bas-proxy.port" -> s"$wiremockPort",
-//      s"microservice.services.auth.host" -> s"$wiremockHost",
-//      s"microservice.services.auth.port" -> s"$wiremockPort",
-//      "play.filters.csrf.header.bypassHeaders.X-Requested-With" -> "*",
-//      "play.filters.csrf.header.bypassHeaders.Csrf-Token" -> "nocheck"
-//    )
+    lazy val config: Map[String, String] = Map(
+      s"microservice.services.bas-proxy.host" -> s"$wiremockHost",
+      s"microservice.services.bas-proxy.port" -> s"$wiremockPort",
+      s"microservice.services.auth.host" -> s"$wiremockHost",
+      s"microservice.services.auth.port" -> s"$wiremockPort",
+      "play.filters.csrf.header.bypassHeaders.X-Requested-With" -> "*",
+      "play.filters.csrf.header.bypassHeaders.Csrf-Token" -> "nocheck"
+    )
 
-    implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
     implicit val encryption: Encryption = app.injector.instanceOf[Encryption]
 
     val mockPDVService: PersonalDetailsValidatorService = mock[PersonalDetailsValidatorService]
@@ -84,14 +83,13 @@ class RepoControlServiceSpec extends UnitSpec with MockFactory with GuiceOneAppP
 
     val personalDetailsValidation: PersonalDetailsValidation = personalDetailsValidationObjects.generateOne
     val credId: String = "cred-123"
-    val sessionId: String = s"session-${UUID.randomUUID().toString}"
+    val sessionId: SessionId = SessionId(s"session-${UUID.randomUUID().toString}")
     val validationId: String = UUID.randomUUID().toString
     val lastUpdated: LocalDateTime = LocalDateTime.now()
     val encryptedCredID: String = encryption.crypto.encrypt(credId, "credentialId").value
-    val encryptedSessionID: String = encryption.crypto.encrypt(sessionId, "sessionID").value
+    val encryptedSessionID: String = encryption.crypto.encrypt(sessionId.toString, "sessionID").value
     val association: Association = Association(encryptedCredID, encryptedSessionID, validationId, lastUpdated)
-
-
+    implicit val headerCarrier: HeaderCarrier = HeaderCarrier().copy(sessionId = Some(sessionId))
 
   }
 
