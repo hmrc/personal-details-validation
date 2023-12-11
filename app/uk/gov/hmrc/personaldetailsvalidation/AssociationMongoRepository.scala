@@ -37,6 +37,7 @@ import scala.concurrent.{ExecutionContext, Future}
 trait AssociationRepository {
   def insertRecord(association: Association): Future[Unit]
   def getRecord(credentialId: String, sessionId: String): Future[Option[Association]]
+  def drop: Future[Unit]
 }
 
 @Singleton
@@ -96,6 +97,8 @@ class AssociationMongoRepository @Inject() (config: PersonalDetailsValidationMon
     }
 
   }
+
+  def drop: Future[Unit] = collection.drop().toFuture.map(_ => ())
 
   private def filter(associationCredentialId: String, associationSessionId: String): Bson =
     Filters.and(

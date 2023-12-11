@@ -17,11 +17,10 @@
 package uk.gov.hmrc.personaldetailsvalidation.services
 
 import play.api.Configuration
-import uk.gov.hmrc.crypto.{AdDecrypter, AdEncrypter, SymmetricCryptoFactory}
-
+import uk.gov.hmrc.crypto.{Decrypter, Encrypter, SymmetricCryptoFactory}
 import javax.inject.Inject
 
 class Encryption @Inject()(configuration: Configuration) {
 
-  val crypto: AdEncrypter with AdDecrypter = SymmetricCryptoFactory.aesGcmAdCryptoFromConfig("mongodb.encryption", configuration.underlying)
+  val crypto: Encrypter with Decrypter = SymmetricCryptoFactory.aesCryptoFromConfig("mongodb.encryption", configuration.underlying)
 }
