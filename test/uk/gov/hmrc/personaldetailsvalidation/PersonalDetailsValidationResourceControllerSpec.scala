@@ -45,6 +45,7 @@ import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
 import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.personaldetailsvalidation.services.PersonalDetailsValidatorService
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import java.util.UUID.randomUUID
@@ -224,7 +225,7 @@ class PersonalDetailsValidationResourceControllerSpec
     "return Not Found http status code if repository does not return personal details validation" in new Setup {
       (uuidProvider.apply _).expects().returning(randomUUID)
       val validationId: ValidationId = ValidationId()
-      (mockRepository.get(_: ValidationId)(_: ExecutionContext))
+      (mockPersonalDetailsValidatorService.getRecord(_: ValidationId)(_: ExecutionContext))
         .expects(validationId, *)
         .returns(Future.successful(None))
 
@@ -235,7 +236,7 @@ class PersonalDetailsValidationResourceControllerSpec
 
     "return OK http status code if repository returns personal details validation" in new Setup {
       forAll { personalDetailsValidation: PersonalDetailsValidation =>
-        (mockRepository.get(_: ValidationId)(_: ExecutionContext))
+        (mockPersonalDetailsValidatorService.getRecord(_: ValidationId)(_: ExecutionContext))
           .expects(personalDetailsValidation.id, *)
           .returns(Future.successful(Some(personalDetailsValidation)))
 
@@ -247,7 +248,7 @@ class PersonalDetailsValidationResourceControllerSpec
 
     "return personalDetailsValidation id in response body" in new Setup {
       forAll { personalDetailsValidation: PersonalDetailsValidation =>
-        (mockRepository.get(_: ValidationId)(_: ExecutionContext))
+        (mockPersonalDetailsValidatorService.getRecord(_: ValidationId)(_: ExecutionContext))
           .expects(personalDetailsValidation.id, *)
           .returns(Future.successful(Some(personalDetailsValidation)))
 
@@ -262,7 +263,7 @@ class PersonalDetailsValidationResourceControllerSpec
       import formats.PersonalDetailsFormat._
 
       forAll { personalDetailsValidation: SuccessfulPersonalDetailsValidation =>
-        (mockRepository.get(_: ValidationId)(_: ExecutionContext))
+        (mockPersonalDetailsValidatorService.getRecord(_: ValidationId)(_: ExecutionContext))
           .expects(personalDetailsValidation.id, *)
           .returns(Future.successful(Some(personalDetailsValidation)))
 
@@ -275,7 +276,7 @@ class PersonalDetailsValidationResourceControllerSpec
     "do not return personal details in response body for FailedPersonalDetailsValidation" in new Setup {
 
       forAll { personalDetailsValidation: FailedPersonalDetailsValidation =>
-        (mockRepository.get(_: ValidationId)(_: ExecutionContext))
+        (mockPersonalDetailsValidatorService.getRecord(_: ValidationId)(_: ExecutionContext))
           .expects(personalDetailsValidation.id, *)
           .returns(Future.successful(Some(personalDetailsValidation)))
 
@@ -293,7 +294,7 @@ class PersonalDetailsValidationResourceControllerSpec
 
     forAll(validationStatusScenarios) { (personalDetailsValidation, status) =>
       s"return validationStatus as $status if repository returned ${personalDetailsValidation.getClass.getSimpleName}" in new Setup {
-        (mockRepository.get(_: ValidationId)(_: ExecutionContext))
+        (mockPersonalDetailsValidatorService.getRecord(_: ValidationId)(_: ExecutionContext))
           .expects(personalDetailsValidation.id, *)
           .returns(Future.successful(Some(personalDetailsValidation)))
 
@@ -313,7 +314,7 @@ class PersonalDetailsValidationResourceControllerSpec
 
     val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
 
-    val mockRepository: PdvRepository = mock[PdvRepository]
+    val mockPersonalDetailsValidatorService: PersonalDetailsValidatorService = mock[PersonalDetailsValidatorService]
 
     val personalDetailsValidationMongoRepositoryConfig: PersonalDetailsValidationMongoRepositoryConfig =
       app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
@@ -329,7 +330,7 @@ class PersonalDetailsValidationResourceControllerSpec
     implicit val mockAuthConnector: AuthConnector = mock[AuthConnector]
 
     val controller = new PersonalDetailsValidationResourceController(
-        mockRepository, personalDetailsValidationRetryRepository, mockValidator, stubControllerComponents())
+      mockPersonalDetailsValidatorService, personalDetailsValidationRetryRepository, mockValidator, stubControllerComponents())
   }
 
 }

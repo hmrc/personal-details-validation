@@ -18,24 +18,30 @@ package uk.gov.hmrc.personaldetailsvalidation.services
 
 import akka.Done
 import cats.data.EitherT
+import ch.qos.logback.classic.Level
 import generators.ObjectGenerators.personalDetailsValidationObjects
 import org.scalamock.scalatest.MockFactory
 import support.UnitSpec
 import uk.gov.hmrc.personaldetailsvalidation.model.{Association, PersonalDetailsValidation}
 import generators.Generators.Implicits._
 import org.scalamock.matchers.ArgCapture.CaptureOne
+import org.scalatest.LoneElement
+import org.scalatest.concurrent.Eventually
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.Application
+import play.api.{Application, Configuration, Logger}
 import play.api.inject.guice.GuiceApplicationBuilder
+import uk.gov.hmrc.config.AppConfig
 import uk.gov.hmrc.http.{HeaderCarrier, SessionId}
 import uk.gov.hmrc.crypto.PlainText
+import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import java.time.LocalDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-class RepoControlServiceSpec extends UnitSpec with MockFactory with GuiceOneAppPerSuite {
+class RepoControlServiceSpec extends UnitSpec with MockFactory with GuiceOneAppPerSuite
+  with LoneElement with Eventually with LogCapturing {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().configure(Map("metrics.enabled" -> "false")).build()
@@ -43,6 +49,7 @@ class RepoControlServiceSpec extends UnitSpec with MockFactory with GuiceOneAppP
   "RepoControlService" should {
     "insert into both databases if given valid credentials" in new Setup {
 
+      implicit val headerCarrier: HeaderCarrier = new HeaderCarrier(sessionId = Some(SessionId(sessionId)))
       val capturedAssociation: CaptureOne[Association] = CaptureOne[Association]()
 
       mockAssociationService.insertRecord _ expects capture(capturedAssociation) returning Future.successful(())
@@ -52,19 +59,116 @@ class RepoControlServiceSpec extends UnitSpec with MockFactory with GuiceOneAppP
         .returning(EitherT.rightT[Future, Exception](Done))
 
       val result: EitherT[Future, Exception, Done] = repoControl.insertPDVAndAssociationRecord(
-        personalDetailsValidation, Some(credId), headerCarrier)
+        personalDetailsValidation, Some(credId))
 
       await(result.value) shouldBe Right(Done)
 
       capturedAssociation.value.validationId shouldBe personalDetailsValidation.id.toString
     }
+
+    "only insert into the PDV database if sessionID is none" in new Setup {
+
+      withCaptureOfLoggingFrom(Logger("uk.gov.hmrc.personaldetailsvalidation.services.RepoControlService")) { logEvents =>
+
+        implicit val hc: HeaderCarrier = new HeaderCarrier(sessionId = None)
+
+        (mockPDVService.insertRecord(_: PersonalDetailsValidation)(_: ExecutionContext))
+        .expects(personalDetailsValidation, *)
+        .returning(EitherT.rightT[Future, Exception](Done))
+
+        val result: EitherT[Future, Exception, Done] = repoControl.insertPDVAndAssociationRecord(
+          personalDetailsValidation, Some(credId))
+
+        await(result.value) shouldBe Right(Done)
+
+        eventually {
+          logEvents
+            .filter(_.getLevel == Level.WARN)
+            .loneElement
+            .getMessage shouldBe "adding to Association database rejected due to sessionID does not exist"
+        }
+      }
+    }
+
+    "only insert into the PDV database if sessionID is an empty string" in new Setup {
+
+      withCaptureOfLoggingFrom(Logger("uk.gov.hmrc.personaldetailsvalidation.services.RepoControlService")) { logEvents =>
+
+        implicit val hc: HeaderCarrier = new HeaderCarrier(sessionId = Some(SessionId("")))
+
+        (mockPDVService.insertRecord(_: PersonalDetailsValidation)(_: ExecutionContext))
+          .expects(personalDetailsValidation, *)
+          .returning(EitherT.rightT[Future, Exception](Done))
+
+        val result: EitherT[Future, Exception, Done] = repoControl.insertPDVAndAssociationRecord(
+          personalDetailsValidation, Some(credId))
+
+        await(result.value) shouldBe Right(Done)
+
+        eventually {
+          logEvents
+            .filter(_.getLevel == Level.WARN)
+            .loneElement
+            .getMessage shouldBe "adding to Association database rejected due to sessionID containing empty string"
+        }
+      }
+    }
+
+    "only insert into the PDV database if credID is None" in new Setup {
+
+      withCaptureOfLoggingFrom(Logger("uk.gov.hmrc.personaldetailsvalidation.services.RepoControlService")) { logEvents =>
+
+        implicit val headerCarrier: HeaderCarrier = new HeaderCarrier(sessionId = Some(SessionId(sessionId)))
+
+        (mockPDVService.insertRecord(_: PersonalDetailsValidation)(_: ExecutionContext))
+          .expects(personalDetailsValidation, *)
+          .returning(EitherT.rightT[Future, Exception](Done))
+
+        val result: EitherT[Future, Exception, Done] = repoControl.insertPDVAndAssociationRecord(
+          personalDetailsValidation, None)
+
+        await(result.value) shouldBe Right(Done)
+
+        eventually {
+          logEvents
+            .filter(_.getLevel == Level.WARN)
+            .loneElement
+            .getMessage shouldBe "adding to Association database rejected due to credID does not exist"
+        }
+      }
+    }
+
+    "only insert into the PDV database if credID is an empty string" in new Setup {
+
+      withCaptureOfLoggingFrom(Logger("uk.gov.hmrc.personaldetailsvalidation.services.RepoControlService")) { logEvents =>
+
+        implicit val headerCarrier: HeaderCarrier = new HeaderCarrier(sessionId = Some(SessionId(sessionId)))
+
+        (mockPDVService.insertRecord(_: PersonalDetailsValidation)(_: ExecutionContext))
+          .expects(personalDetailsValidation, *)
+          .returning(EitherT.rightT[Future, Exception](Done))
+
+        val result: EitherT[Future, Exception, Done] = repoControl.insertPDVAndAssociationRecord(
+          personalDetailsValidation, Some(""))
+
+        await(result.value) shouldBe Right(Done)
+
+        eventually {
+          logEvents
+            .filter(_.getLevel == Level.WARN)
+            .loneElement
+            .getMessage shouldBe "adding to Association database rejected due to credID containing empty string"
+        }
+      }
+    }
+
+
   }
 
   trait Setup {
 
     val sessionId: String = s"session-${UUID.randomUUID().toString}"
 
-    implicit val headerCarrier: HeaderCarrier = new HeaderCarrier(sessionId = Some(SessionId(sessionId)))
     implicit val encryption: Encryption = app.injector.instanceOf[Encryption]
 
     val mockPDVService: PersonalDetailsValidatorService = mock[PersonalDetailsValidatorService]

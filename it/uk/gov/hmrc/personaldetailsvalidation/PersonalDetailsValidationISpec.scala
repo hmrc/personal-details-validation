@@ -4,16 +4,26 @@ import play.api.http.ContentTypes.JSON
 import play.api.http.Status._
 import play.api.libs.json.{JsUndefined, JsValue, Json}
 import play.api.libs.ws.WSResponse
+import play.api.test.DefaultAwaitTimeout
+import play.api.test.Helpers.await
 import play.mvc.Http.HeaderNames.{CONTENT_TYPE, LOCATION}
+import uk.gov.hmrc.crypto.PlainText
+import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.personaldetailsvalidation.model.{Association, PersonalDetailsValidation, PersonalDetailsWithNino, SuccessfulPersonalDetailsValidation, ValidationId}
+import uk.gov.hmrc.personaldetailsvalidation.services.Encryption
 import uk.gov.hmrc.support.BaseIntegrationSpec
 import uk.gov.hmrc.support.stubs.AuditEventStubs._
 import uk.gov.hmrc.support.stubs.{AuthenticatorStub, CitizenDetailsStub}
 import uk.gov.hmrc.support.stubs.PlatformAnalyticsStub._
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, LocalDateTime}
+import java.util.UUID
 import java.util.UUID.randomUUID
 import scala.concurrent.Future
 
-class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
+class PersonalDetailsValidationISpec extends BaseIntegrationSpec with DefaultAwaitTimeout {
 
   "POST /personal-details-validation" should {
 
@@ -42,6 +52,27 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
       verifyGAMatchEvent(label = "success")
       verifyGAMatchEvent(label = "success_withNINO")
       verifyMatchingStatusInAuditEvent(matchingStatus = "success")
+    }
+
+    "return OK and insert records into both databases when provided personal details can be matched by Authenticator" in new Setup {
+      AuthenticatorStub.expecting(personalDetails).respondWithOK()
+      CitizenDetailsStub.expecting().respondWithOK()
+
+      val createResponse: WSResponse = sendCreateValidationResourceRequest(personalDetails).futureValue
+      await(associationRepository.insertRecord(association))
+      pdvRepository.create(personalDetailsValidation)
+
+      createResponse.status mustBe CREATED
+
+      val storedAssociation: Option[Association] = await(associationRepository.getRecord(encryptedCredID, encryptedSessionID))
+      storedAssociation.nonEmpty mustBe true
+
+      val storedPDV: Future[Option[PersonalDetailsValidation]] = pdvRepository.get(repoValidationId)
+      storedPDV.map{ value =>
+        value.nonEmpty mustBe true
+        value.get.id mustBe repoValidationId
+        value.get mustBe personalDetailsValidation
+      }
     }
 
     "return OK with success validation status when provided personal details, that contain postcode, can be matched by Authenticator. Include nino in response" in new Setup {
@@ -147,6 +178,23 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec {
   }
 
   private trait Setup {
+
+    implicit val encryption: Encryption = app.injector.instanceOf[Encryption]
+    val associationRepository: AssociationMongoRepository = app.injector.instanceOf[AssociationMongoRepository]
+    val pdvRepository: PersonalDetailsValidationRepository = app.injector.instanceOf[PersonalDetailsValidationRepository]
+    private val credId: String = "cred-123"
+    private val dateFormat: String = "yyyy-MM-dd HH:mm:ss.SSSSSS"
+    private val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern(dateFormat)
+    private val lastUpdated: LocalDateTime = LocalDateTime.now()
+    val repoValidationId: ValidationId = ValidationId(UUID.randomUUID())
+    val encryptedCredID: String = encryption.crypto.encrypt(PlainText(credId)).value
+    private val sessionId: String = s"session-${UUID.randomUUID().toString}"
+    val encryptedSessionID: String = encryption.crypto.encrypt(PlainText(sessionId)).value
+    private val testPersonalDetails: PersonalDetailsWithNino = PersonalDetailsWithNino("john","smith",LocalDate.parse("1990-11-01 12:00:00.000000", formatter),Nino("AA000002D"))
+
+    val personalDetailsValidation: SuccessfulPersonalDetailsValidation = SuccessfulPersonalDetailsValidation(repoValidationId,"success", testPersonalDetails, lastUpdated)
+    val association: Association = Association(encryptedCredID, encryptedSessionID, repoValidationId.toString, lastUpdated)
+
 
     val personalDetails: String =
       """

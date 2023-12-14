@@ -72,7 +72,7 @@ class PersonalDetailsValidatorImpl @Inject() (
             case _ => attempts.map { attempts => personalDetailsValidationRetryRepository.recordAttempt(maybeCredId.get, attempts) }
           }
         }
-        repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation, maybeCredId, hc)
+        repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation, maybeCredId)
       }
       _ = sendEvents(addValidatedPersonalDetailsToMatchResult(personalDetailsValidation, matchResult), eventDetailsToSend(matchResult, personalDetails), origin)
     } yield personalDetailsValidation

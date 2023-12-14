@@ -74,7 +74,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _: Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, personalDetails, origin, headerCarrier, request, executionContext)
 
-      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _:Option[String], _: HeaderCarrier)(_: ExecutionContext, _:Encryption))
+      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _:Option[String])(_: HeaderCarrier, _: ExecutionContext, _:Encryption))
         .expects(*, *, *, executionContext, encryption)
         .returning(EitherT.rightT[Future, Exception](Done))
 
@@ -108,7 +108,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, inputPersonalDetails, origin, headerCarrier, request, executionContext)
 
-      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _: Option[String], _: HeaderCarrier)(_: ExecutionContext, _:Encryption))
+      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _: Option[String])(_: HeaderCarrier, _: ExecutionContext, _:Encryption))
         .expects(*, *, *, executionContext, encryption)
         .returning(EitherT.rightT[Future, Exception](Done))
 
@@ -142,7 +142,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, enteredPersonalDetails, origin,  headerCarrier, request, executionContext)
 
-      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _: Option[String], _: HeaderCarrier)(_: ExecutionContext, _:Encryption))
+      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _: Option[String])(_: HeaderCarrier, _: ExecutionContext, _:Encryption))
         .expects(*, *, *, executionContext, encryption)
         .returning(EitherT.rightT[Future, Exception](Done))
 
@@ -175,7 +175,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(MatchSuccessful(personalDetails.addGender(gender)), personalDetails, origin, headerCarrier, request, executionContext)
 
-      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _: Option[String], _: HeaderCarrier)(_: ExecutionContext, _:Encryption))
+      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _: Option[String])(_: HeaderCarrier, _: ExecutionContext, _:Encryption))
         .expects(*, *, *, executionContext, encryption)
         .returning(EitherT.rightT[Future, Exception](Done))
 
@@ -201,7 +201,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, personalDetails, origin,  headerCarrier, request, executionContext)
 
-      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _: Option[String], _: HeaderCarrier)(_: ExecutionContext, _:Encryption))
+      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _: Option[String])(_: HeaderCarrier, _: ExecutionContext, _:Encryption))
         .expects(*, *, *, executionContext, encryption)
         .returning(EitherT.rightT[Future, Exception](Done))
 
@@ -241,7 +241,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (() => mockAppConfig.returnNinoFromCid).expects().returning(false)
 
       val exception = new RuntimeException("error")
-      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _: Option[String], _: HeaderCarrier)(_: ExecutionContext, _:Encryption))
+      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _: Option[String])(_: HeaderCarrier, _: ExecutionContext, _:Encryption))
         .expects(*, *, *, executionContext, encryption)
         .returning(EitherT.leftT[Future, Done](exception))
 
@@ -273,7 +273,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _: Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, inputPersonalDetails, origin, headerCarrier, request, executionContext)
 
-      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _: Option[String], _: HeaderCarrier)(_: ExecutionContext, _:Encryption))
+      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _: Option[String])(_: HeaderCarrier, _: ExecutionContext, _:Encryption))
         .expects(*, *, *, executionContext, encryption)
         .returning(EitherT.rightT[Future, Exception](Done))
 

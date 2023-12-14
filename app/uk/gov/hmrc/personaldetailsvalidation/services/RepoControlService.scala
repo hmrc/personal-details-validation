@@ -32,17 +32,16 @@ import scala.concurrent.{ExecutionContext, Future}
 class RepoControlService @Inject()(pdvService: PersonalDetailsValidatorService, associationService: AssociationService) extends Logging{
 
   def insertPDVAndAssociationRecord(personalDetailsValidation: PersonalDetailsValidation,
-                                    opCredID: Option[String],
-                                    headerCarrier: HeaderCarrier)
-                                   (implicit ec: ExecutionContext, encryption: Encryption): EitherT[Future, Exception, Done] = {
-    (opCredID, headerCarrier.sessionId) match {
+                                    opCredID: Option[String])
+                                   (implicit hc: HeaderCarrier, ec: ExecutionContext, encryption: Encryption): EitherT[Future, Exception, Done] = {
+    (opCredID, hc.sessionId) match {
       case (_       , None               ) => logger.warn("adding to Association database rejected due to sessionID does not exist")
       case (_       , Some(SessionId(""))) => logger.warn("adding to Association database rejected due to sessionID containing empty string")
       case (None    , _                  ) => logger.warn("adding to Association database rejected due to credID does not exist")
       case (Some(""), _                  ) => logger.warn("adding to Association database rejected due to credID containing empty string")
       case (_       , _                  ) =>
         val encryptedCredID = encryption.crypto.encrypt(PlainText(opCredID.get)).value
-        val encryptedSessionID = encryption.crypto.encrypt(PlainText(headerCarrier.sessionId.get.value)).value
+        val encryptedSessionID = encryption.crypto.encrypt(PlainText(hc.sessionId.get.value)).value
         val validationId = personalDetailsValidation.id.toString
         associationService.insertRecord(Association(encryptedCredID, encryptedSessionID, validationId, LocalDateTime.now()))
     }

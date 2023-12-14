@@ -13,7 +13,7 @@ import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsWithNino, Suc
 import uk.gov.hmrc.personaldetailsvalidation.services.{AssociationService, Encryption, PersonalDetailsValidatorService, RepoControlService}
 
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDate, LocalDateTime}
+import java.time.{LocalDate, LocalDateTime, ZoneOffset}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.crypto.PlainText
@@ -29,22 +29,25 @@ class RepoControlServiceISpec extends AnyWordSpec
   lazy val associationRepository: AssociationMongoRepository = app.injector.instanceOf[AssociationMongoRepository]
   lazy val pdvRepository: PdvRepository = app.injector.instanceOf[PdvRepository]
 
-  override def beforeEach(): Unit = {
-    super.beforeEach()
-  }
-
   "RepoControlService" should {
     "save an instant of Association and personal details" in new Setup {
 
-      val result: EitherT[Future, Exception, Done] = repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation,Some(testCredId),headerCarrier)(ec,encryption)
+      val timeBeforeTest: LocalDateTime = LocalDateTime.now
+
+      val result: EitherT[Future, Exception, Done] = repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation,Some(testCredId))(headerCarrier, ec, encryption)
 
       result.value.futureValue
+
+      val timeAfterTest: LocalDateTime = LocalDateTime.now
 
       associationService.getRecord(encryptedCredId, encryptedSessionID).futureValue match {
         case Some(retrieved) =>
           retrieved.credentialId shouldBe encryptedCredId
           retrieved.sessionId shouldBe encryptedSessionID
           retrieved.validationId shouldBe testValidationId.toString
+          retrieved.lastUpdated.isAfter(timeBeforeTest) shouldBe true
+          retrieved.lastUpdated.isBefore(timeAfterTest) shouldBe true
+
         case None =>
           fail("Expected instance of association was not retrieved")
       }
