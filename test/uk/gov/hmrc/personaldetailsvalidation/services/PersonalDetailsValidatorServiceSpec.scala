@@ -35,12 +35,8 @@ class PersonalDetailsValidatorServiceSpec extends UnitSpec with MockFactory {
 
   "PersonalDetailsValidatorService" should {
     "insert an instance of PDV into the PDV repository" in new Setup {
-
       (mockRepository.create(_:PersonalDetailsValidation)(_ : ExecutionContext)).expects(personalDetailsValidation, ExecutionContext.global).returning(EitherT.rightT[Future, Exception](Done))
-      //EitherT(Future(Success(Right(Done))))
-
-      pdvService.insertRecord(personalDetailsValidation) shouldBe EitherT(Future.successful(Right(Done)))
-
+      await(pdvService.insertRecord(personalDetailsValidation).value) shouldBe Right(Done)
     }
 
     "return an instance of an pdv given a validation id" in new Setup {

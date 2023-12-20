@@ -2,11 +2,13 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import akka.Done
 import cats.data.EitherT
-import org.scalatest.BeforeAndAfterEach
+import ch.qos.logback.classic.Level
+import org.scalatest.{BeforeAndAfterEach, LoneElement}
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
+import play.api.Logger
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{HeaderCarrier, SessionId}
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsWithNino, SuccessfulPersonalDetailsValidation, ValidationId}
@@ -17,13 +19,16 @@ import java.time.{LocalDate, LocalDateTime, ZoneOffset}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.crypto.PlainText
+import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
 
 class RepoControlServiceISpec extends AnyWordSpec
   with Matchers
   with BeforeAndAfterEach
   with GuiceOneServerPerSuite
   with ScalaFutures
-  with Eventually {
+  with Eventually
+  with LogCapturing
+  with LoneElement{
 
   val config: PersonalDetailsValidationMongoRepositoryConfig = app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
   val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
@@ -60,6 +65,53 @@ class RepoControlServiceISpec extends AnyWordSpec
         case None => fail("Expected instance of personalDetails was not retrieved")
       }
     }
+
+    "if the Association already exists it still succeeds and doesn't effect the user" in new Setup {
+      val timeBeforeFirstCall: LocalDateTime = LocalDateTime.now
+      val resultOfFirstCall: EitherT[Future, Exception, Done] = repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation, Some(testCredId))(headerCarrier, ec, encryption)
+      resultOfFirstCall.value.futureValue
+      val resultOfSecondCall: EitherT[Future, Exception, Done] = repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation, Some(testCredId))(headerCarrier, ec, encryption)
+      resultOfSecondCall.value.futureValue
+      val timeAfterSecondCall: LocalDateTime = LocalDateTime.now
+
+      eventually(associationService.getRecord(encryptedCredId, encryptedSessionID).futureValue match {
+        case Some(retrieved) =>
+          retrieved.credentialId shouldBe encryptedCredId
+          retrieved.sessionId shouldBe encryptedSessionID
+          retrieved.validationId shouldBe testValidationId.toString
+          retrieved.lastUpdated.isAfter(timeBeforeFirstCall) || retrieved.lastUpdated.isEqual(timeBeforeFirstCall) shouldBe true
+          retrieved.lastUpdated.isBefore(timeAfterSecondCall) || retrieved.lastUpdated.isEqual(timeAfterSecondCall) shouldBe true
+        case None =>
+          fail("Expected instance of association was not retrieved")
+      }
+      )
+      pdvService.getRecord(ValidationId(testValidationId))(ec).futureValue match {
+        case Some(retrieved) =>
+          retrieved.id.value.toString shouldBe testValidationId.toString
+        case None => fail("Expected instance of personalDetails was not retrieved")
+      }
+    }
+
+    "not add an association repo entry if details are missing but still succeeds and doesn't effect the user" in new Setup {
+      withCaptureOfLoggingFrom(Logger("uk.gov.hmrc.personaldetailsvalidation.services.RepoControlService")) { logEvents =>
+
+        val resultOfFirstCall: EitherT[Future, Exception, Done] = repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation, None)(headerCarrier, ec, encryption)
+        resultOfFirstCall.value.futureValue
+        eventually(associationService.getRecord(encryptedCredId, encryptedSessionID).futureValue shouldBe None)
+        pdvService.getRecord(ValidationId(testValidationId))(ec).futureValue match {
+          case Some(retrieved) =>
+            retrieved.id.value.toString shouldBe testValidationId.toString
+          case None => fail("Expected instance of personalDetails was not retrieved")
+        }
+        eventually {
+          logEvents
+            .filter(_.getLevel == Level.WARN)
+            .loneElement
+            .getMessage shouldBe "adding to Association database rejected due to credID does not exist"
+        }
+      }
+    }
+
   }
 
   trait Setup {
