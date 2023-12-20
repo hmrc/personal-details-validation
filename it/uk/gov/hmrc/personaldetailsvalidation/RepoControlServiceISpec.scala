@@ -15,7 +15,7 @@ import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsWithNino, Suc
 import uk.gov.hmrc.personaldetailsvalidation.services.{AssociationService, Encryption, PersonalDetailsValidatorService, RepoControlService}
 
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDate, LocalDateTime, ZoneOffset}
+import java.time.{LocalDate, LocalDateTime}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.crypto.PlainText
