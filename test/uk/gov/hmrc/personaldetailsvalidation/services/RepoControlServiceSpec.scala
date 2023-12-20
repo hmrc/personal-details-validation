@@ -28,9 +28,8 @@ import org.scalamock.matchers.ArgCapture.CaptureOne
 import org.scalatest.LoneElement
 import org.scalatest.concurrent.Eventually
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.{Application, Configuration, Logger}
+import play.api.{Application, Logger}
 import play.api.inject.guice.GuiceApplicationBuilder
-import uk.gov.hmrc.config.AppConfig
 import uk.gov.hmrc.http.{HeaderCarrier, SessionId}
 import uk.gov.hmrc.crypto.PlainText
 import uk.gov.hmrc.play.bootstrap.tools.LogCapturing

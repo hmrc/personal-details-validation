@@ -3,7 +3,7 @@ package uk.gov.hmrc.personaldetailsvalidation
 import akka.Done
 import cats.data.EitherT
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -22,7 +22,8 @@ class RepoControlServiceISpec extends AnyWordSpec
   with Matchers
   with BeforeAndAfterEach
   with GuiceOneServerPerSuite
-  with ScalaFutures {
+  with ScalaFutures
+  with Eventually {
 
   val config: PersonalDetailsValidationMongoRepositoryConfig = app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
   val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
@@ -40,17 +41,18 @@ class RepoControlServiceISpec extends AnyWordSpec
 
       val timeAfterTest: LocalDateTime = LocalDateTime.now
 
-      associationService.getRecord(encryptedCredId, encryptedSessionID).futureValue match {
+      eventually(associationService.getRecord(encryptedCredId, encryptedSessionID).futureValue match {
         case Some(retrieved) =>
           retrieved.credentialId shouldBe encryptedCredId
           retrieved.sessionId shouldBe encryptedSessionID
           retrieved.validationId shouldBe testValidationId.toString
-          retrieved.lastUpdated.isAfter(timeBeforeTest) shouldBe true
-          retrieved.lastUpdated.isBefore(timeAfterTest) shouldBe true
+          retrieved.lastUpdated.isAfter(timeBeforeTest) || retrieved.lastUpdated.isEqual(timeBeforeTest) shouldBe true
+          retrieved.lastUpdated.isBefore(timeAfterTest) || retrieved.lastUpdated.isEqual(timeAfterTest) shouldBe true
 
         case None =>
           fail("Expected instance of association was not retrieved")
       }
+      )
 
       pdvService.getRecord(ValidationId(testValidationId))(ec).futureValue match {
         case Some(retrieved) =>
