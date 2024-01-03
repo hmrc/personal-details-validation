@@ -40,9 +40,9 @@ class RepoControlServiceISpec extends AnyWordSpec
 
       val timeBeforeTest: LocalDateTime = LocalDateTime.now
 
-      val result: EitherT[Future, Exception, Done] = repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation,Some(testCredId))(headerCarrier, ec, encryption)
+      val result: EitherT[Future, Exception, Done] = eventually(repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation,Some(testCredId))(headerCarrier, ec, encryption))
 
-      result.value.futureValue
+      eventually(result.value.futureValue)
 
       val timeAfterTest: LocalDateTime = LocalDateTime.now
 
@@ -56,21 +56,22 @@ class RepoControlServiceISpec extends AnyWordSpec
 
         case None =>
           fail("Expected instance of association was not retrieved")
-      }
+        }
       )
 
-      pdvService.getRecord(ValidationId(testValidationId))(ec).futureValue match {
+      eventually(pdvService.getRecord(ValidationId(testValidationId))(ec).futureValue match {
         case Some(retrieved) =>
           retrieved.id.value.toString shouldBe testValidationId.toString
         case None => fail("Expected instance of personalDetails was not retrieved")
-      }
+        }
+      )
     }
 
     "if the Association already exists it still succeeds and doesn't effect the user" in new Setup {
       val timeBeforeFirstCall: LocalDateTime = LocalDateTime.now
-      val resultOfFirstCall: EitherT[Future, Exception, Done] = repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation, Some(testCredId))(headerCarrier, ec, encryption)
+      val resultOfFirstCall: EitherT[Future, Exception, Done] = eventually(repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation, Some(testCredId))(headerCarrier, ec, encryption))
       resultOfFirstCall.value.futureValue
-      val resultOfSecondCall: EitherT[Future, Exception, Done] = repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation, Some(testCredId))(headerCarrier, ec, encryption)
+      val resultOfSecondCall: EitherT[Future, Exception, Done] = eventually(repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation, Some(testCredId))(headerCarrier, ec, encryption))
       resultOfSecondCall.value.futureValue
       val timeAfterSecondCall: LocalDateTime = LocalDateTime.now
 
@@ -83,22 +84,23 @@ class RepoControlServiceISpec extends AnyWordSpec
           retrieved.lastUpdated.isBefore(timeAfterSecondCall) || retrieved.lastUpdated.isEqual(timeAfterSecondCall) shouldBe true
         case None =>
           fail("Expected instance of association was not retrieved")
-      }
+        }
       )
-      pdvService.getRecord(ValidationId(testValidationId))(ec).futureValue match {
+      eventually(pdvService.getRecord(ValidationId(testValidationId))(ec).futureValue match {
         case Some(retrieved) =>
           retrieved.id.value.toString shouldBe testValidationId.toString
         case None => fail("Expected instance of personalDetails was not retrieved")
-      }
+        }
+      )
     }
 
     "not add an association repo entry if details are missing but still succeeds and doesn't effect the user" in new Setup {
       withCaptureOfLoggingFrom(Logger("uk.gov.hmrc.personaldetailsvalidation.services.RepoControlService")) { logEvents =>
 
-        val resultOfFirstCall: EitherT[Future, Exception, Done] = repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation, None)(headerCarrier, ec, encryption)
+        val resultOfFirstCall: EitherT[Future, Exception, Done] = eventually(repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation, None)(headerCarrier, ec, encryption))
         resultOfFirstCall.value.futureValue
         eventually(associationService.getRecord(encryptedCredId, encryptedSessionID).futureValue shouldBe None)
-        pdvService.getRecord(ValidationId(testValidationId))(ec).futureValue match {
+        eventually(pdvService.getRecord(ValidationId(testValidationId))(ec)).futureValue match {
           case Some(retrieved) =>
             retrieved.id.value.toString shouldBe testValidationId.toString
           case None => fail("Expected instance of personalDetails was not retrieved")

@@ -58,17 +58,19 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec with DefaultAwa
       AuthenticatorStub.expecting(personalDetails).respondWithOK()
       CitizenDetailsStub.expecting().respondWithOK()
 
-      val createResponse: WSResponse = sendCreateValidationResourceRequest(personalDetails).futureValue
-      await(associationRepository.insertRecord(association))
-      pdvRepository.create(personalDetailsValidation)
+      val createResponse: WSResponse = eventually(sendCreateValidationResourceRequest(personalDetails).futureValue)
+      eventually(associationRepository.insertRecord(association))
+      eventually(pdvRepository.create(personalDetailsValidation))
 
       createResponse.status mustBe CREATED
 
-      val storedAssociation: Option[Association] = await(associationRepository.getRecord(encryptedCredID, encryptedSessionID))
-      storedAssociation.nonEmpty mustBe true
+      val storedAssociation: Future[Option[Association]] = eventually(associationRepository.getRecord(encryptedCredID, encryptedSessionID))
+        storedAssociation.map { someAssociation =>
+          someAssociation.nonEmpty mustBe true
+        }
 
-      val storedPDV: Future[Option[PersonalDetailsValidation]] = pdvRepository.get(repoValidationId)
-      storedPDV.map{ value =>
+      val storedPDV: Future[Option[PersonalDetailsValidation]] = eventually(pdvRepository.get(repoValidationId))
+      storedPDV.map { value =>
         value.nonEmpty mustBe true
         value.get.id mustBe repoValidationId
         value.get mustBe personalDetailsValidation
