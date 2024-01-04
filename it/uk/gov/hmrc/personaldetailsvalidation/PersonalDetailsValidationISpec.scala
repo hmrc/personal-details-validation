@@ -5,7 +5,6 @@ import play.api.http.Status._
 import play.api.libs.json.{JsUndefined, JsValue, Json}
 import play.api.libs.ws.WSResponse
 import play.api.test.DefaultAwaitTimeout
-import play.api.test.Helpers.await
 import play.mvc.Http.HeaderNames.{CONTENT_TYPE, LOCATION}
 import uk.gov.hmrc.crypto.PlainText
 import uk.gov.hmrc.domain.Nino
@@ -59,8 +58,6 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec with DefaultAwa
       CitizenDetailsStub.expecting().respondWithOK()
 
       val createResponse: WSResponse = eventually(sendCreateValidationResourceRequest(personalDetails).futureValue)
-      eventually(associationRepository.insertRecord(association))
-      eventually(pdvRepository.create(personalDetailsValidation))
 
       createResponse.status mustBe CREATED
 
@@ -68,6 +65,30 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec with DefaultAwa
         storedAssociation.map { someAssociation =>
           someAssociation.nonEmpty mustBe true
         }
+
+      val storedPDV: Future[Option[PersonalDetailsValidation]] = eventually(pdvRepository.get(repoValidationId))
+      storedPDV.map { value =>
+        value.nonEmpty mustBe true
+        value.get.id mustBe repoValidationId
+        value.get mustBe personalDetailsValidation
+      }
+    }
+
+    "return ok if records already exist before hitting the routes" in new Setup {
+      AuthenticatorStub.expecting(personalDetails).respondWithOK()
+      CitizenDetailsStub.expecting().respondWithOK()
+      val createResponse1: WSResponse = eventually(sendCreateValidationResourceRequest(personalDetails).futureValue)
+
+      createResponse1.status mustBe CREATED
+
+      val createResponse2: WSResponse = eventually(sendCreateValidationResourceRequest(personalDetails).futureValue)
+
+      createResponse2.status mustBe CREATED
+
+      val storedAssociation: Future[Option[Association]] = eventually(associationRepository.getRecord(encryptedCredID, encryptedSessionID))
+      storedAssociation.map { someAssociation =>
+        someAssociation.nonEmpty mustBe true
+      }
 
       val storedPDV: Future[Option[PersonalDetailsValidation]] = eventually(pdvRepository.get(repoValidationId))
       storedPDV.map { value =>
@@ -195,7 +216,6 @@ class PersonalDetailsValidationISpec extends BaseIntegrationSpec with DefaultAwa
     private val testPersonalDetails: PersonalDetailsWithNino = PersonalDetailsWithNino("john","smith",LocalDate.parse("1990-11-01 12:00:00.000000", formatter),Nino("AA000002D"))
 
     val personalDetailsValidation: SuccessfulPersonalDetailsValidation = SuccessfulPersonalDetailsValidation(repoValidationId,"success", testPersonalDetails, lastUpdated)
-    val association: Association = Association(encryptedCredID, encryptedSessionID, repoValidationId.toString, lastUpdated)
 
 
     val personalDetails: String =
