@@ -327,9 +327,9 @@ class PersonalDetailsValidationISpec
 
   private trait Setup {
     private val testSessionId: String = s"session-${UUID.randomUUID().toString}"
-    val headers: List[(String, String)] = List(("X-Session-ID", testSessionId), ("Authorization" -> "Bearer123"))
-    val headersMissingSessionId: List[(String, String)] = List(("Authorization" -> "Bearer123"))
-    val headersEmptySessionId: List[(String, String)] = List(("X-Session-ID", ""), ("Authorization" -> "Bearer123"))
+    val headers: List[(String, String)] = List(("X-Session-ID", testSessionId), ("Authorization" , "Bearer123"))
+    val headersMissingSessionId: List[(String, String)] = List(("Authorization" , "Bearer123"))
+    val headersEmptySessionId: List[(String, String)] = List(("X-Session-ID", ""), ("Authorization" , "Bearer123"))
 
     val associationRepository: AssociationMongoRepository = app.injector.instanceOf[AssociationMongoRepository]
     val pdvRepository: PersonalDetailsValidationRepository = app.injector.instanceOf[PersonalDetailsValidationRepository]
