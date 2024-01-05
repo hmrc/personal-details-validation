@@ -336,13 +336,13 @@ class PersonalDetailsValidationISpec
 
     private val dateFormat: String = "yyyy-MM-dd HH:mm:ss.SSSSSS"
     private val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern(dateFormat)
-    val lastUpdated: LocalDateTime = LocalDateTime.now()
+    private val lastUpdated: LocalDateTime = LocalDateTime.now()
     val repoValidationId: ValidationId = ValidationId(UUID.randomUUID())
 
     implicit val encryption: Encryption = app.injector.instanceOf[Encryption]
     val encryptedCredID: String = encryption.crypto.encrypt(PlainText(AuthStub.credId)).value
     val encryptedSessionID: String = encryption.crypto.encrypt(PlainText(testSessionId)).value
-    val testPersonalDetails: PersonalDetailsWithNino = PersonalDetailsWithNino("Jim","Ferguson",LocalDate.parse("1948-04-23 12:00:00.000000", formatter),Nino("AA000003D"))
+    private val testPersonalDetails: PersonalDetailsWithNino = PersonalDetailsWithNino("Jim","Ferguson",LocalDate.parse("1948-04-23 12:00:00.000000", formatter),Nino("AA000003D"))
     val personalDetailsValidation: SuccessfulPersonalDetailsValidation = SuccessfulPersonalDetailsValidation(repoValidationId,"success", testPersonalDetails, lastUpdated)
 
 
