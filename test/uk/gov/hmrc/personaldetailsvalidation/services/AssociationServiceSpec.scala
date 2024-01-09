@@ -17,14 +17,12 @@
 package uk.gov.hmrc.personaldetailsvalidation.services
 
 import org.scalamock.scalatest.MockFactory
-
 import uk.gov.hmrc.personaldetailsvalidation.AssociationRepository
 import uk.gov.hmrc.personaldetailsvalidation.model.Association
-
 import support.UnitSpec
+import uk.gov.hmrc.crypto.{Crypted, PlainContent, PlainText}
 
 import scala.concurrent.Future
-
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -45,7 +43,9 @@ class AssociationServiceSpec extends UnitSpec with MockFactory {
 
       val association: Association = Association(testCredId, testSessionId, testValidationId, testLastUpdated)
 
-      (mockRepository.getRecord(_: String, _: String)).expects(testCredId, testSessionId).returning(Future.successful(Some(association)))
+      (mockEncryption.crypto.encrypt(_: PlainContent)).expects(PlainText(testCredId)).returning(Crypted("foo"))
+      (mockEncryption.crypto.encrypt(_: PlainContent)).expects(PlainText(testSessionId)).returning(Crypted("bar"))
+      (mockRepository.getRecord(_: String, _: String)).expects("foo", "bar").returning(Future.successful(Some(association)))
 
       await(associationService.getRecord(testCredId, testSessionId)) shouldBe Some(association)
     }
@@ -59,8 +59,9 @@ class AssociationServiceSpec extends UnitSpec with MockFactory {
     val testLastUpdated: LocalDateTime = LocalDateTime.now()
 
     val mockRepository: AssociationRepository = mock[AssociationRepository]
+    val mockEncryption: Encryption = mock[Encryption]
 
-    val associationService: AssociationService = new AssociationService(mockRepository)
+    val associationService: AssociationService = new AssociationService(mockRepository, mockEncryption)
 
   }
 

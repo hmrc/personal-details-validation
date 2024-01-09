@@ -1,6 +1,7 @@
 # microservice specific routes
 
-POST        /                         uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidationResourceController.create(origin: Option[String])
-GET         /get-user-attempts        uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidationResourceController.getUserAttempts()
-GET         /:id                      uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidationResourceController.get(id: ValidationId)
+POST        /                         uk.gov.hmrc.personaldetailsvalidation.controllers.PersonalDetailsValidationResourceController.create(origin: Option[String])
+GET         /get-user-attempts        uk.gov.hmrc.personaldetailsvalidation.controllers.PersonalDetailsValidationResourceController.getUserAttempts()
+GET         /:id                      uk.gov.hmrc.personaldetailsvalidation.controllers.PersonalDetailsValidationResourceController.get(id: ValidationId)
+POST        /retrieve-by-session      uk.gov.hmrc.personaldetailsvalidation.controllers.AssociationController.retrieveRecord
 

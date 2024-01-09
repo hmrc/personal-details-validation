@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation.test
+package uk.gov.hmrc.personaldetailsvalidation.controllers.test
 
 import java.time.{LocalDate, LocalDateTime, ZoneOffset}
 import java.util.UUID

@@ -30,10 +30,7 @@ class RepoControlServiceISpec extends AnyWordSpec
   with LogCapturing
   with LoneElement{
 
-  val config: PersonalDetailsValidationMongoRepositoryConfig = app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
-  val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
-  lazy val associationRepository: AssociationMongoRepository = app.injector.instanceOf[AssociationMongoRepository]
-  lazy val pdvRepository: PdvRepository = app.injector.instanceOf[PdvRepository]
+
 
   "RepoControlService" should {
     "save an instant of Association and personal details" in new Setup {
@@ -131,12 +128,13 @@ class RepoControlServiceISpec extends AnyWordSpec
     implicit val encryption: Encryption = app.injector.instanceOf[Encryption]
     val encryptedCredId: String = encryption.crypto.encrypt(PlainText(testCredId)).value
     val encryptedSessionID: String = encryption.crypto.encrypt(PlainText(headerCarrier.sessionId.get.value)).value
-
-    val associationService = new AssociationService(associationRepository)
-    val pdvService = new PersonalDetailsValidatorService(pdvRepository)
-
-
-    val repoControlService = new RepoControlService(pdvService, associationService)
+    val config: PersonalDetailsValidationMongoRepositoryConfig = app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
+    val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+    lazy val associationRepository: AssociationMongoRepository = app.injector.instanceOf[AssociationMongoRepository]
+    lazy val pdvRepository: PdvRepository = app.injector.instanceOf[PdvRepository]
+    val associationService = app.injector.instanceOf[AssociationService]
+    val pdvService = app.injector.instanceOf[PersonalDetailsValidatorService]
+    val repoControlService = app.injector.instanceOf[RepoControlService]
   }
 
 }

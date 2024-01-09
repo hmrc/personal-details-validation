@@ -16,18 +16,23 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.services
 
+import uk.gov.hmrc.crypto.PlainText
 import uk.gov.hmrc.personaldetailsvalidation.AssociationRepository
 import uk.gov.hmrc.personaldetailsvalidation.model.Association
 
 import javax.inject.{Inject, Singleton}
-
 import scala.concurrent.Future
 
 @Singleton
-class AssociationService @Inject()(associationRepository: AssociationRepository){
+class AssociationService @Inject()(associationRepository: AssociationRepository, encryption: Encryption){
 
   def insertRecord(association: Association): Future[Unit] = associationRepository.insertRecord(association)
 
-  def getRecord(credentialId: String, sessionId: String): Future[Option[Association]] = associationRepository.getRecord(credentialId, sessionId)
+  def getRecord(credentialId: String, sessionId: String): Future[Option[Association]] = {
+    val credentialIdEncrypted: String = encryption.crypto.encrypt(PlainText(credentialId)).value
+    val sessionIdEncrypted: String = encryption.crypto.encrypt(PlainText(sessionId)).value
+
+    associationRepository.getRecord(credentialIdEncrypted, sessionIdEncrypted)
+  }
 
 }
