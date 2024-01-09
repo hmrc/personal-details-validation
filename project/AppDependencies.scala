@@ -13,7 +13,8 @@ private object AppDependencies {
     "uk.gov.hmrc"       %% "bootstrap-backend-play-28" % bootstrap,
     "uk.gov.hmrc"       %% "domain"                    % "8.3.0-play-28",
     "uk.gov.hmrc"       %% "reactive-circuit-breaker"  % "4.1.0",
-    "org.typelevel"     %% "cats-core"                 % "2.10.0"
+    "org.typelevel"     %% "cats-core"                 % "2.10.0",
+    "uk.gov.hmrc"       %% "crypto-json-play-28"       % "7.6.0"
   )
 
   private val test = Seq(

@@ -26,6 +26,7 @@ import uk.gov.hmrc.auth.core.retrieve.Credentials
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.credentials
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
 import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.personaldetailsvalidation.services.PersonalDetailsValidatorService
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.play.json.JsonValidation
 
@@ -33,7 +34,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class PersonalDetailsValidationResourceController @Inject()(personalDetailsValidationRepository: PdvRepository,
+class PersonalDetailsValidationResourceController @Inject()(personalDetailsValidatorService: PersonalDetailsValidatorService,
                                                             personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository,
                                                             personalDetailsValidator: PersonalDetailsValidator,
                                                             cc: ControllerComponents)
@@ -77,7 +78,7 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
   }
 
   def get(id: ValidationId): Action[AnyContent] = Action.async {
-    personalDetailsValidationRepository.get(id).map {
+    personalDetailsValidatorService.getRecord(id).map {
       case Some(validation) => Ok(toJson(validation))
       case None => NotFound
     }

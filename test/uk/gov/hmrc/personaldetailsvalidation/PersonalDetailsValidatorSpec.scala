@@ -38,6 +38,7 @@ import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.personaldetailsvalidation.services.{Encryption, RepoControlService}
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
@@ -73,8 +74,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _: Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, personalDetails, origin, headerCarrier, request, executionContext)
 
-      (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
-        .expects(*, executionContext)
+      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _:Option[String])(_: HeaderCarrier, _: ExecutionContext, _:Encryption))
+        .expects(*, *, *, executionContext, encryption)
         .returning(EitherT.rightT[Future, Exception](Done))
 
       await(validator.validate(personalDetails, origin, maybeCredId).value).map { personalDetailsValidation =>
@@ -107,8 +108,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, inputPersonalDetails, origin, headerCarrier, request, executionContext)
 
-      (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
-        .expects(*, executionContext)
+      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _: Option[String])(_: HeaderCarrier, _: ExecutionContext, _:Encryption))
+        .expects(*, *, *, executionContext, encryption)
         .returning(EitherT.rightT[Future, Exception](Done))
 
       await(validator.validate(inputPersonalDetails, origin, maybeCredId).value).map { personalDetailsValidation =>
@@ -141,8 +142,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, enteredPersonalDetails, origin,  headerCarrier, request, executionContext)
 
-      (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
-        .expects(*, executionContext)
+      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _: Option[String])(_: HeaderCarrier, _: ExecutionContext, _:Encryption))
+        .expects(*, *, *, executionContext, encryption)
         .returning(EitherT.rightT[Future, Exception](Done))
 
       await(validator.validate(enteredPersonalDetails, origin, maybeCredId).value).map { personalDetailsValidation =>
@@ -174,8 +175,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(MatchSuccessful(personalDetails.addGender(gender)), personalDetails, origin, headerCarrier, request, executionContext)
 
-      (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
-        .expects(*, executionContext)
+      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _: Option[String])(_: HeaderCarrier, _: ExecutionContext, _:Encryption))
+        .expects(*, *, *, executionContext, encryption)
         .returning(EitherT.rightT[Future, Exception](Done))
 
       await(validator.validate(enteredPersonalDetails, origin, maybeCredId).value).map { personalDetailsValidation =>
@@ -200,8 +201,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, personalDetails, origin,  headerCarrier, request, executionContext)
 
-      (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
-        .expects(*, executionContext)
+      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _: Option[String])(_: HeaderCarrier, _: ExecutionContext, _:Encryption))
+        .expects(*, *, *, executionContext, encryption)
         .returning(EitherT.rightT[Future, Exception](Done))
 
       await(validator.validate(personalDetails, origin, maybeCredId).value).map { personalDetailsValidation =>
@@ -240,8 +241,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (() => mockAppConfig.returnNinoFromCid).expects().returning(false)
 
       val exception = new RuntimeException("error")
-      (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
-        .expects(*, executionContext)
+      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _: Option[String])(_: HeaderCarrier, _: ExecutionContext, _:Encryption))
+        .expects(*, *, *, executionContext, encryption)
         .returning(EitherT.leftT[Future, Done](exception))
 
       (matchingEventsSender.sendErrorEvents(_: PersonalDetails, _ : Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
@@ -272,8 +273,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       (matchingEventsSender.sendEvents(_: MatchResult, _: PersonalDetails, _: Option[String])(_: HeaderCarrier, _: Request[_], _: ExecutionContext))
         .expects(matchResult, inputPersonalDetails, origin, headerCarrier, request, executionContext)
 
-      (repository.create(_: PersonalDetailsValidation)(_: ExecutionContext))
-        .expects(*, executionContext)
+      (repoControlService.insertPDVAndAssociationRecord(_: PersonalDetailsValidation, _: Option[String])(_: HeaderCarrier, _: ExecutionContext, _:Encryption))
+        .expects(*, *, *, executionContext, encryption)
         .returning(EitherT.rightT[Future, Exception](Done))
 
       await(validator.validate(inputPersonalDetails, origin, maybeCredId).value).map { personalDetailsValidation =>
@@ -291,13 +292,14 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
 
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
     implicit val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
+    implicit val encryption: Encryption = app.injector.instanceOf[Encryption]
 
     val matchingConnector: MatchingConnector = mock[MatchingConnector]
     val citizenDetailsConnector: CitizenDetailsConnector = mock[CitizenDetailsConnector]
     val matchingEventsSender: EventsSender = mock[EventsSender]
     val mockAppConfig: AppConfig = mock[AppConfig]
 
-    val repository: PdvRepository = mock[PdvRepository]
+    val repoControlService: RepoControlService = mock[RepoControlService]
 
     val personalDetailsValidationMongoRepositoryConfig: PersonalDetailsValidationMongoRepositoryConfig =
       app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
@@ -319,6 +321,6 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
     }
     val origin: Some[String] = Some("test")
     val maybeCredId: Some[String] = Some("credentialId")
-    val validator = new PersonalDetailsValidatorImpl(matchingConnector, citizenDetailsConnector, repository, personalDetailsValidationRetryRepository, matchingEventsSender, mockAppConfig)
+    val validator = new PersonalDetailsValidatorImpl(matchingConnector, citizenDetailsConnector, repoControlService, personalDetailsValidationRetryRepository, matchingEventsSender, mockAppConfig)
   }
 }
