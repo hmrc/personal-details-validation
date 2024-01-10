@@ -8,7 +8,7 @@ import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.personaldetailsvalidation.{AssociationMongoRepository, PdvRepository, PersonalDetailsValidationRepository}
+import uk.gov.hmrc.personaldetailsvalidation.{AssociationMongoRepository, PersonalDetailsValidationRepository}
 import uk.gov.hmrc.support.wiremock.{WiremockSpecSupport, WiremockedServiceSupport}
 
 trait BaseIntegrationSpec
