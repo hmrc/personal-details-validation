@@ -28,9 +28,7 @@ class RepoControlServiceISpec extends AnyWordSpec
   with ScalaFutures
   with Eventually
   with LogCapturing
-  with LoneElement{
-
-
+  with LoneElement {
 
   "RepoControlService" should {
     "save an instant of Association and personal details" in new Setup {
@@ -43,7 +41,7 @@ class RepoControlServiceISpec extends AnyWordSpec
 
       val timeAfterTest: LocalDateTime = LocalDateTime.now
 
-      eventually(associationService.getRecord(encryptedCredId, encryptedSessionID).futureValue match {
+      eventually(associationService.getRecord(testCredId, headerCarrier.sessionId.get.value).futureValue match {
         case Some(retrieved) =>
           retrieved.credentialId shouldBe encryptedCredId
           retrieved.sessionId shouldBe encryptedSessionID
@@ -72,7 +70,7 @@ class RepoControlServiceISpec extends AnyWordSpec
       resultOfSecondCall.value.futureValue
       val timeAfterSecondCall: LocalDateTime = LocalDateTime.now
 
-      eventually(associationService.getRecord(encryptedCredId, encryptedSessionID).futureValue match {
+      eventually(associationService.getRecord(testCredId, headerCarrier.sessionId.get.value).futureValue match {
         case Some(retrieved) =>
           retrieved.credentialId shouldBe encryptedCredId
           retrieved.sessionId shouldBe encryptedSessionID
@@ -132,9 +130,9 @@ class RepoControlServiceISpec extends AnyWordSpec
     val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
     lazy val associationRepository: AssociationMongoRepository = app.injector.instanceOf[AssociationMongoRepository]
     lazy val pdvRepository: PdvRepository = app.injector.instanceOf[PdvRepository]
-    val associationService = app.injector.instanceOf[AssociationService]
-    val pdvService = app.injector.instanceOf[PersonalDetailsValidatorService]
-    val repoControlService = app.injector.instanceOf[RepoControlService]
+    val associationService: AssociationService = app.injector.instanceOf[AssociationService]
+    val pdvService: PersonalDetailsValidatorService = app.injector.instanceOf[PersonalDetailsValidatorService]
+    val repoControlService: RepoControlService = app.injector.instanceOf[RepoControlService]
   }
 
 }

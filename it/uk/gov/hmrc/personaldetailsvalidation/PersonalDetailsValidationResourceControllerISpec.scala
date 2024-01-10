@@ -5,14 +5,14 @@ import org.scalatest.LoneElement
 import play.api.Logger
 import play.api.http.ContentTypes.JSON
 import play.api.http.Status._
-import play.api.libs.json.{JsUndefined, JsValue, Json}
+import play.api.libs.json.{JsNull, JsUndefined, JsValue, Json}
 import play.api.libs.ws.WSResponse
 import play.api.test.DefaultAwaitTimeout
 import play.api.test.Helpers.await
 import play.mvc.Http.HeaderNames.{CONTENT_TYPE, LOCATION}
 import uk.gov.hmrc.crypto.PlainText
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, PersonalDetailsWithNino, PersonalDetailsWithNinoAndPostCode, SuccessfulPersonalDetailsValidation, ValidationId}
+import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.personaldetailsvalidation.services.Encryption
 import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
 import uk.gov.hmrc.support.BaseIntegrationSpec
@@ -345,6 +345,28 @@ class PersonalDetailsValidationResourceControllerISpec
         "deceased" -> false
       )
 
+    }
+    s"return $OK and body if fail is stored" in new Setup {
+      val dateTimeNow = LocalDateTime.of(2020,1,1,1,1)
+      val validationId = ValidationId(UUID.fromString("928b39f3-98f7-4a0b-bcfe-9065c1175d1e"))
+      val failPDVRecord = FailedPersonalDetailsValidation(
+        id = validationId,
+        createdAt = dateTimeNow)
+      await(pdvRepository.create(failPDVRecord).value)
+
+      val getResponse = wsUrl(s"/personal-details-validation/${validationId.value.toString}").get().futureValue
+      getResponse.status mustBe OK
+      getResponse.json mustBe Json.obj(
+        "id" -> "928b39f3-98f7-4a0b-bcfe-9065c1175d1e",
+        "validationStatus" -> "failure",
+        "attempts" -> JsNull,
+        "credentialId" -> JsNull,
+        "createdAt" -> Json.obj(
+          "$date" -> Json.obj(
+            "$numberLong" -> "1577840460000"
+          )
+        )
+      )
     }
 
     s"return $NOT_FOUND if id is UUID but invalid id" in {
