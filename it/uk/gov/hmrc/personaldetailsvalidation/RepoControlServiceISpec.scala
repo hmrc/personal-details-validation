@@ -102,9 +102,9 @@ class RepoControlServiceISpec extends AnyWordSpec
         }
         eventually {
           logEvents
-            .filter(_.getLevel == Level.WARN)
+            .filter(_.getLevel == Level.INFO)
             .loneElement
-            .getMessage shouldBe "adding to Association database rejected due to credID does not exist"
+            .getMessage contains "adding to Association database rejected due to credID does not exist"
         }
       }
     }

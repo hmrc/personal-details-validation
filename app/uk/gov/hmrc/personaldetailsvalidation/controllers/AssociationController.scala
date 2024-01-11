@@ -16,14 +16,14 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.controllers
 
-import play.api.{Logger, Logging}
+import play.api.Logging
 import play.api.libs.json.Json.toJson
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
+import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat._
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.personaldetailsvalidation.services.{AssociationService, PersonalDetailsValidatorService}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat._
 
 import java.util.UUID
 import javax.inject.Inject

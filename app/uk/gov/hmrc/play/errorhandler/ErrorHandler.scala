@@ -17,7 +17,7 @@
 package uk.gov.hmrc.play.errorhandler
 
 import javax.inject.{Inject, Singleton}
-import play.api.Configuration
+import play.api.{Configuration, Logging}
 import play.api.http.Status._
 import play.api.mvc.Results.NotFound
 import play.api.mvc.{RequestHeader, Result}
@@ -31,9 +31,10 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class ErrorHandler @Inject()(auditConnector: AuditConnector, httpAuditEvent: HttpAuditEvent, configuration: Configuration)
                             (implicit ec: ExecutionContext)
-  extends JsonErrorHandler(auditConnector, httpAuditEvent, configuration) {
+  extends JsonErrorHandler(auditConnector, httpAuditEvent, configuration) with Logging {
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = {
     if (statusCode == BAD_REQUEST && message.endsWith(NOT_A_VALID_UUID)) {
+      logger.info(s"status code was $BAD_REQUEST and message ended with $NOT_A_VALID_UUID, returning $NOT_FOUND")
       Future.successful(NotFound)
     } else {
       super.onClientError(request, statusCode, message)

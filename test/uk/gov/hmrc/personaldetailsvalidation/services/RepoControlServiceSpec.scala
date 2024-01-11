@@ -84,7 +84,7 @@ class RepoControlServiceSpec extends UnitSpec with MockFactory with GuiceOneAppP
           logEvents
             .filter(_.getLevel == Level.WARN)
             .loneElement
-            .getMessage shouldBe "adding to Association database rejected due to sessionID does not exist"
+            .getMessage shouldBe "adding to Association database rejected due to sessionID does not exist - sessionId None"
         }
       }
     }
@@ -108,7 +108,7 @@ class RepoControlServiceSpec extends UnitSpec with MockFactory with GuiceOneAppP
           logEvents
             .filter(_.getLevel == Level.WARN)
             .loneElement
-            .getMessage shouldBe "adding to Association database rejected due to sessionID containing empty string"
+            .getMessage shouldBe s"""adding to Association database rejected due to sessionID containing empty string - sessionId ${Some(SessionId(""))}"""
         }
       }
     }
@@ -130,9 +130,9 @@ class RepoControlServiceSpec extends UnitSpec with MockFactory with GuiceOneAppP
 
         eventually {
           logEvents
-            .filter(_.getLevel == Level.WARN)
+            .filter(_.getLevel == Level.INFO)
             .loneElement
-            .getMessage shouldBe "adding to Association database rejected due to credID does not exist"
+            .getMessage shouldBe s"adding to Association database rejected due to credID does not exist (user may not be logged in) - sessionId ${headerCarrier.sessionId}"
         }
       }
     }
@@ -156,7 +156,7 @@ class RepoControlServiceSpec extends UnitSpec with MockFactory with GuiceOneAppP
           logEvents
             .filter(_.getLevel == Level.WARN)
             .loneElement
-            .getMessage shouldBe "adding to Association database rejected due to credID containing empty string"
+            .getMessage shouldBe s"adding to Association database rejected due to credID containing empty string - sessionId ${headerCarrier.sessionId}"
         }
       }
     }

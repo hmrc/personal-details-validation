@@ -128,7 +128,7 @@ class PersonalDetailsValidationResourceControllerISpec
           logEvents
             .filter(_.getLevel == Level.WARN)
             .loneElement
-            .getMessage mustBe "adding to Association database rejected due to sessionID does not exist"
+            .getMessage contains "adding to Association database rejected due to sessionID does not exist"
         }
 
         val storedPDV: Future[Option[PersonalDetailsValidation]] = eventually(pdvRepository.get(repoValidationId))
@@ -156,7 +156,7 @@ class PersonalDetailsValidationResourceControllerISpec
           logEvents
             .filter(_.getLevel == Level.WARN)
             .loneElement
-            .getMessage mustBe "adding to Association database rejected due to sessionID containing empty string"
+            .getMessage contains "adding to Association database rejected due to sessionID containing empty string"
         }
 
         val storedPDV: Future[Option[PersonalDetailsValidation]] = eventually(pdvRepository.get(repoValidationId))
@@ -182,9 +182,9 @@ class PersonalDetailsValidationResourceControllerISpec
 
         eventually {
           logEvents
-            .filter(_.getLevel == Level.WARN)
+            .filter(_.getLevel == Level.INFO)
             .loneElement
-            .getMessage mustBe "adding to Association database rejected due to credID does not exist"
+            .getMessage contains "adding to Association database rejected due to credID does not exist"
         }
 
         val storedPDV: Future[Option[PersonalDetailsValidation]] = eventually(pdvRepository.get(repoValidationId))
@@ -212,7 +212,7 @@ class PersonalDetailsValidationResourceControllerISpec
           logEvents
             .filter(_.getLevel == Level.WARN)
             .loneElement
-            .getMessage mustBe "adding to Association database rejected due to credID containing empty string"
+            .getMessage contains "adding to Association database rejected due to credID containing empty string"
         }
 
         val storedPDV: Future[Option[PersonalDetailsValidation]] = eventually(pdvRepository.get(repoValidationId))

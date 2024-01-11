@@ -51,7 +51,7 @@ class PlatformAnalyticsConnector @Inject()(httpClient: HttpClient, connectorConf
 
     val analyticsRequest = AnalyticsRequest(gaClientId, connectorConfig.analyticsToken, Seq(newEvent))
 
-    logger.info(s"Sending ga event $analyticsRequest")
+    logger.debug(s"Sending ga event $analyticsRequest")
 
     httpClient.POST[AnalyticsRequest, HttpResponse](
       url = s"${connectorConfig.baseUrl}/platform-analytics/event",
