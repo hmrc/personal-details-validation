@@ -22,5 +22,5 @@ import javax.inject.Inject
 
 class Encryption @Inject()(configuration: Configuration) {
 
-  val crypto: Encrypter with Decrypter = SymmetricCryptoFactory.aesCryptoFromConfig("mongodb.encryption", configuration.underlying)
+  lazy val crypto: Encrypter with Decrypter = SymmetricCryptoFactory.aesCryptoFromConfig("mongodb.encryption", configuration.underlying)
 }

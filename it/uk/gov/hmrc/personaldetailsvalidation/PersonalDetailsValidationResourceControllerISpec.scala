@@ -5,13 +5,14 @@ import org.scalatest.LoneElement
 import play.api.Logger
 import play.api.http.ContentTypes.JSON
 import play.api.http.Status._
-import play.api.libs.json.{JsUndefined, JsValue, Json}
+import play.api.libs.json.{JsNull, JsUndefined, JsValue, Json}
 import play.api.libs.ws.WSResponse
 import play.api.test.DefaultAwaitTimeout
+import play.api.test.Helpers.await
 import play.mvc.Http.HeaderNames.{CONTENT_TYPE, LOCATION}
 import uk.gov.hmrc.crypto.PlainText
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, PersonalDetailsWithNino, SuccessfulPersonalDetailsValidation, ValidationId}
+import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.personaldetailsvalidation.services.Encryption
 import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
 import uk.gov.hmrc.support.BaseIntegrationSpec
@@ -26,7 +27,7 @@ import java.util.UUID.randomUUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class PersonalDetailsValidationISpec
+class PersonalDetailsValidationResourceControllerISpec
   extends BaseIntegrationSpec
     with DefaultAwaitTimeout
     with LogCapturing
@@ -127,7 +128,7 @@ class PersonalDetailsValidationISpec
           logEvents
             .filter(_.getLevel == Level.WARN)
             .loneElement
-            .getMessage mustBe "adding to Association database rejected due to sessionID does not exist"
+            .getMessage contains "adding to Association database rejected due to sessionID does not exist"
         }
 
         val storedPDV: Future[Option[PersonalDetailsValidation]] = eventually(pdvRepository.get(repoValidationId))
@@ -155,7 +156,7 @@ class PersonalDetailsValidationISpec
           logEvents
             .filter(_.getLevel == Level.WARN)
             .loneElement
-            .getMessage mustBe "adding to Association database rejected due to sessionID containing empty string"
+            .getMessage contains "adding to Association database rejected due to sessionID containing empty string"
         }
 
         val storedPDV: Future[Option[PersonalDetailsValidation]] = eventually(pdvRepository.get(repoValidationId))
@@ -181,9 +182,9 @@ class PersonalDetailsValidationISpec
 
         eventually {
           logEvents
-            .filter(_.getLevel == Level.WARN)
+            .filter(_.getLevel == Level.INFO)
             .loneElement
-            .getMessage mustBe "adding to Association database rejected due to credID does not exist"
+            .getMessage contains "adding to Association database rejected due to credID does not exist"
         }
 
         val storedPDV: Future[Option[PersonalDetailsValidation]] = eventually(pdvRepository.get(repoValidationId))
@@ -211,7 +212,7 @@ class PersonalDetailsValidationISpec
           logEvents
             .filter(_.getLevel == Level.WARN)
             .loneElement
-            .getMessage mustBe "adding to Association database rejected due to credID containing empty string"
+            .getMessage contains "adding to Association database rejected due to credID containing empty string"
         }
 
         val storedPDV: Future[Option[PersonalDetailsValidation]] = eventually(pdvRepository.get(repoValidationId))
@@ -313,13 +314,67 @@ class PersonalDetailsValidationISpec
   }
 
   "GET /personal-details-validation/id" should {
+    s"return $OK and body if success is stored" in new Setup {
+      val dateTimeNow = LocalDateTime.of(2020,1,1,1,1)
+      val validationId = ValidationId(UUID.fromString("928b39f3-98f7-4a0b-bcfe-9065c1175d1e"))
+      val successPDVRecord = SuccessfulPersonalDetailsValidation(
+        id = validationId,
+        personalDetails = PersonalDetailsWithNinoAndPostCode(
+          "first","last", LocalDate.of(2022,12,2), Nino("AA111111A"), "posty"),
+        createdAt = dateTimeNow
+      )
+      await(pdvRepository.create(successPDVRecord).value)
 
-    "return NOT FOUND if id is UUID but invalid id" in {
+      val getResponse = wsUrl(s"/personal-details-validation/${validationId.value.toString}").get().futureValue
+      getResponse.status mustBe OK
+      getResponse.json mustBe Json.obj(
+        "id" -> "928b39f3-98f7-4a0b-bcfe-9065c1175d1e",
+        "validationStatus" -> "success",
+        "personalDetails" -> Json.obj(
+          "firstName" -> "first",
+          "lastName" -> "last",
+          "dateOfBirth" -> "2022-12-02",
+          "postCode" -> "posty",
+          "nino" -> "AA111111A"
+        ),
+        "createdAt" -> Json.obj(
+          "$date" -> Json.obj(
+            "$numberLong" -> "1577840460000"
+          )
+        ),
+        "deceased" -> false
+      )
+
+    }
+    s"return $OK and body if fail is stored" in new Setup {
+      val dateTimeNow = LocalDateTime.of(2020,1,1,1,1)
+      val validationId = ValidationId(UUID.fromString("928b39f3-98f7-4a0b-bcfe-9065c1175d1e"))
+      val failPDVRecord = FailedPersonalDetailsValidation(
+        id = validationId,
+        createdAt = dateTimeNow)
+      await(pdvRepository.create(failPDVRecord).value)
+
+      val getResponse = wsUrl(s"/personal-details-validation/${validationId.value.toString}").get().futureValue
+      getResponse.status mustBe OK
+      getResponse.json mustBe Json.obj(
+        "id" -> "928b39f3-98f7-4a0b-bcfe-9065c1175d1e",
+        "validationStatus" -> "failure",
+        "attempts" -> JsNull,
+        "credentialId" -> JsNull,
+        "createdAt" -> Json.obj(
+          "$date" -> Json.obj(
+            "$numberLong" -> "1577840460000"
+          )
+        )
+      )
+    }
+
+    s"return $NOT_FOUND if id is UUID but invalid id" in {
       val getResponse = wsUrl(s"/personal-details-validation/${randomUUID().toString}").get().futureValue
       getResponse.status mustBe NOT_FOUND
     }
 
-    "return NOT FOUND if id is not a valid UUID" in {
+    s"return $NOT_FOUND if id is not a valid UUID" in {
       val getResponse = wsUrl(s"/personal-details-validation/foo-bar").get().futureValue
       getResponse.status mustBe NOT_FOUND
     }

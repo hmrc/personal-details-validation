@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation
+package uk.gov.hmrc.personaldetailsvalidation.controllers
 
 import akka.stream.Materializer
 import cats.data.EitherT
@@ -46,6 +46,7 @@ import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.personaldetailsvalidation.services.PersonalDetailsValidatorService
+import uk.gov.hmrc.personaldetailsvalidation._
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import java.util.UUID.randomUUID
@@ -127,7 +128,7 @@ class PersonalDetailsValidationResourceControllerSpec
 
         val response = controller.create(origin)(requestWithBody)
 
-        header(LOCATION, response) shouldBe Some(routes.PersonalDetailsValidationResourceController.get(personalDetailsValidation.id).url)
+        header(LOCATION, response) shouldBe Some(controllers.routes.PersonalDetailsValidationResourceController.get(personalDetailsValidation.id).url)
       }
     }
 
@@ -309,8 +310,6 @@ class PersonalDetailsValidationResourceControllerSpec
 
     implicit val materializer: Materializer = app.materializer
     implicit val uuidProvider: UUIDProvider = mock[UUIDProvider]
-   // (uuidProvider.apply _).expects().returning(randomUUID)
-
 
     val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
 

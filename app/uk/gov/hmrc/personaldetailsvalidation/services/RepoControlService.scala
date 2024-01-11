@@ -35,14 +35,15 @@ class RepoControlService @Inject()(pdvService: PersonalDetailsValidatorService, 
                                     opCredID: Option[String])
                                    (implicit hc: HeaderCarrier, ec: ExecutionContext, encryption: Encryption): EitherT[Future, Exception, Done] = {
     (opCredID, hc.sessionId) match {
-      case (_       , None               ) => logger.warn("adding to Association database rejected due to sessionID does not exist")
-      case (_       , Some(SessionId(""))) => logger.warn("adding to Association database rejected due to sessionID containing empty string")
-      case (None    , _                  ) => logger.warn("adding to Association database rejected due to credID does not exist")
-      case (Some(""), _                  ) => logger.warn("adding to Association database rejected due to credID containing empty string")
+      case (_       , None               ) => logger.warn(s"adding to Association database rejected due to sessionID does not exist - sessionId ${hc.sessionId}")
+      case (_       , Some(SessionId(""))) => logger.warn(s"adding to Association database rejected due to sessionID containing empty string - sessionId ${hc.sessionId}")
+      case (None    , _                  ) => logger.info(s"adding to Association database rejected due to credID does not exist (user may not be logged in) - sessionId ${hc.sessionId}")
+      case (Some(""), _                  ) => logger.warn(s"adding to Association database rejected due to credID containing empty string - sessionId ${hc.sessionId}")
       case (_       , _                  ) =>
         val encryptedCredID = encryption.crypto.encrypt(PlainText(opCredID.get)).value
         val encryptedSessionID = encryption.crypto.encrypt(PlainText(hc.sessionId.get.value)).value
         val validationId = personalDetailsValidation.id.toString
+        logger.info(s"Inserting into association DB for - sessionId ${hc.sessionId}")
         associationService.insertRecord(Association(encryptedCredID, encryptedSessionID, validationId, LocalDateTime.now()))
     }
     pdvService.insertRecord(personalDetailsValidation)

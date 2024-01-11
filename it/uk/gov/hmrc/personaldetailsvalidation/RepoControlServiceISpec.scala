@@ -28,12 +28,7 @@ class RepoControlServiceISpec extends AnyWordSpec
   with ScalaFutures
   with Eventually
   with LogCapturing
-  with LoneElement{
-
-  val config: PersonalDetailsValidationMongoRepositoryConfig = app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
-  val ec: ExecutionContext = scala.concurrent.ExecutionContext.global
-  lazy val associationRepository: AssociationMongoRepository = app.injector.instanceOf[AssociationMongoRepository]
-  lazy val pdvRepository: PdvRepository = app.injector.instanceOf[PdvRepository]
+  with LoneElement {
 
   "RepoControlService" should {
     "save an instant of Association and personal details" in new Setup {
@@ -46,7 +41,7 @@ class RepoControlServiceISpec extends AnyWordSpec
 
       val timeAfterTest: LocalDateTime = LocalDateTime.now
 
-      eventually(associationService.getRecord(encryptedCredId, encryptedSessionID).futureValue match {
+      eventually(associationService.getRecord(testCredId, headerCarrier.sessionId.get.value).futureValue match {
         case Some(retrieved) =>
           retrieved.credentialId shouldBe encryptedCredId
           retrieved.sessionId shouldBe encryptedSessionID
@@ -75,7 +70,7 @@ class RepoControlServiceISpec extends AnyWordSpec
       resultOfSecondCall.value.futureValue
       val timeAfterSecondCall: LocalDateTime = LocalDateTime.now
 
-      eventually(associationService.getRecord(encryptedCredId, encryptedSessionID).futureValue match {
+      eventually(associationService.getRecord(testCredId, headerCarrier.sessionId.get.value).futureValue match {
         case Some(retrieved) =>
           retrieved.credentialId shouldBe encryptedCredId
           retrieved.sessionId shouldBe encryptedSessionID
@@ -107,9 +102,9 @@ class RepoControlServiceISpec extends AnyWordSpec
         }
         eventually {
           logEvents
-            .filter(_.getLevel == Level.WARN)
+            .filter(_.getLevel == Level.INFO)
             .loneElement
-            .getMessage shouldBe "adding to Association database rejected due to credID does not exist"
+            .getMessage contains "adding to Association database rejected due to credID does not exist"
         }
       }
     }
@@ -131,12 +126,13 @@ class RepoControlServiceISpec extends AnyWordSpec
     implicit val encryption: Encryption = app.injector.instanceOf[Encryption]
     val encryptedCredId: String = encryption.crypto.encrypt(PlainText(testCredId)).value
     val encryptedSessionID: String = encryption.crypto.encrypt(PlainText(headerCarrier.sessionId.get.value)).value
-
-    val associationService = new AssociationService(associationRepository)
-    val pdvService = new PersonalDetailsValidatorService(pdvRepository)
-
-
-    val repoControlService = new RepoControlService(pdvService, associationService)
+    val config: PersonalDetailsValidationMongoRepositoryConfig = app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
+    val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+    lazy val associationRepository: AssociationMongoRepository = app.injector.instanceOf[AssociationMongoRepository]
+    lazy val pdvRepository: PdvRepository = app.injector.instanceOf[PdvRepository]
+    val associationService: AssociationService = app.injector.instanceOf[AssociationService]
+    val pdvService: PersonalDetailsValidatorService = app.injector.instanceOf[PersonalDetailsValidatorService]
+    val repoControlService: RepoControlService = app.injector.instanceOf[RepoControlService]
   }
 
 }

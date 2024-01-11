@@ -16,6 +16,14 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.model
 
+import play.api.libs.json.{Json, Reads}
+
 import java.time.LocalDateTime
 
 case class Association(credentialId: String, sessionId: String, validationId: String, lastUpdated: LocalDateTime)
+
+case class RetrieveAssociation(credentialId: String, sessionId: String)
+
+object RetrieveAssociation {
+  implicit val reads: Reads[RetrieveAssociation] = Json.reads[RetrieveAssociation]
+}

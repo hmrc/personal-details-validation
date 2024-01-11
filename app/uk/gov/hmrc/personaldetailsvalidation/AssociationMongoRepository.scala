@@ -87,7 +87,7 @@ class AssociationMongoRepository @Inject() (config: PersonalDetailsValidationMon
       .map {
         case Some(association) => Some(association)
         case None =>
-          logger.warn(s"No association record found for session id $sessionId")
+          logger.info(s"No association record found for session id $sessionId")
           None
       }.recover {
       case error =>

@@ -4,10 +4,11 @@ Manages personal details validation.
 
 ### Endpoints
 
-| Method | Path                                             | Description                                              |
-|--------|--------------------------------------------------|----------------------------------------------------------|
-|  POST  | ```/personal-details-validation[?origin=<origin>]```               | Performs validation of the given Personal details.       |
-|  GET   | ```/personal-details-validation/:validationId``` | Returns validation results for the given `validationId`. |
+| Method | Path                                                   | Description                                              |
+|--------|--------------------------------------------------------|----------------------------------------------------------|
+| POST   | ```/personal-details-validation[?origin=<origin>]```   | Performs validation of the given Personal details.       |
+| GET    | ```/personal-details-validation/:validationId```       | Returns validation results for the given `validationId`. |
+| POST   | ```/personal-details-validation/retrieve-by-session``` | Returns validation results for the given session data.   |
 
 #### POST /personal-details-validation
 
@@ -39,10 +40,10 @@ or
 
 **Response**
 
-|Status     |Description|
-|-----------|-----------|
-|OK         | Regardless of validation results. Response contains `Location` header pointing to an endpoint to retrieve the results.|
-|BAD REQUEST| When the given payload is invalid.|
+| Status |Description|
+|--------|-----------|
+| 200    | Regardless of validation results. Response contains `Location` header pointing to an endpoint to retrieve the results.|
+| 400    | When the given payload is invalid.|
 
 Examples of OK response body:
 * Successful validation
@@ -90,10 +91,10 @@ Returns validation results for the given `validationId`.
 
 **Response**
 
-|Status   |Description|
+| Status  |Description|
 |---------|-----------|
-|OK       | When validation data exists.|
-|NOT FOUND| When there is no validation results for the given `validationId`.|
+| 200     | When validation data exists.|
+| 404     | When there is no validation results for the given `validationId`.|
 
 Examples of OK responses:
 * Successful validation
@@ -105,7 +106,8 @@ Examples of OK responses:
     "firstName": "Jim",
     "lastName": "Ferguson",
     "nino": "AA000003D",
-    "dateOfBirth": "1948-04-23"
+    "dateOfBirth": "1948-04-23",
+    "postCode" : "postcode"
   }
 }
 ```
@@ -115,6 +117,57 @@ Examples of OK responses:
 {
   "id": "502f90f7-13ab-44c4-a4fa-474da0f0fe03",
   "validationStatus": "failure"
+}
+```
+#### POST /personal-details-validation/retrieve-by-session
+**Request**
+
+```
+{
+    "credentialId" : "providerIdInAuth",
+    "sessionId"    : "users-session-id"
+}
+```
+**Response**
+
+| Status | Description                                                     |
+|--------|-----------------------------------------------------------------|
+| 200    | When validation data exists.                                    |
+| 404    | When there is no validation results for the given request body. |
+| 400    | Invalid request                                                 
+
+Examples of OK responses:
+* Successful validation
+```
+{
+  "id": "502f90f7-13ab-44c4-a4fa-474da0f0fe03",
+  "validationStatus": "success",
+  "personalDetails": {
+    "firstName": "Jim",
+    "lastName": "Ferguson",
+    "nino": "AA000003D",
+    "dateOfBirth": "1948-04-23",
+    "postCode": "postcode"
+  }
+}
+```
+
+* Failed validation
+```
+{
+  "id": "502f90f7-13ab-44c4-a4fa-474da0f0fe03",
+  "validationStatus": "failure"
+}
+```
+Examples of NOT FOUND responses:
+```
+{
+    "error" : "No association found"
+}
+```
+```
+{
+    "error" : "No record found using validation ID 12345"
 }
 ```
 
