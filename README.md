@@ -146,7 +146,8 @@ Examples of OK responses:
     "firstName": "Jim",
     "lastName": "Ferguson",
     "nino": "AA000003D",
-    "dateOfBirth": "1948-04-23"
+    "dateOfBirth": "1948-04-23",
+    "postCode": "postcode"
   }
 }
 ```
