@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.services
 
-import akka.Done
+import org.apache.pekko.Done
 import cats.data.EitherT
 import uk.gov.hmrc.personaldetailsvalidation.PdvRepository
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, ValidationId}

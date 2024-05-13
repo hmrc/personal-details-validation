@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import akka.Done
+import org.apache.pekko.Done
 import cats.data.EitherT
 import cats.implicits.catsStdInstancesForFuture
 import com.codahale.metrics.SharedMetricRegistries

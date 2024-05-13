@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation
+package test.uk.gov.hmrc.personaldetailsvalidation
 
 import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.model.IndexModel
@@ -23,6 +23,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
+import uk.gov.hmrc.personaldetailsvalidation.{AssociationMongoRepository, PersonalDetailsValidationMongoRepositoryConfig}
 import uk.gov.hmrc.personaldetailsvalidation.model.Association
 
 import scala.concurrent.ExecutionContext

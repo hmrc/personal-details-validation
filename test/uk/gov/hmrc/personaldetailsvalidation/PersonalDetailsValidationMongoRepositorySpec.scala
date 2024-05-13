@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import akka.Done
+import org.apache.pekko.Done
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
 import org.mongodb.scala.bson.BsonDocument
