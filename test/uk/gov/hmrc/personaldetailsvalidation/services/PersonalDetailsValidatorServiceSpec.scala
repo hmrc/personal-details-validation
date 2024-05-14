@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.services
 
-import akka.Done
+import org.apache.pekko.Done
 import cats.data.EitherT
 import generators.ObjectGenerators.successfulPersonalDetailsValidationObjects
 import org.scalamock.scalatest.MockFactory

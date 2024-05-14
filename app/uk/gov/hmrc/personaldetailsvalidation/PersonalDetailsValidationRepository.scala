@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import akka.Done
+import org.apache.pekko.Done
 import cats.data.EitherT
 import org.mongodb.scala._
 import org.mongodb.scala.model.Indexes.ascending

@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.audit
 
-import akka.Done
+import org.apache.pekko.Done
 import play.api.Logging
 import play.api.libs.json.{Json, OWrites}
 import play.api.mvc.Request

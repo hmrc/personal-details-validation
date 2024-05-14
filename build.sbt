@@ -1,6 +1,7 @@
-import TestPhases.oneForkedJvmPerTest
+
 import play.sbt.PlayImport.PlayKeys.playDefaultPort
-import uk.gov.hmrc.DefaultBuildSettings.{addTestReportOption, defaultSettings, scalaSettings, targetJvm}
+import uk.gov.hmrc.DefaultBuildSettings
+import uk.gov.hmrc.DefaultBuildSettings.{defaultSettings, scalaSettings, targetJvm}
 
 val appName = "personal-details-validation"
 
@@ -13,7 +14,6 @@ lazy val playSettings: Seq[Setting[_]] = Seq(
 
 lazy val scoverageSettings: Seq[Def.Setting[_ >: String with Double with Boolean]] = {
   import scoverage._
-
   Seq(
     ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*.*BuildInfo.*;.*config.*;.*Routes.*;.*RoutesPrefix.*;",
     ScoverageKeys.coverageMinimumStmtTotal := 75,
@@ -21,10 +21,16 @@ lazy val scoverageSettings: Seq[Def.Setting[_ >: String with Double with Boolean
     ScoverageKeys.coverageHighlighting := true
   )
 }
+ThisBuild / majorVersion := 0
+ThisBuild / scalaVersion := "2.13.12"
+
+lazy val it = project
+  .enablePlugins(PlayScala)
+  .dependsOn(microservice % "test->test") // the "test->test" allows reusing test code and test dependencies
+  .settings(DefaultBuildSettings.itSettings(forkJvmPerTest = true))
 
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtDistributablesPlugin): _*)
-  .settings(majorVersion := 0)
   .settings(scalaSettings: _*)
   .disablePlugins(JUnitXmlReportPlugin)
   .settings(playSettings ++ scoverageSettings: _*)
@@ -38,24 +44,11 @@ lazy val microservice = Project(appName, file("."))
       "-language:reflectiveCalls",
       "-language:postfixOps"
     ),
-    scalaVersion := "2.13.12",
     libraryDependencies ++= AppDependencies(),
     retrieveManaged := true
   )
-  .configs(IntegrationTest)
-  .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)
   .settings(
-    targetJvm := "jvm-11",
-    // To resolve a bug with version 2.x.x of the scoverage plugin - https://github.com/sbt/sbt/issues/6997
-    libraryDependencySchemes ++= Seq("org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always)
-  )
-  .settings(
-    IntegrationTest / Keys.fork := false,
-    IntegrationTest / unmanagedSourceDirectories := (IntegrationTest / baseDirectory) (base => Seq(base / "it")).value,
-    IntegrationTest / unmanagedResourceDirectories := (IntegrationTest / baseDirectory) (base => Seq(base / "it" / "resources")).value,
-    addTestReportOption(IntegrationTest, "int-test-reports"),
-    IntegrationTest / testGrouping := oneForkedJvmPerTest(( IntegrationTest / definedTests).value),
-     IntegrationTest / parallelExecution := false
+    targetJvm := "jvm-11"
   )
   .settings(resolvers ++= Seq(
     Resolver.jcenterRepo

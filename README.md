@@ -1,14 +1,16 @@
+
+
 # personal-details-validation
 
 Manages personal details validation.
 
 ### Endpoints
 
-| Method | Path                                                   | Description                                              |
-|--------|--------------------------------------------------------|----------------------------------------------------------|
-| POST   | ```/personal-details-validation[?origin=<origin>]```   | Performs validation of the given Personal details.       |
-| GET    | ```/personal-details-validation/:validationId```       | Returns validation results for the given `validationId`. |
-| POST   | ```/personal-details-validation/retrieve-by-session``` | Returns validation results for the given session data.   |
+| Method | Path                                                   | Description                                                                                                                                                              |
+|--------|--------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| POST   | ```/personal-details-validation[?origin=<origin>]```   | Performs validation of the given Personal details.                                                                                                                       |
+| GET    | ```/personal-details-validation/:validationId```       | [internal] Returns validation results for the given `validationId`. (For `identity-verification-frontend` and `personal-details-validation-frontend` microservices only) |
+| POST   | ```/personal-details-validation/retrieve-by-session``` | Returns validation results for the given session data.                                                                                                                   |
 
 #### POST /personal-details-validation
 
@@ -86,7 +88,7 @@ Example of BAD REQUEST response:
 ```
 
 #### GET /personal-details-validation/:validationId
-
+#### For `identity-verification-frontend` and `personal-details-validation-frontend` microservices only
 Returns validation results for the given `validationId`.
 
 **Response**

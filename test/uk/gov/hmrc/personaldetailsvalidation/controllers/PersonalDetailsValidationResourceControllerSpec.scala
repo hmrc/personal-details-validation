@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.controllers
 
-import akka.stream.Materializer
+import org.apache.pekko.stream.Materializer
 import cats.data.EitherT
 import cats.implicits._
 import factory.ObjectFactory._
