@@ -23,10 +23,11 @@ import play.api.libs.json.JsObject
 import play.api.mvc.Request
 import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UnhealthyServiceException, UsingCircuitBreaker}
 import uk.gov.hmrc.http.{HttpClient, _}
-import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
+import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful, NoLivingMatch}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector._
 import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -42,7 +43,8 @@ trait MatchingConnector {
 @Singleton
 class MatchingConnectorImpl @Inject()(httpClient: HttpClient,
                                       connectorConfig: MatchingConnectorConfig,
-                                      eventsSender: EventsSender) extends MatchingConnector with UsingCircuitBreaker {
+                                      auditDataFactory: AuditDataEventFactory,
+                                      auditConnector: AuditConnector) extends MatchingConnector with UsingCircuitBreaker {
 
   import connectorConfig.authenticatorBaseUrl
   import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsFormat._
@@ -58,7 +60,7 @@ class MatchingConnectorImpl @Inject()(httpClient: HttpClient,
         )
       } recover {
         case ex: UnhealthyServiceException =>
-          eventsSender.sentCircuitBreakerEvent(personalDetails)
+          auditConnector.sendEvent(auditDataFactory.createCircuitBreakerEvent(personalDetails))
           Left(ex)
         case ex: Exception =>
           Left(ex)

@@ -19,8 +19,8 @@ package test.uk.gov.hmrc.support.stubs
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import org.scalatest.concurrent.Eventually.eventually
 import play.api.http.Status.OK
-import test.uk.gov.hmrc.support.stubs.PlatformAnalyticsStub.eventually
 
 object AuditEventStubs {
 

@@ -23,15 +23,6 @@ import uk.gov.hmrc.http.Host
 
 class HostConfigProviderSpecs extends UnitSpec {
 
-  "originDimension" should {
-
-    "return a Int" in new Setup {
-      whenConfigEntriesExists("google-analytics.origin-dimension" -> 6) { config =>
-        config.originDimension shouldBe 6
-      }
-    }
-  }
-
   "baseUrl" should {
 
     "return be comprised of configured host, port" in new Setup {
