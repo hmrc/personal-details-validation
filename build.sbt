@@ -30,7 +30,7 @@ lazy val it = project
   .settings(DefaultBuildSettings.itSettings(forkJvmPerTest = true))
 
 lazy val microservice = Project(appName, file("."))
-  .enablePlugins(Seq(play.sbt.PlayScala, SbtAutoBuildPlugin, SbtDistributablesPlugin): _*)
+  .enablePlugins(Seq(play.sbt.PlayScala, SbtDistributablesPlugin): _*)
   .settings(scalaSettings: _*)
   .disablePlugins(JUnitXmlReportPlugin)
   .settings(playSettings ++ scoverageSettings: _*)
