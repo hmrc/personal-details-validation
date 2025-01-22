@@ -33,7 +33,6 @@ import uk.gov.hmrc.personaldetailsvalidation.services.Encryption
 import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
 import test.uk.gov.hmrc.support.BaseIntegrationSpec
 import test.uk.gov.hmrc.support.stubs.AuditEventStubs._
-import test.uk.gov.hmrc.support.stubs.PlatformAnalyticsStub._
 import test.uk.gov.hmrc.support.stubs.{AuthStub, AuthenticatorStub, CitizenDetailsStub}
 import uk.gov.hmrc.personaldetailsvalidation.{AssociationMongoRepository, PersonalDetailsValidationRepository}
 
@@ -74,8 +73,6 @@ class PersonalDetailsValidationResourceControllerISpec
       (getResponse.json \ "validationStatus").as[String] mustBe "success"
       (getResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetails)
 
-      verifyGAMatchEvent(label = "success")
-      verifyGAMatchEvent(label = "success_withNINO")
       verifyMatchingStatusInAuditEvent(matchingStatus = "success")
     }
 
@@ -258,8 +255,6 @@ class PersonalDetailsValidationResourceControllerISpec
       (getResponse.json \ "validationStatus").as[String] mustBe "success"
       (getResponse.json \ "personalDetails").as[JsValue] mustBe Json.parse(personalDetailsWithBothNinoAndPostcode)
 
-      verifyGAMatchEvent(label = "success")
-      verifyGAMatchEvent(label = "success_withPOSTCODE")
       verifyMatchingStatusInAuditEvent(matchingStatus = "success")
     }
 
@@ -284,8 +279,6 @@ class PersonalDetailsValidationResourceControllerISpec
       (getResponse.json \ "validationStatus").as[String] mustBe "failure"
       (getResponse.json \ "personalDetails") mustBe a[JsUndefined]
 
-      verifyGAMatchEvent(label = "failed_matching")
-      verifyGAMatchEvent(label = "failed_matching_withNINO")
       verifyMatchingStatusInAuditEvent(matchingStatus = "failed")
       verifyFailureDetailInAuditEvent(failureDetail = failureDetail)
     }
@@ -296,7 +289,6 @@ class PersonalDetailsValidationResourceControllerISpec
       val createResponse: WSResponse = sendCreateValidationResourceRequest(personalDetails).futureValue
       createResponse.status mustBe BAD_GATEWAY
 
-      verifyGAMatchEvent("technical_error_matching")
       verifyMatchingStatusInAuditEvent(matchingStatus = "technicalError")
     }
 

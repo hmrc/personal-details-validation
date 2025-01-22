@@ -20,6 +20,7 @@ import generators.Generators.Implicits._
 import generators.ObjectGenerators._
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
+import play.api.Configuration
 import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.mvc.Request
 import play.api.test.FakeRequest
@@ -30,9 +31,12 @@ import uk.gov.hmrc.circuitbreaker.UnhealthyServiceException
 import uk.gov.hmrc.config.HostConfigProvider
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
-import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
+import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory.{AuditDetailsProvider, AuditTagProvider}
+import uk.gov.hmrc.personaldetailsvalidation.audit.{AuditConfig, AuditDataEventFactory}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsWithNino}
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.play.audit.model.DataEvent
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -85,8 +89,7 @@ class MatchingConnectorSpec
       val exception = new UnhealthyServiceException("some error")
 
       expectPost(toUrl = "http://host/authenticator/match").withPayload(payload).throwing(exception)
-
-      (mockEventsSender.sentCircuitBreakerEvent(_: PersonalDetails)(_: Request[_], _: HeaderCarrier, _: ExecutionContext)).expects(personalDetails, *, *, *)
+      (mockAuditConnector.sendEvent(_: DataEvent)(_: HeaderCarrier, _: ExecutionContext)).expects(*, *, *)
       connector.doMatch(personalDetails).value.futureValue shouldBe Left(exception)
     }
 
@@ -118,8 +121,6 @@ class MatchingConnectorSpec
       "nino" -> personalDetails.nino
     )
 
-    val mockEventsSender: EventsSender = mock[EventsSender]
-
     private val connectorConfig = new MatchingConnectorConfig(mock[HostConfigProvider]) {
       override lazy val authenticatorBaseUrl = "http://host/authenticator"
       override def circuitBreakerNumberOfCallsToTrigger: Int   = 20
@@ -127,7 +128,16 @@ class MatchingConnectorSpec
       override def circuitBreakerUnstableDuration: Int    = 300
     }
 
-    val connector = new MatchingConnectorImpl(httpClient, connectorConfig, mockEventsSender)
+    val auditTagsProvider: AuditTagProvider = mock[AuditTagProvider]
+    val auditDetailsProvider: AuditDetailsProvider = mock[AuditDetailsProvider]
+    val auditConfig: AuditConfig = new AuditConfig(mock[Configuration]) {
+      override lazy val appName: String = "personal-details-validation"
+    }
+    val mockAuditDataEventFactory = mock[AuditDataEventFactory]
+    val auditDataFactory = new AuditDataEventFactory(auditConfig, auditTagsProvider, auditDetailsProvider)
+    val mockAuditConnector = mock[AuditConnector]
+
+    val connector = new MatchingConnectorImpl(httpClient, connectorConfig, auditDataFactory, mockAuditConnector)
 
     implicit val patienceConfig: PatienceConfig = PatienceConfig(timeout = 5 seconds, interval = 100 millis)
   }

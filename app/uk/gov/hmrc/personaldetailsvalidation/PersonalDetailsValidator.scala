@@ -22,7 +22,8 @@ import com.google.inject.ImplementedBy
 import play.api.mvc.Request
 import uk.gov.hmrc.config.AppConfig
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.personaldetailsvalidation.audit.EventsSender
+import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful, NoLivingMatch}
@@ -53,11 +54,12 @@ class PersonalDetailsValidatorImpl @Inject() (
   citizenDetailsConnector: CitizenDetailsConnector,
   repoControlService: RepoControlService,
   personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository,
-  matchingEventsSender: EventsSender,
+  auditDataFactory: AuditDataEventFactory,
+  matchingAuditConnector: AuditConnector,
   appConfig: AppConfig)(implicit uuidProvider: UUIDProvider, encryption: Encryption) extends PersonalDetailsValidator {
 
   import matchingConnector._
-  import matchingEventsSender._
+  import matchingAuditConnector._
 
   def validate(personalDetails: PersonalDetails, origin: Option[String], maybeCredId: Option[String])
               (implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): EitherT[Future, Exception, PersonalDetailsValidation] = {
@@ -74,9 +76,9 @@ class PersonalDetailsValidatorImpl @Inject() (
         }
         repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation, maybeCredId)
       }
-      _ = sendEvents(addValidatedPersonalDetailsToMatchResult(personalDetailsValidation, matchResult), eventDetailsToSend(matchResult, personalDetails), origin)
+      _ = sendEvent(auditDataFactory.createEvent(addValidatedPersonalDetailsToMatchResult(personalDetailsValidation, matchResult), eventDetailsToSend(matchResult, personalDetails)))
     } yield personalDetailsValidation
-  }.leftMap { error => sendErrorEvents(personalDetails, origin); error }
+  }.leftMap { error =>  sendEvent(auditDataFactory.createErrorEvent(personalDetails)); error }
 
   def addValidatedPersonalDetailsToMatchResult (personalDetailsValidation: PersonalDetailsValidation, matchResult: MatchResult) : MatchResult = {
     (personalDetailsValidation, matchResult) match {
