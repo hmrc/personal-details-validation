@@ -27,7 +27,7 @@ import play.api.test.FakeRequest
 import support.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory._
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful, NoLivingMatch}
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.audit.model.DataEvent
 
@@ -40,7 +40,8 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
 
     val matchingResultAndDetails = Map(
       MatchSuccessful(personalDetails) -> Map("matchingStatus" -> "success"),
-      MatchFailed("some errors") -> Map("matchingStatus" -> "failed", "failureDetail" -> "some errors")
+      MatchFailed("some errors") -> Map("matchingStatus" -> "failed", "failureDetail" -> "some errors"),
+      NoLivingMatch -> Map("matchingStatus" -> "success")
     )
 
     matchingResultAndDetails.foreach { case (matchResult, matchingingDetails) =>
