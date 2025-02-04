@@ -29,7 +29,7 @@ import uk.gov.hmrc.personaldetailsvalidation.formats.TinyTypesFormats._
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.uuid.UUIDProvider
 
-import java.time.{LocalDateTime, ZoneOffset}
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 import java.util.UUID
 import java.util.UUID.randomUUID
 
@@ -135,8 +135,9 @@ class PersonalDetailsValidationFormatSpec
             "nino" -> personalDetailsWithNino.nino
           ),
           "createdAt" -> createdAt
-        ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.successful(personalDetails, LocalDateTime.parse(createdAt.toString.dropRight(6)))
+        ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.successful(personalDetails, truncateToMillis(createdAt))
       }
+
     }
 
     "allow to deserialise FailedPersonalDetailsValidation to JSON" in new Setup {
@@ -147,7 +148,7 @@ class PersonalDetailsValidationFormatSpec
         "credentialId" -> "credentialId",
         "attempts" -> 0,
         "createdAt" -> createdAt
-      ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.failed(Some("credentialId"), Some(0), LocalDateTime.parse(createdAt.toString.dropRight(6)))
+      ).as[PersonalDetailsValidation] shouldBe PersonalDetailsValidation.failed(Some("credentialId"), Some(0), truncateToMillis(createdAt))
     }
   }
 
@@ -155,5 +156,7 @@ class PersonalDetailsValidationFormatSpec
     implicit val uuidProvider: UUIDProvider = new UUIDProvider {
       override val apply: UUID = randomUUID()
     }
+
+    val truncateToMillis: LocalDateTime => LocalDateTime = date => LocalDateTime.ofInstant(Instant.ofEpochMilli(date.toInstant(ZoneOffset.UTC).toEpochMilli), ZoneOffset.UTC)
   }
 }

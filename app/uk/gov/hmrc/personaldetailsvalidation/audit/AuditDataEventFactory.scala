@@ -23,7 +23,7 @@ import play.api.mvc.Request
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory._
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful, NoLivingMatch}
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.audit.AuditExtensions
 import uk.gov.hmrc.play.audit.model.DataEvent
@@ -89,12 +89,12 @@ private[personaldetailsvalidation] class AuditDataEventFactory(auditConfig: Audi
 
   private implicit class MatchResultOps(target: MatchResult) {
     def toMatchingStatus: AuditType = target match {
-      case MatchSuccessful(_) => "success"
+      case MatchSuccessful(_) | NoLivingMatch => "success"
       case MatchFailed(_) => "failed"
     }
 
     def otherDetails: Map[AuditType, String] = target match {
-      case MatchSuccessful(_) => Map.empty[String, String]
+      case MatchSuccessful(_) | NoLivingMatch => Map.empty[String, String]
       case MatchFailed(errors) => Map("failureDetail" -> errors)
     }
   }
