@@ -5,15 +5,15 @@ import uk.gov.hmrc.DefaultBuildSettings.{defaultSettings, scalaSettings, targetJ
 
 val appName = "personal-details-validation"
 
-lazy val playSettings: Seq[Setting[_]] = Seq(
+lazy val playSettings: Seq[Setting[?]] = Seq(
   routesImport ++= Seq(
     "uk.gov.hmrc.personaldetailsvalidation.model.ValidationId",
     "uk.gov.hmrc.play.pathbinders.PathBinders._"
   )
 )
 
-lazy val scoverageSettings: Seq[Def.Setting[_ >: String with Double with Boolean]] = {
-  import scoverage._
+lazy val scoverageSettings: Seq[Def.Setting[? >: String & Double & Boolean]] = {
+  import scoverage.*
   Seq(
     ScoverageKeys.coverageExcludedPackages := "<empty>;Reverse.*.*BuildInfo.*;.*config.*;.*Routes.*;.*RoutesPrefix.*;",
     ScoverageKeys.coverageMinimumStmtTotal := 75,
@@ -22,7 +22,7 @@ lazy val scoverageSettings: Seq[Def.Setting[_ >: String with Double with Boolean
   )
 }
 ThisBuild / majorVersion := 0
-ThisBuild / scalaVersion := "2.13.12"
+ThisBuild / scalaVersion := "2.13.16"
 
 lazy val it = project
   .enablePlugins(PlayScala)
@@ -31,7 +31,7 @@ lazy val it = project
 
 lazy val microservice = Project(appName, file("."))
   .enablePlugins(Seq(play.sbt.PlayScala, SbtDistributablesPlugin): _*)
-  .settings(scalaSettings: _*)
+  .settings(scalaSettings *)
   .disablePlugins(JUnitXmlReportPlugin)
   .settings(playSettings ++ scoverageSettings: _*)
   .settings(playDefaultPort := 9967)
