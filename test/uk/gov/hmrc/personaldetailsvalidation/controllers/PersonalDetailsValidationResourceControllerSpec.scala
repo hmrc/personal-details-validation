@@ -55,15 +55,11 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class PersonalDetailsValidationResourceControllerSpec
   extends UnitSpec
-    with GuiceOneAppPerSuite
     with ScalaCheckPropertyChecks
     with ScalaFutures
     with MockFactory
     with MockArgumentMatchers
     with TableDrivenPropertyChecks {
-
-  override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().configure(Map("metrics.enabled" -> "false")).build()
 
   "create" should {
 

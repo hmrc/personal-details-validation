@@ -20,7 +20,7 @@ import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.config.HostConfigProvider
 
 @Singleton
-private class MatchingConnectorConfig @Inject()(hostProvider: HostConfigProvider) {
+class MatchingConnectorConfig @Inject()(hostProvider: HostConfigProvider) {
 
   lazy val authenticatorBaseUrl: String = hostProvider.hostFor("authenticator") + "/authenticator"
 

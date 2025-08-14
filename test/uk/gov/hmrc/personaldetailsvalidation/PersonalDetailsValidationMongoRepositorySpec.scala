@@ -36,7 +36,6 @@ import scala.concurrent.duration.SECONDS
 
 class PersonalDetailsValidationMongoRepositorySpec
   extends UnitSpec
-    with GuiceOneAppPerSuite
     with MongoSupport
     with MockFactory
     with ScalaFutures

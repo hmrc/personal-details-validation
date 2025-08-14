@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,47 +17,35 @@
 package uk.gov.hmrc.personaldetailsvalidation.matching
 
 import cats.data.EitherT
-import com.google.inject.ImplementedBy
 import play.api.http.Status._
-import play.api.libs.json.JsObject
-import play.api.mvc.Request
-import uk.gov.hmrc.circuitbreaker.{CircuitBreakerConfig, UnhealthyServiceException, UsingCircuitBreaker}
-import uk.gov.hmrc.http.{HttpClient, _}
+import uk.gov.hmrc.circuitbreaker._
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http._
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful, NoLivingMatch}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult._
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector._
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsFormat._
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
-@ImplementedBy(classOf[MatchingConnectorImpl])
-trait MatchingConnector {
-
-  def doMatch(personalDetails: PersonalDetails)
-             (implicit request: Request[_], headerCarrier: HeaderCarrier, executionContext: ExecutionContext): EitherT[Future, Exception, MatchResult]
-
-}
-
 @Singleton
-class MatchingConnectorImpl @Inject()(httpClient: HttpClient,
-                                      connectorConfig: MatchingConnectorConfig,
-                                      auditDataFactory: AuditDataEventFactory,
-                                      auditConnector: AuditConnector) extends MatchingConnector with UsingCircuitBreaker {
-
-  import connectorConfig.authenticatorBaseUrl
-  import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsFormat._
+class MatchingConnector @Inject()(httpClient: HttpClientV2,
+                                  connectorConfig: MatchingConnectorConfig,
+                                  auditDataFactory: AuditDataEventFactory,
+                                  auditConnector: AuditConnector) extends UsingCircuitBreaker {
 
   def doMatch(personalDetails: PersonalDetails)
-             (implicit request: Request[_], headerCarrier: HeaderCarrier,
-              executionContext: ExecutionContext): EitherT[Future, Exception, MatchResult] =
+             (implicit headerCarrier: HeaderCarrier, executionContext: ExecutionContext): EitherT[Future, Exception, MatchResult] =
     EitherT(
       withCircuitBreaker {
-        httpClient.POST[JsObject, Either[Exception, MatchResult]](
-          url = s"$authenticatorBaseUrl/match",
-          body = personalDetails.toJson
-        )
+        httpClient
+          .post(url"$connectorConfig.authenticatorBaseUrl/match")
+          .withBody(personalDetails.toJson)
+          .execute[Either[Exception, MatchResult]]
+
       } recover {
         case ex: UnhealthyServiceException =>
           auditConnector.sendEvent(auditDataFactory.createCircuitBreakerEvent(personalDetails))
@@ -69,10 +57,10 @@ class MatchingConnectorImpl @Inject()(httpClient: HttpClient,
 
   private implicit val matchingResultHttpReads: HttpReads[Either[Exception, MatchResult]] = new HttpReads[Either[Exception, MatchResult]] {
     override def read(method: String, url: String, response: HttpResponse): Either[Exception, MatchResult] = response.status match {
-      case OK => Right(MatchSuccessful(response.json.as[PersonalDetails]))
+      case OK                => Right(MatchSuccessful(response.json.as[PersonalDetails]))
       case FAILED_DEPENDENCY => Right(NoLivingMatch)
-      case UNAUTHORIZED => Right(MatchFailed((response.json \ "errors").as[String]))
-      case other => throw new BadGatewayException(s"Unexpected response from $method $url with status: '$other' and body: ${response.body}")
+      case UNAUTHORIZED      => Right(MatchFailed((response.json \ "errors").as[String]))
+      case other             => throw new BadGatewayException(s"Unexpected response from $method $url with status: '$other' and body: ${response.body}")
     }
   }
 

@@ -22,7 +22,9 @@ import cats.implicits.catsStdInstancesForFuture
 import com.codahale.metrics.SharedMetricRegistries
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
+import org.mockito.MockitoSugar.reset
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -37,6 +39,7 @@ import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
+import uk.gov.hmrc.personaldetailsvalidation.mocks.MockMatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.personaldetailsvalidation.services.{Encryption, RepoControlService}
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
@@ -46,10 +49,7 @@ import uk.gov.hmrc.uuid.UUIDProvider
 import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
 import scala.concurrent.{ExecutionContext, Future}
 
-class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceOneAppPerSuite {
-
-  override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().configure(Map("metrics.enabled" -> "false")).build()
+class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with BeforeAndAfterEach {
 
   "validate" should {
 
@@ -63,9 +63,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
 
       val matchResult: MatchSuccessful = MatchSuccessful(personalDetailsWithGender)
 
-      (matchingConnector.doMatch(_: PersonalDetails)(_: Request[_], _: HeaderCarrier, _: ExecutionContext))
-        .expects(personalDetails, *, headerCarrier, executionContext)
-        .returning(EitherT.rightT[Future, Exception](matchResult))
+      MockMatchingConnector.doMatch(personalDetails)(matchResult)
 
       (citizenDetailsConnector.findDesignatoryDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
         .expects(*, headerCarrier, executionContext)
@@ -99,9 +97,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       val eventPersonalDetails: PersonalDetails = inputPersonalDetails.addNino(matchedPersonalDetails.nino).addGender(gender)
       val matchResult: MatchSuccessful = MatchSuccessful(eventPersonalDetails)
 
-      (matchingConnector.doMatch(_: PersonalDetails)(_: Request[_], _: HeaderCarrier, _: ExecutionContext))
-        .expects(inputPersonalDetails, *, headerCarrier, executionContext)
-        .returning(EitherT.rightT[Future, Exception](matchResult))
+      MockMatchingConnector.doMatch(inputPersonalDetails)(matchResult)
 
       (citizenDetailsConnector.findDesignatoryDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
         .expects(*, headerCarrier, executionContext)
@@ -135,9 +131,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       val eventPersonalDetails: PersonalDetails = enteredPersonalDetails.addGender(gender)
       val matchResult: MatchSuccessful = MatchSuccessful(eventPersonalDetails)
 
-      (matchingConnector.doMatch(_: PersonalDetails)(_: Request[_], _: HeaderCarrier, _: ExecutionContext))
-        .expects(enteredPersonalDetails, *, headerCarrier, executionContext)
-        .returning(EitherT.rightT[Future, Exception](matchResult))
+      MockMatchingConnector.doMatch(enteredPersonalDetails)(matchResult)
 
       (citizenDetailsConnector.findDesignatoryDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
         .expects(*, headerCarrier, executionContext)
@@ -170,9 +164,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       val matchResult: MatchSuccessful = MatchSuccessful(personalDetails)
       val matchResultWithGender: MatchSuccessful = MatchSuccessful(personalDetails.addGender(gender))
 
-      (matchingConnector.doMatch(_: PersonalDetails)(_: Request[_], _: HeaderCarrier, _: ExecutionContext))
-        .expects(enteredPersonalDetails, *, headerCarrier, executionContext)
-        .returning(EitherT.rightT[Future, Exception](matchResult))
+      MockMatchingConnector.doMatch(enteredPersonalDetails)(matchResult)
 
       (citizenDetailsConnector.findDesignatoryDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
         .expects(*, headerCarrier, executionContext)
@@ -201,9 +193,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       val personalDetails: PersonalDetails = personalDetailsObjects.generateOne
       val matchResult: MatchFailed = MatchFailed("some error")
 
-      (matchingConnector.doMatch(_: PersonalDetails)(_: Request[_], _: HeaderCarrier, _: ExecutionContext))
-        .expects(personalDetails, *, headerCarrier, executionContext)
-        .returning(EitherT.rightT[Future, Exception](matchResult))
+      MockMatchingConnector.doMatch(personalDetails)(matchResult)
 
       (() => mockAppConfig.returnNinoFromCid).expects().returning(false)
 
@@ -224,9 +214,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       val personalDetails: PersonalDetails = personalDetailsObjects.generateOne
 
       val exception = new RuntimeException("error")
-      (matchingConnector.doMatch(_: PersonalDetails)(_: Request[_], _: HeaderCarrier, _: ExecutionContext))
-        .expects(personalDetails, *, headerCarrier, executionContext)
-        .returning(EitherT.leftT[Future, MatchResult](exception))
+
+      MockMatchingConnector.doMatchError(personalDetails)(exception)
 
       (mockAuditDataFactory.createErrorEvent(_: PersonalDetails)(_: HeaderCarrier, _: Request[_]))
         .expects(personalDetails, headerCarrier, request).returning(dataEvent)
@@ -241,9 +230,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
 
       val matchResult: MatchSuccessful = MatchSuccessful(personalDetails)
 
-      (matchingConnector.doMatch(_: PersonalDetails)(_: Request[_], _: HeaderCarrier, _: ExecutionContext))
-        .expects(personalDetails, *, headerCarrier, executionContext)
-        .returning(EitherT.rightT[Future, Exception](matchResult))
+      MockMatchingConnector.doMatch(personalDetails)(matchResult)
 
       (citizenDetailsConnector.findDesignatoryDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
         .expects(*, headerCarrier, executionContext)
@@ -273,9 +260,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
       await(personalDetailsValidationRetryRepository.recordAttempt(maybeCredId.get,3))
       await(personalDetailsValidationRetryRepository.getAttempts(maybeCredId).value) shouldBe Right(4)
 
-      (matchingConnector.doMatch(_: PersonalDetails)(_: Request[_], _: HeaderCarrier, _: ExecutionContext))
-        .expects(inputPersonalDetails, *, headerCarrier, executionContext)
-        .returning(EitherT.rightT[Future, Exception](matchResult))
+      MockMatchingConnector.doMatch(inputPersonalDetails)(matchResult)
 
       (citizenDetailsConnector.findDesignatoryDetails(_: Nino)(_: HeaderCarrier, _: ExecutionContext))
         .expects(*, headerCarrier, executionContext)
@@ -304,20 +289,19 @@ class PersonalDetailsValidatorSpec extends UnitSpec with MockFactory with GuiceO
 
   private trait Setup {
 
-    SharedMetricRegistries.clear()
-
-    implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
-    implicit val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
-    implicit val encryption: Encryption = app.injector.instanceOf[Encryption]
-
+    val mockAuditDataFactory = mock[AuditDataEventFactory]
+    val mockMatchingAuditConnector = mock[AuditConnector]
     val matchingConnector: MatchingConnector = mock[MatchingConnector]
     val citizenDetailsConnector: CitizenDetailsConnector = mock[CitizenDetailsConnector]
     val mockAppConfig: AppConfig = mock[AppConfig]
 
     val repoControlService: RepoControlService = mock[RepoControlService]
 
-    val mockAuditDataFactory = mock[AuditDataEventFactory]
-    val mockMatchingAuditConnector = mock[AuditConnector]
+    SharedMetricRegistries.clear()
+
+    implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
+    implicit val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
+    implicit val encryption: Encryption = app.injector.instanceOf[Encryption]
 
     val dataEvent: DataEvent = dataEvents.generateOne
 

@@ -39,11 +39,7 @@ import java.time.LocalDateTime
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
-class RepoControlServiceSpec extends UnitSpec with MockFactory with GuiceOneAppPerSuite
-  with LoneElement with Eventually with LogCapturing {
-
-  override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().configure(Map("metrics.enabled" -> "false")).build()
+class RepoControlServiceSpec extends UnitSpec with MockFactory with LoneElement with Eventually with LogCapturing {
 
   "RepoControlService" should {
     "insert into both databases if given valid credentials" in new Setup {

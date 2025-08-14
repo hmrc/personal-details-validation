@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,12 +21,15 @@ import play.api.http.Status._
 import play.api.libs.json.{JsError, JsSuccess, Reads, __}
 import uk.gov.hmrc.domain._
 import uk.gov.hmrc.http._
+
 import javax.inject.Inject
 import uk.gov.hmrc.config.AppConfig
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.personaldetailsvalidation.model.Gender
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class CitizenDetailsConnector @Inject()(http: CoreGet, val config: CitizenDetailsConnectorConfig,
+class CitizenDetailsConnector @Inject()(http: HttpClientV2, val config: CitizenDetailsConnectorConfig,
                                         val appConfig: AppConfig) extends Logging {
 
   lazy val cdBaseUrl = config.baseUrl
@@ -34,7 +37,10 @@ class CitizenDetailsConnector @Inject()(http: CoreGet, val config: CitizenDetail
   def findDesignatoryDetails(nino: Nino) (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Option[Gender]] = {
     if (appConfig.cidDesignatoryDetailsCallEnabled) {
       val url = s"$cdBaseUrl/$nino/designatory-details"
-      http.GET[Option[Gender]](url).recover(toNone(url, nino))
+      http
+        .get(url"$cdBaseUrl/$nino/designatory-details")
+        .execute[Option[Gender]]
+        .recover(toNone(url, nino))
     } else {
       Future.successful(None)
     }
@@ -83,13 +89,5 @@ class CitizenDetailsConnector @Inject()(http: CoreGet, val config: CitizenDetail
     }
 
   }
-
-}
-
-case class Gender(gender: String)
-
-object Gender {
-
-  implicit val reads: Reads[Option[Gender]] = (__ \ "person" \ "sex").readNullable[String].map(gender => gender.map(Gender(_)))
 
 }

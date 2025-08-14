@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package test.uk.gov.hmrc.support
+package uk.gov.hmrc.support.utils
 
 import org.bson.BsonDocument
 import org.scalatest.BeforeAndAfterEach
@@ -24,8 +24,12 @@ import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.WSClient
-import uk.gov.hmrc.personaldetailsvalidation.{AssociationMongoRepository, PersonalDetailsValidationRepository}
 import test.uk.gov.hmrc.support.wiremock.{WiremockSpecSupport, WiremockedServiceSupport}
+import uk.gov.hmrc.http.{HeaderCarrier, SessionId}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.personaldetailsvalidation.{AssociationMongoRepository, PersonalDetailsValidationRepository}
+
+import scala.concurrent.ExecutionContext
 
 trait BaseIntegrationSpec
   extends PlaySpec
@@ -36,6 +40,9 @@ trait BaseIntegrationSpec
     with WiremockSpecSupport
     with Eventually
     with BeforeAndAfterEach {
+
+  implicit val ec: ExecutionContext = ExecutionContext.global
+  implicit val hc: HeaderCarrier    = HeaderCarrier(sessionId = Some(SessionId("sessionIdValue")))
 
   override val wiremockedServices: List[String] = List("authenticator", "platform-analytics", "citizen-details", "auth")
 
@@ -52,4 +59,7 @@ trait BaseIntegrationSpec
     app.injector.instanceOf[AssociationMongoRepository].collection.deleteMany(new BsonDocument()).toFuture().futureValue
     super.beforeEach()
   }
+
+  lazy val httpClientV2: HttpClientV2      = app.injector.instanceOf[HttpClientV2]
+
 }

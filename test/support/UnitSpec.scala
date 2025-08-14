@@ -20,6 +20,9 @@ import org.apache.pekko.stream.Materializer
 import org.apache.pekko.util.ByteString
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Result
 
@@ -27,7 +30,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.{Duration, _}
 
-abstract class UnitSpec extends AnyWordSpec with Matchers {
+abstract class UnitSpec extends AnyWordSpec with Matchers with GuiceOneServerPerSuite  {
+
+  override def fakeApplication(): Application =
+    new GuiceApplicationBuilder()
+      .configure(Map("metrics.enabled" -> "false"))
+      .build()
 
   implicit val timeout : Duration = 5 minutes
 

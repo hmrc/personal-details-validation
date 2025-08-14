@@ -34,15 +34,20 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 class AssociationControllerSpec extends UnitSpec
-  with GuiceOneAppPerSuite
   with MockFactory
   with MockArgumentMatchers {
 
   class Setup {
-    val mockAssociationService = mock[AssociationService]
-    val mockPersonalDetailsValidatorService = mock[PersonalDetailsValidatorService]
-    val controller = new AssociationController(mockAssociationService, mockPersonalDetailsValidatorService, stubControllerComponents())
+    val mockAssociationService: AssociationService                           = mock[AssociationService]
+    val mockPersonalDetailsValidatorService: PersonalDetailsValidatorService = mock[PersonalDetailsValidatorService]
+
+    val controller = new AssociationController(
+      mockAssociationService,
+      mockPersonalDetailsValidatorService,
+      stubControllerComponents()
+    )
   }
+
   "retrieveRecord" should {
     s"return $OK" when {
       "record found" in new Setup {
