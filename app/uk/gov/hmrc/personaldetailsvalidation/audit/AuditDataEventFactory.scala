@@ -29,7 +29,7 @@ import uk.gov.hmrc.play.audit.AuditExtensions
 import uk.gov.hmrc.play.audit.model.DataEvent
 
 @Singleton
-private[personaldetailsvalidation] class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTagProvider, auditDetailsProvider: AuditDetailsProvider) {
+class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTagProvider, auditDetailsProvider: AuditDetailsProvider) {
 
   @Inject() def this(auditConfig: AuditConfig) = this(
     auditConfig,

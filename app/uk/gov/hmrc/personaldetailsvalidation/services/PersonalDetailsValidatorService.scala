@@ -28,9 +28,14 @@ import scala.concurrent.{ExecutionContext, Future}
 class PersonalDetailsValidatorService @Inject()(pdvRepository: PdvRepository){
 
   def insertRecord(personalDetails: PersonalDetailsValidation)(implicit ec: ExecutionContext):
-  EitherT[Future, Exception, Done] = pdvRepository.create(personalDetails)
+  EitherT[Future, Exception, Done] = {
+    pdvRepository.create(personalDetails)
+
+  }
 
   def getRecord(personalDetailsValidationId: ValidationId)(implicit ec: ExecutionContext):
-  Future[Option[PersonalDetailsValidation]] = pdvRepository.get(personalDetailsValidationId)
+  Future[Option[PersonalDetailsValidation]] = {
+    pdvRepository.get(personalDetailsValidationId)
+  }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,22 +20,25 @@ import org.apache.pekko.stream.Materializer
 import org.apache.pekko.util.ByteString
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatestplus.play.guice.GuiceOneServerPerSuite
-import play.api.Application
-import play.api.inject.guice.GuiceApplicationBuilder
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.Result
+import play.api.mvc.{AnyContentAsEmpty, Result}
+import play.api.test.FakeRequest
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.config.AppConfig
+import uk.gov.hmrc.personaldetailsvalidation.{CitizenDetailsConnector, PdvRepository}
+import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
+import uk.gov.hmrc.personaldetailsvalidation.services.{AssociationService, PersonalDetailsValidatorService, RepoControlService}
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
+import java.time.LocalDateTime
+import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.{Duration, _}
 
-abstract class UnitSpec extends AnyWordSpec with Matchers with GuiceOneServerPerSuite  {
-
-  override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
-      .configure(Map("metrics.enabled" -> "false"))
-      .build()
+trait UnitSpec extends AnyWordSpec with Matchers {
 
   implicit val timeout : Duration = 5 minutes
 
@@ -55,5 +58,28 @@ abstract class UnitSpec extends AnyWordSpec with Matchers with GuiceOneServerPer
   def jsonBodyOf(result: Result)(implicit mat: Materializer): JsValue = Json.parse(bodyOf(result))
 
   def jsonBodyOf(resultF: Future[Result])(implicit mat: Materializer): Future[JsValue] = resultF.map(jsonBodyOf)
+
+  val origin: Some[String] = Some("test")
+  val credId: String = "cred-123"
+
+  val sessionId: String = s"session-${UUID.randomUUID().toString}"
+  val lastUpdated: LocalDateTime = LocalDateTime.now()
+
+  val mockAuthConnector: AuthConnector                     = mock[AuthConnector]
+  val mockCitizenDetailsConnector: CitizenDetailsConnector = mock[CitizenDetailsConnector]
+  val mockMatchingConnector: MatchingConnector             = mock[MatchingConnector]
+
+  val mockAuditDataFactory: AuditDataEventFactory = mock[AuditDataEventFactory]
+  val mockMatchingAuditConnector: AuditConnector  = mock[AuditConnector]
+
+  val mockAppConfig: AppConfig = mock[AppConfig]
+
+  val mockRepoControlService: RepoControlService = mock[RepoControlService]
+  val mockPDVService: PersonalDetailsValidatorService = mock[PersonalDetailsValidatorService]
+  val mockAssociationService: AssociationService = mock[AssociationService]
+
+  val mockPdvRepository: PdvRepository = mock[PdvRepository]
+
+  implicit val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
 
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation.mocks
+package uk.gov.hmrc.personaldetailsvalidation.mocks.connectors
 
 import cats.data.EitherT
 import org.mockito.ArgumentMatchersSugar.{any, eqTo}
@@ -33,14 +33,14 @@ object MockMatchingConnector {
 
   val mockInstance: MatchingConnector = mock[MatchingConnector]
 
-  def doMatch(personalDetails: PersonalDetails)(returnValue: MatchResult): ScalaOngoingStubbing[EitherT[Future, Exception, MatchResult]] = {
-    when(mockInstance.doMatch(eqTo(personalDetails))(any[HeaderCarrier], any[ExecutionContext]))
+  def doMatch(connector: MatchingConnector, personalDetails: PersonalDetails)(returnValue: MatchResult): ScalaOngoingStubbing[EitherT[Future, Exception, MatchResult]] = {
+    when(connector.doMatch(eqTo(personalDetails))(any[HeaderCarrier], any[ExecutionContext]))
       .thenReturn(
         EitherT.rightT[Future, Exception](returnValue))
   }
 
-  def doMatchError(personalDetails: PersonalDetails)(returnValue: RuntimeException): ScalaOngoingStubbing[EitherT[Future, Exception, MatchResult]] = {
-    when(mockInstance.doMatch(eqTo(personalDetails))(any[HeaderCarrier], any[ExecutionContext]))
+  def doMatchError(connector: MatchingConnector, personalDetails: PersonalDetails)(returnValue: RuntimeException): ScalaOngoingStubbing[EitherT[Future, Exception, MatchResult]] = {
+    when(connector.doMatch(eqTo(personalDetails))(any[HeaderCarrier], any[ExecutionContext]))
       .thenReturn(
         EitherT.leftT[Future, MatchResult](returnValue))
   }

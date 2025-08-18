@@ -41,6 +41,7 @@ import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.auth.core.authorise.Predicate
 import uk.gov.hmrc.auth.core.retrieve.{Credentials, Retrieval}
 import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
@@ -59,7 +60,13 @@ class PersonalDetailsValidationResourceControllerSpec
     with ScalaFutures
     with MockFactory
     with MockArgumentMatchers
+    with GuiceOneAppPerSuite
     with TableDrivenPropertyChecks {
+
+  override def fakeApplication(): Application =
+    new GuiceApplicationBuilder()
+      .configure(Map("metrics.enabled" -> "false"))
+      .build()
 
   "create" should {
 
