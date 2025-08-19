@@ -26,7 +26,7 @@ import play.api.mvc.{AnyContentAsEmpty, Result}
 import play.api.test.FakeRequest
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.config.AppConfig
-import uk.gov.hmrc.personaldetailsvalidation.{CitizenDetailsConnector, PdvRepository}
+import uk.gov.hmrc.personaldetailsvalidation.{CitizenDetailsConnector, PdvRepository, PersonalDetailsValidator}
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.services.{AssociationService, PersonalDetailsValidatorService, RepoControlService}
@@ -77,8 +77,11 @@ trait UnitSpec extends AnyWordSpec with Matchers {
   val mockRepoControlService: RepoControlService = mock[RepoControlService]
   val mockPDVService: PersonalDetailsValidatorService = mock[PersonalDetailsValidatorService]
   val mockAssociationService: AssociationService = mock[AssociationService]
+  val mockPersonalDetailsValidatorService: PersonalDetailsValidatorService = mock[PersonalDetailsValidatorService]
 
   val mockPdvRepository: PdvRepository = mock[PdvRepository]
+
+  val mockValidator: PersonalDetailsValidator = mock[PersonalDetailsValidator]
 
   implicit val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
 

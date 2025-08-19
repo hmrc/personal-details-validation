@@ -25,7 +25,6 @@ import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.mvc.Request
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import setups.HttpClientStubSetup
 import support.UnitSpec
 import uk.gov.hmrc.circuitbreaker.UnhealthyServiceException
 import uk.gov.hmrc.config.HostConfigProvider
@@ -106,7 +105,7 @@ class MatchingConnectorSpec
 //    }
   }
 
-  private trait Setup extends HttpClientStubSetup {
+  private trait Setup {
 
     implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
     implicit val request: Request[_] = FakeRequest()

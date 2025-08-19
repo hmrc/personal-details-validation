@@ -22,11 +22,11 @@ import generators.ObjectGenerators.personalDetailsWithNinoObjects
 import org.scalatest.LoneElement
 import org.scalatest.concurrent.Eventually
 import org.scalatest.concurrent.ScalaFutures.convertScalaFuture
+import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import play.api.libs.json.{JsObject, Json}
 import play.api.{Configuration, Logger}
 import play.api.test.Helpers.{INTERNAL_SERVER_ERROR, LOCKED, NOT_FOUND, OK}
-import setups.HttpClientStubSetup
 import support.UnitSpec
 import uk.gov.hmrc.config.{AppConfig, HostConfigProvider}
 import uk.gov.hmrc.domain.Nino
@@ -37,7 +37,7 @@ import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class CitizenDetailsConnectorSpec
-  extends UnitSpec with ScalaCheckDrivenPropertyChecks with HttpClientStubSetup
+  extends UnitSpec with ScalaCheckDrivenPropertyChecks
     with LoneElement with Eventually with LogCapturing {
 
   "Get designatory details" should {
