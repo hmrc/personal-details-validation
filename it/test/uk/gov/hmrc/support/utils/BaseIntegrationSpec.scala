@@ -19,15 +19,18 @@ package uk.gov.hmrc.support.utils
 import org.bson.BsonDocument
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{Eventually, IntegrationPatience, ScalaFutures}
+import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.WSClient
-import test.uk.gov.hmrc.support.wiremock.{WiremockSpecSupport, WiremockedServiceSupport}
+import test.uk.gov.hmrc.support.wiremock.WiremockedServiceSupport
 import uk.gov.hmrc.http.{HeaderCarrier, SessionId}
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.personaldetailsvalidation.{AssociationMongoRepository, PersonalDetailsValidationRepository}
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
+import uk.gov.hmrc.support.wiremock.WiremockSpecSupport
 
 import scala.concurrent.ExecutionContext
 
@@ -60,6 +63,8 @@ trait BaseIntegrationSpec
     super.beforeEach()
   }
 
-  lazy val httpClientV2: HttpClientV2      = app.injector.instanceOf[HttpClientV2]
+  lazy val httpClientV2: HttpClientV2         = app.injector.instanceOf[HttpClientV2]
 
+  val mockAuditConnector: AuditConnector      = mock[AuditConnector]
+  val mockHttpClient: HttpClientV2            = mock[HttpClientV2]
 }

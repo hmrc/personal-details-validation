@@ -28,6 +28,9 @@ case class ValidationId(value: UUID) extends ValueType[UUID]
 object ValidationId {
 
   def apply()(implicit uuidProvider: UUIDProvider): ValidationId = ValidationId(uuidProvider())
+
+  implicit val validationIdWrites: Writes[ValidationId] = (id: ValidationId) => Json.obj("value" -> id.value)
+
 }
 
 sealed trait ValidationStatus extends StringValue {
@@ -69,10 +72,5 @@ object PersonalDetailsValidation {
 
   def failed(maybeCredId: Option[String], attempts: Option[Int], createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC))(implicit uuidProvider: UUIDProvider): FailedPersonalDetailsValidation =
     FailedPersonalDetailsValidation(ValidationId(), maybeCredId = maybeCredId, attempt = attempts, createdAt = createdAt)
-
-  implicit val validatorPDVWrites: Writes[ValidationId]                           = Json.writes[ValidationId]
-  implicit val personalDetailsValidationWrites2: Writes[PersonalDetailsValidation] = Json.writes[PersonalDetailsValidation]
-  implicit val successfulPDVWrites: Writes[SuccessfulPersonalDetailsValidation]    = Json.writes[SuccessfulPersonalDetailsValidation]
-  implicit val failedPDVWrites: Writes[FailedPersonalDetailsValidation]            = Json.writes[FailedPersonalDetailsValidation]
 
 }

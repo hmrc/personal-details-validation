@@ -26,14 +26,12 @@ import play.api.mvc.{AnyContentAsEmpty, Result}
 import play.api.test.FakeRequest
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.config.AppConfig
-import uk.gov.hmrc.personaldetailsvalidation.{CitizenDetailsConnector, PdvRepository, PersonalDetailsValidator}
+import uk.gov.hmrc.personaldetailsvalidation.{AssociationRepository, CitizenDetailsConnector, PdvRepository, PersonalDetailsValidator}
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.services.{AssociationService, PersonalDetailsValidatorService, RepoControlService}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
-import java.time.LocalDateTime
-import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.{Duration, _}
@@ -59,12 +57,6 @@ trait UnitSpec extends AnyWordSpec with Matchers {
 
   def jsonBodyOf(resultF: Future[Result])(implicit mat: Materializer): Future[JsValue] = resultF.map(jsonBodyOf)
 
-  val origin: Some[String] = Some("test")
-  val credId: String = "cred-123"
-
-  val sessionId: String = s"session-${UUID.randomUUID().toString}"
-  val lastUpdated: LocalDateTime = LocalDateTime.now()
-
   val mockAuthConnector: AuthConnector                     = mock[AuthConnector]
   val mockCitizenDetailsConnector: CitizenDetailsConnector = mock[CitizenDetailsConnector]
   val mockMatchingConnector: MatchingConnector             = mock[MatchingConnector]
@@ -74,12 +66,13 @@ trait UnitSpec extends AnyWordSpec with Matchers {
 
   val mockAppConfig: AppConfig = mock[AppConfig]
 
-  val mockRepoControlService: RepoControlService = mock[RepoControlService]
-  val mockPDVService: PersonalDetailsValidatorService = mock[PersonalDetailsValidatorService]
-  val mockAssociationService: AssociationService = mock[AssociationService]
+  val mockRepoControlService: RepoControlService                           = mock[RepoControlService]
+  val mockPDVService: PersonalDetailsValidatorService                      = mock[PersonalDetailsValidatorService]
+  val mockAssociationService: AssociationService                           = mock[AssociationService]
   val mockPersonalDetailsValidatorService: PersonalDetailsValidatorService = mock[PersonalDetailsValidatorService]
 
-  val mockPdvRepository: PdvRepository = mock[PdvRepository]
+  val mockPdvRepository: PdvRepository                 = mock[PdvRepository]
+  val mockAssociationRepository: AssociationRepository = mock[AssociationRepository]
 
   val mockValidator: PersonalDetailsValidator = mock[PersonalDetailsValidator]
 

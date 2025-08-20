@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,17 +17,14 @@
 package uk.gov.hmrc.personaldetailsvalidation
 
 import org.apache.pekko.Done
-import generators.Generators.Implicits._
-import generators.ObjectGenerators._
 import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.model.{Filters, IndexModel}
-import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.Configuration
-import support.UnitSpec
+import support.{CommonTestData, UnitSpec}
 import uk.gov.hmrc.mongo.test.MongoSupport
-import uk.gov.hmrc.personaldetailsvalidation.model.{SuccessfulPersonalDetailsValidation, ValidationId}
+import uk.gov.hmrc.personaldetailsvalidation.model.ValidationId
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import java.time.Duration
@@ -37,14 +34,26 @@ import scala.concurrent.duration.SECONDS
 class PersonalDetailsValidationMongoRepositorySpec
   extends UnitSpec
     with MongoSupport
-    with MockFactory
+    with CommonTestData
     with ScalaFutures
     with IntegrationPatience {
 
+  private trait Setup {
+    await(repository.collection.drop().toFuture())
+  }
+
+  implicit val ttlSeconds: Long = 100
+
+  val config: PersonalDetailsValidationMongoRepositoryConfig = new PersonalDetailsValidationMongoRepositoryConfig(mock[Configuration]) {
+    override lazy val collectionTtl: Duration = Duration.ofSeconds(ttlSeconds)
+  }
+
+  protected def repository = new PersonalDetailsValidationRepository(config, mongoComponent)
+
   "create" should {
     Set(
-      successfulPersonalDetailsValidationObjects.generateOne,
-      failedPersonalDetailsValidationObjects.generateOne
+      personalDetailsValidationSuccess,
+      personalDetailsValidationFailure
     ) foreach { personalDetailsValidation =>
       s"be able to insert ${personalDetailsValidation.getClass.getSimpleName}" in {
         repository.create(personalDetailsValidation).value.futureValue shouldBe Right(Done)
@@ -53,17 +62,16 @@ class PersonalDetailsValidationMongoRepositorySpec
     }
 
     "convert exception into Either.Left" in new Setup {
-      val personalDetailsValidation: SuccessfulPersonalDetailsValidation = successfulPersonalDetailsValidationObjects.generateOne
-      repository.create(personalDetailsValidation).value.futureValue shouldBe Right(Done)
+      repository.create(personalDetailsValidationSuccess).value.futureValue shouldBe Right(Done)
     }
 
     "add 'createdAt' field with current time when persisting the document" in new Setup {
-      val personalDetailsValidation: SuccessfulPersonalDetailsValidation = successfulPersonalDetailsValidationObjects.generateOne
-      val validationId: String = personalDetailsValidation.id.value.toString
 
-      repository.create(personalDetailsValidation).value.futureValue shouldBe Right(Done)
+      val validationId: String = personalDetailsValidationSuccess.id.value.toString
 
-      repository.collection.find(filter = Filters.eq("id",validationId)).toFuture().map{
+      repository.create(personalDetailsValidationSuccess).value.futureValue shouldBe Right(Done)
+
+      repository.collection.find(filter = Filters.eq("id", validationId)).toFuture().map {
         _.size
       }.futureValue shouldBe 1
     }
@@ -77,10 +85,8 @@ class PersonalDetailsValidationMongoRepositorySpec
     }
 
     "return Document if document found in collection" in new Setup {
-
-      val pdvDoc: SuccessfulPersonalDetailsValidation = successfulPersonalDetailsValidationObjects.generateOne
-      repository.create(pdvDoc).value.futureValue shouldBe Right(Done)
-      repository.get(pdvDoc.id).futureValue shouldBe Some(pdvDoc)
+      repository.create(personalDetailsValidationSuccess).value.futureValue shouldBe Right(Done)
+      repository.get(personalDetailsValidationSuccess.id).futureValue shouldBe Some(personalDetailsValidationSuccess)
     }
 
   }
@@ -98,17 +104,5 @@ class PersonalDetailsValidationMongoRepositorySpec
     }
 
   }
-
-  private trait Setup {
-    await(repository.collection.drop().toFuture())
-  }
-
-  implicit val ttlSeconds: Long = 100
-
-  val config: PersonalDetailsValidationMongoRepositoryConfig = new PersonalDetailsValidationMongoRepositoryConfig(mock[Configuration]) {
-    override lazy val collectionTtl: Duration = Duration.ofSeconds(ttlSeconds)
-  }
-
-  protected def repository = new PersonalDetailsValidationRepository(config, mongoComponent)
 
 }

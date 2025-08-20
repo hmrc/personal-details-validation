@@ -18,22 +18,19 @@ package uk.gov.hmrc.personaldetailsvalidation.services
 
 import cats.data.EitherT
 import ch.qos.logback.classic.Level
-import generators.Generators.Implicits._
-import generators.ObjectGenerators.personalDetailsValidationObjects
 import org.apache.pekko.Done
 import org.mockito.MockitoSugar.reset
-import org.scalamock.scalatest.MockFactory
-import org.scalatest.{BeforeAndAfterEach, LoneElement}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.{BeforeAndAfterEach, LoneElement}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.{Application, Logger}
 import play.api.inject.guice.GuiceApplicationBuilder
-import support.UnitSpec
+import play.api.{Application, Logger}
+import support.{CommonTestData, UnitSpec}
 import uk.gov.hmrc.crypto.PlainText
 import uk.gov.hmrc.http.{HeaderCarrier, SessionId}
 import uk.gov.hmrc.personaldetailsvalidation.mocks.services.{MockAssociationService, MockPdvService}
-import uk.gov.hmrc.personaldetailsvalidation.model.{Association, PersonalDetailsValidation}
+import uk.gov.hmrc.personaldetailsvalidation.model.Association
 import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -41,12 +38,12 @@ import scala.concurrent.Future
 
 class RepoControlServiceSpec extends
   AnyWordSpec
-  with MockFactory
   with UnitSpec
   with GuiceOneAppPerSuite
   with LoneElement
   with Eventually
   with LogCapturing
+  with CommonTestData
   with BeforeAndAfterEach {
 
   override def fakeApplication(): Application =
@@ -59,11 +56,14 @@ class RepoControlServiceSpec extends
     mockAssociationService
   )
 
-  val personalDetailsValidation: PersonalDetailsValidation = personalDetailsValidationObjects.generateOne
+  val encryptedCredID: String = encryption.crypto.encrypt(PlainText(testCredId)).value
+  val encryptedSessionID: String = encryption.crypto.encrypt(PlainText(testValidationId)).value
 
-  val encryptedCredID: String = encryption.crypto.encrypt(PlainText(credId)).value
-  val encryptedSessionID: String = encryption.crypto.encrypt(PlainText(sessionId)).value
-  val association: Association = Association(encryptedCredID, encryptedSessionID, personalDetailsValidation.id.toString, lastUpdated)
+  val association: Association = Association(
+    encryptedCredID,
+    encryptedSessionID,
+    personalDetailsValidation.id.toString,
+    testLastUpdated)
 
   override def beforeEach(): Unit = {
     reset(mockPDVService, mockAssociationService)
@@ -73,20 +73,20 @@ class RepoControlServiceSpec extends
   "RepoControlService" should {
     "insert into both databases if given valid credentials" in {
 
-      implicit val headerCarrier: HeaderCarrier = new HeaderCarrier(sessionId = Some(SessionId(sessionId)))
+      implicit val headerCarrier: HeaderCarrier = new HeaderCarrier(sessionId = Some(SessionId(testValidationId)))
 
       val association = Association(
-        credentialId = credId,
-        sessionId = sessionId,
+        credentialId = testCredId,
+        sessionId = testValidationId,
         validationId = personalDetailsValidation.id.toString,
-        lastUpdated = lastUpdated
+        lastUpdated = testLastUpdated
       )
 
       MockAssociationService.insertRecord(mockAssociationService, association)
       MockPdvService.insertRecord(mockPDVService, personalDetailsValidation)(Done)
 
       val result = await(repoControl.insertPDVAndAssociationRecord(
-        personalDetailsValidation, Some(credId)).value)
+        personalDetailsValidation, Some(testCredId)).value)
 
       result shouldBe Right(Done)
 
@@ -102,7 +102,7 @@ class RepoControlServiceSpec extends
         MockPdvService.insertRecord(mockPDVService, personalDetailsValidation)(Done)
 
         val result = await(repoControl.insertPDVAndAssociationRecord(
-          personalDetailsValidation, Some(credId)).value)
+          personalDetailsValidation, Some(testCredId)).value)
 
         result shouldBe Right(Done)
 
@@ -124,7 +124,7 @@ class RepoControlServiceSpec extends
         MockPdvService.insertRecord(mockPDVService, personalDetailsValidation)(Done)
 
         val result = await(repoControl.insertPDVAndAssociationRecord(
-          personalDetailsValidation, Some(credId)).value)
+          personalDetailsValidation, Some(testCredId)).value)
 
         result shouldBe Right(Done)
 
@@ -141,7 +141,7 @@ class RepoControlServiceSpec extends
 
       withCaptureOfLoggingFrom(Logger("uk.gov.hmrc.personaldetailsvalidation.services.RepoControlService")) { logEvents =>
 
-        implicit val headerCarrier: HeaderCarrier = new HeaderCarrier(sessionId = Some(SessionId(sessionId)))
+        implicit val headerCarrier: HeaderCarrier = new HeaderCarrier(sessionId = Some(SessionId(testValidationId)))
 
         MockPdvService.insertRecord(mockPDVService, personalDetailsValidation)(Done)
 
@@ -163,7 +163,7 @@ class RepoControlServiceSpec extends
 
       withCaptureOfLoggingFrom(Logger("uk.gov.hmrc.personaldetailsvalidation.services.RepoControlService")) { logEvents =>
 
-        implicit val headerCarrier: HeaderCarrier = new HeaderCarrier(sessionId = Some(SessionId(sessionId)))
+        implicit val headerCarrier: HeaderCarrier = new HeaderCarrier(sessionId = Some(SessionId(testValidationId)))
 
         MockPdvService.insertRecord(mockPDVService, personalDetailsValidation)(Done)
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,8 @@ import java.time.LocalDate
 import generators.Generators.Implicits._
 import generators.Generators.nonEmptyMap
 import generators.ObjectGenerators._
-import org.scalamock.scalatest.MockFactory
+import org.mockito.MockitoSugar.when
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.Configuration
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
@@ -31,7 +32,7 @@ import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchRes
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.audit.model.DataEvent
 
-class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
+class AuditDataEventFactorySpec extends UnitSpec {
 
   "factory" should {
 
@@ -115,8 +116,8 @@ class AuditDataEventFactorySpec extends UnitSpec with MockFactory {
     val auditTags: Map[String, String] = nonEmptyMap.generateOne
     val auditDetails: Map[String, String] = nonEmptyMap.generateOne
 
-    (auditTagsProvider.apply _).expects(headerCarrier, auditType, request).returns(auditTags)
-    (auditDetailsProvider.apply _).expects(headerCarrier).returns(auditDetails)
+    when(auditTagsProvider.apply(headerCarrier, auditType, request)).thenReturn(auditTags)
+    when(auditDetailsProvider.apply(headerCarrier)).thenReturn(auditDetails)
 
     val auditDataFactory = new AuditDataEventFactory(auditConfig, auditTagsProvider, auditDetailsProvider)
 

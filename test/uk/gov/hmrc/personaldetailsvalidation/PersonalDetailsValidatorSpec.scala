@@ -25,7 +25,7 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import support.UnitSpec
+import support.{CommonTestData, UnitSpec}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.MongoComponent
@@ -41,7 +41,11 @@ import uk.gov.hmrc.uuid.UUIDProvider
 
 import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
 
-class PersonalDetailsValidatorSpec extends UnitSpec with GuiceOneAppPerSuite with BeforeAndAfterEach {
+class PersonalDetailsValidatorSpec extends
+  UnitSpec
+  with CommonTestData
+  with GuiceOneAppPerSuite
+  with BeforeAndAfterEach {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().configure(Map("metrics.enabled" -> "false")).build()
@@ -84,9 +88,7 @@ class PersonalDetailsValidatorSpec extends UnitSpec with GuiceOneAppPerSuite wit
   def stubReturnNinoFromCidFalse(value: Boolean): Unit = {
     when(mockAppConfig.returnNinoFromCid).thenReturn(value)
   }
-
-  val maybeCredId: Some[String] = Some("credentialId")
-
+  
   val validator = new PersonalDetailsValidatorImpl(
     mockMatchingConnector,
     mockCitizenDetailsConnector,
@@ -110,7 +112,6 @@ class PersonalDetailsValidatorSpec extends UnitSpec with GuiceOneAppPerSuite wit
     "match the given personal details with matching service, " +
       "store them as SuccessfulPersonalDetailsValidation for successful match " +
       "and return the ValidationId" in {
-      val personalDetails: PersonalDetails = personalDetailsObjects.generateOne
       val personalDetailsWithGender: PersonalDetails = personalDetails.addGender(gender)
       val matchResult: MatchSuccessful = MatchSuccessful(personalDetailsWithGender)
 
@@ -123,9 +124,9 @@ class PersonalDetailsValidatorSpec extends UnitSpec with GuiceOneAppPerSuite wit
       MockAuditEventConnector.sendEvent(dataEvent)(AuditResult.Success)
 
       MockRepoControlService.insertPDVAndAssociationRecord(
-        mockRepoControlService, maybeCredId)(Done)
+        mockRepoControlService, testMaybeCredId)(Done)
 
-      await(validator.validate(personalDetails, origin, maybeCredId).value).map { personalDetailsValidation =>
+      await(validator.validate(personalDetails, testOrigin, testMaybeCredId).value).map { personalDetailsValidation =>
         personalDetailsValidation.id shouldBe Right(personalDetailsValidation).value.id
       }
     }
@@ -136,8 +137,9 @@ class PersonalDetailsValidatorSpec extends UnitSpec with GuiceOneAppPerSuite wit
 
       val inputPersonalDetails: PersonalDetailsWithPostCode = personalDetailsWithPostCodeObjects.generateOne
       val matchedPersonalDetails: PersonalDetailsWithNino = personalDetailsWithNinoObjects.generateOne
+      
       val eventPersonalDetails: PersonalDetails = inputPersonalDetails.addNino(matchedPersonalDetails.nino).addGender(gender)
-      val matchResult: MatchSuccessful = MatchSuccessful(eventPersonalDetails)
+      val matchResult: MatchSuccessful          = MatchSuccessful(eventPersonalDetails)
 
       MockMatchingConnector.doMatch(mockMatchingConnector, inputPersonalDetails)(matchResult)
       MockCitizensDetailsConnector.findDesignatoryDetails(mockCitizenDetailsConnector)(Some(Gender(gender)))
@@ -147,9 +149,9 @@ class PersonalDetailsValidatorSpec extends UnitSpec with GuiceOneAppPerSuite wit
       MockAuditDataFactory.createEvent(matchResult, inputPersonalDetails)(dataEvent)
       MockAuditEventConnector.sendEvent(dataEvent)(AuditResult.Success)
       MockRepoControlService.insertPDVAndAssociationRecord(
-        mockRepoControlService, maybeCredId)(Done)
+        mockRepoControlService, testMaybeCredId)(Done)
 
-      await(validator.validate(inputPersonalDetails, origin, maybeCredId).value).map { personalDetailsValidation =>
+      await(validator.validate(inputPersonalDetails, testOrigin, testMaybeCredId).value).map { personalDetailsValidation =>
         personalDetailsValidation.id shouldBe Right(personalDetailsValidation).value.id
       }
     }
@@ -173,9 +175,9 @@ class PersonalDetailsValidatorSpec extends UnitSpec with GuiceOneAppPerSuite wit
       MockAuditDataFactory.createEvent(matchResult, enteredPersonalDetails)(dataEvent)
       MockAuditEventConnector.sendEvent(dataEvent)(AuditResult.Success)
       MockRepoControlService.insertPDVAndAssociationRecord(
-        mockRepoControlService, maybeCredId)(Done)
+        mockRepoControlService, testMaybeCredId)(Done)
 
-      await(validator.validate(enteredPersonalDetails, origin, maybeCredId).value).map { personalDetailsValidation =>
+      await(validator.validate(enteredPersonalDetails, testOrigin, testMaybeCredId).value).map { personalDetailsValidation =>
         personalDetailsValidation.id shouldBe Right(personalDetailsValidation).value.id
       }
     }
@@ -183,11 +185,11 @@ class PersonalDetailsValidatorSpec extends UnitSpec with GuiceOneAppPerSuite wit
     "match the given personal details with matching service, with a different suffix, " +
       "store the returned Nino as SuccessfulPersonalDetailsValidation for successful match " +
       "and return the ValidationId" in {
-      val personalDetails: PersonalDetailsWithNino = personalDetailsObjects.generateOne.asInstanceOf[PersonalDetailsWithNino]
-      val enteredNino: Nino = adjustedNino(personalDetails.nino)
+      val personalDetails: PersonalDetailsWithNino        = personalDetailsObjects.generateOne.asInstanceOf[PersonalDetailsWithNino]
+      val enteredNino: Nino                               = adjustedNino(personalDetails.nino)
       val enteredPersonalDetails: PersonalDetailsWithNino = personalDetails.copy(nino = enteredNino)
 
-      val matchResult: MatchSuccessful = MatchSuccessful(personalDetails)
+      val matchResult: MatchSuccessful           = MatchSuccessful(personalDetails)
       val matchResultWithGender: MatchSuccessful = MatchSuccessful(personalDetails.addGender(gender))
 
       MockMatchingConnector.doMatch(mockMatchingConnector, enteredPersonalDetails)(matchResult)
@@ -198,9 +200,9 @@ class PersonalDetailsValidatorSpec extends UnitSpec with GuiceOneAppPerSuite wit
       MockAuditDataFactory.createEvent(matchResultWithGender, personalDetails)(dataEvent)
       MockAuditEventConnector.sendEvent(dataEvent)(AuditResult.Success)
       MockRepoControlService.insertPDVAndAssociationRecord(
-        mockRepoControlService, maybeCredId)(Done)
+        mockRepoControlService, testMaybeCredId)(Done)
 
-      await(validator.validate(enteredPersonalDetails, origin, maybeCredId).value).map { personalDetailsValidation =>
+      await(validator.validate(enteredPersonalDetails, testOrigin, testMaybeCredId).value).map { personalDetailsValidation =>
         personalDetailsValidation.id shouldBe Right(personalDetailsValidation).value.id
       }
     }
@@ -210,7 +212,6 @@ class PersonalDetailsValidatorSpec extends UnitSpec with GuiceOneAppPerSuite wit
       "and return the ValidationId" in {
 
       await(personalDetailsValidationRetryRepository.collection.drop().toFuture())
-      val personalDetails: PersonalDetails = personalDetailsObjects.generateOne
       val matchResult: MatchFailed = MatchFailed("some error")
 
       MockMatchingConnector.doMatch(mockMatchingConnector, personalDetails)(matchResult)
@@ -219,26 +220,22 @@ class PersonalDetailsValidatorSpec extends UnitSpec with GuiceOneAppPerSuite wit
       MockAuditDataFactory.createEvent(matchResult, personalDetails)(dataEvent)
       MockAuditEventConnector.sendEvent(dataEvent)(AuditResult.Success)
       MockRepoControlService.insertPDVAndAssociationRecord(
-        mockRepoControlService, maybeCredId)(Done)
+        mockRepoControlService, testMaybeCredId)(Done)
 
-      await(validator.validate(personalDetails, origin, maybeCredId).value).map { personalDetailsValidation =>
+      await(validator.validate(personalDetails, testOrigin, testMaybeCredId).value).map { personalDetailsValidation =>
         personalDetailsValidation.id shouldBe Right(personalDetailsValidation).value.id
       }
     }
 
     "return matching error when the call to match fails" in {
-      val personalDetails: PersonalDetails = personalDetailsObjects.generateOne
-      val exception = new RuntimeException("error")
-
       MockMatchingConnector.doMatchError(mockMatchingConnector, personalDetails)(exception)
       MockAuditDataFactory.createErrorEvent(personalDetails)(dataEvent)
       MockAuditEventConnector.sendEvent(dataEvent)(AuditResult.Success)
 
-      await(validator.validate(personalDetails, origin, maybeCredId).value) shouldBe Left(exception)
+      await(validator.validate(personalDetails, testOrigin, testMaybeCredId).value) shouldBe Left(exception)
     }
 
     "return matching error when the call to persist fails" in {
-      val personalDetails: PersonalDetails = personalDetailsObjects.generateOne
       val matchResult: MatchSuccessful = MatchSuccessful(personalDetails)
 
       MockMatchingConnector.doMatch(mockMatchingConnector, personalDetails)(matchResult)
@@ -246,15 +243,13 @@ class PersonalDetailsValidatorSpec extends UnitSpec with GuiceOneAppPerSuite wit
 
       stubReturnNinoFromCidFalse(value = false)
 
-      val exception = new RuntimeException("error")
-
       MockRepoControlService.insertPDVAndAssociationRecordError(
-        mockRepoControlService, maybeCredId)(exception)
+        mockRepoControlService, testMaybeCredId)(exception)
 
       MockAuditDataFactory.createErrorEvent(personalDetails)(dataEvent)
       MockAuditEventConnector.sendEvent(dataEvent)(AuditResult.Success)
 
-      await(validator.validate(personalDetails, origin, maybeCredId).value) shouldBe Left(exception)
+      await(validator.validate(personalDetails, testOrigin, testMaybeCredId).value) shouldBe Left(exception)
     }
 
     "reset attempts when matching is successful for a given credId" in {
@@ -263,8 +258,8 @@ class PersonalDetailsValidatorSpec extends UnitSpec with GuiceOneAppPerSuite wit
       val matchResult: MatchSuccessful =
         MatchSuccessful(inputPersonalDetails.addNino(matchedPersonalDetails.nino).addGender(gender))
 
-      await(personalDetailsValidationRetryRepository.recordAttempt(maybeCredId.get, 3))
-      await(personalDetailsValidationRetryRepository.getAttempts(maybeCredId).value) shouldBe Right(4)
+      await(personalDetailsValidationRetryRepository.recordAttempt(testMaybeCredId.get, 3))
+      await(personalDetailsValidationRetryRepository.getAttempts(testMaybeCredId).value) shouldBe Right(4)
 
       MockMatchingConnector.doMatch(mockMatchingConnector, inputPersonalDetails)(matchResult)
       MockCitizensDetailsConnector.findDesignatoryDetails(mockCitizenDetailsConnector)(Some(Gender(gender)))
@@ -275,13 +270,13 @@ class PersonalDetailsValidatorSpec extends UnitSpec with GuiceOneAppPerSuite wit
       MockAuditEventConnector.sendEvent(dataEvent)(AuditResult.Success)
 
       MockRepoControlService.insertPDVAndAssociationRecord(
-        mockRepoControlService, maybeCredId)(Done)
+        mockRepoControlService, testMaybeCredId)(Done)
 
-      await(validator.validate(inputPersonalDetails, origin, maybeCredId).value).map { personalDetailsValidation =>
+      await(validator.validate(inputPersonalDetails, testOrigin, testMaybeCredId).value).map { personalDetailsValidation =>
         personalDetailsValidation.id shouldBe Right(personalDetailsValidation).value.id
       }
 
-      await(personalDetailsValidationRetryRepository.getAttempts(maybeCredId).value) shouldBe Right(0)
+      await(personalDetailsValidationRetryRepository.getAttempts(testMaybeCredId).value) shouldBe Right(0)
     }
 
   }

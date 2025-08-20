@@ -22,7 +22,6 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchersSugar._
 import org.mockito.MockitoSugar._
 import org.mockito.stubbing.ScalaOngoingStubbing
-import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.personaldetailsvalidation.PdvRepository
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, ValidationId}
 

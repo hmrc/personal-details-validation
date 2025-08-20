@@ -25,17 +25,16 @@ import play.api.http.Status.OK
 import play.api.libs.json.{JsObject, JsString, Json}
 import uk.gov.hmrc.config.HostConfigProvider
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory.{AuditDetailsProvider, AuditTagProvider}
 import uk.gov.hmrc.personaldetailsvalidation.audit.{AuditConfig, AuditDataEventFactory}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.MatchSuccessful
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.support.utils.BaseIntegrationSpec
 import uk.gov.hmrc.personaldetailsvalidation.matching._
 import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetailsWithNino
+import uk.gov.hmrc.support.utils.BaseIntegrationSpec
 import uk.gov.hmrc.support.wiremock.WiremockStubs
 
-class MatchingConnectorISpec extends BaseIntegrationSpec with WiremockStubs {
+class MatchingConnectorISpec extends BaseIntegrationSpec
+  with WiremockStubs {
 
   val auditTagsProvider: AuditTagProvider        = mock[AuditTagProvider]
   val auditDetailsProvider: AuditDetailsProvider = mock[AuditDetailsProvider]
@@ -51,9 +50,10 @@ class MatchingConnectorISpec extends BaseIntegrationSpec with WiremockStubs {
     override def circuitBreakerUnstableDuration: Int       = 300
   }
 
-  val auditDataFactory: AuditDataEventFactory = new AuditDataEventFactory(auditConfig, auditTagsProvider, auditDetailsProvider)
-  val mockAuditConnector: AuditConnector      = mock[AuditConnector]
-  val mockHttpClient: HttpClientV2            = mock[HttpClientV2]
+  val auditDataFactory: AuditDataEventFactory = new AuditDataEventFactory(
+    auditConfig,
+    auditTagsProvider,
+    auditDetailsProvider)
 
   val connector: MatchingConnector = new MatchingConnector(
     mockHttpClient,

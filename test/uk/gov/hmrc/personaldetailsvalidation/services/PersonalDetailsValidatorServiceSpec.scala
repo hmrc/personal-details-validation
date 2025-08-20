@@ -16,13 +16,11 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.services
 
-import generators.Generators.Implicits._
-import generators.ObjectGenerators.successfulPersonalDetailsValidationObjects
 import org.apache.pekko.Done
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.wordspec.AnyWordSpec
-import support.UnitSpec
+import support.{CommonTestData, UnitSpec}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.mocks.repositories.MockPdvRepository
 import uk.gov.hmrc.personaldetailsvalidation.model._
@@ -30,14 +28,18 @@ import uk.gov.hmrc.personaldetailsvalidation.model._
 import java.util.UUID.randomUUID
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class PersonalDetailsValidatorServiceSpec extends AnyWordSpec with UnitSpec with MockitoSugar with BeforeAndAfterEach {
+class PersonalDetailsValidatorServiceSpec extends
+  AnyWordSpec
+  with UnitSpec
+  with MockitoSugar
+  with CommonTestData
+  with BeforeAndAfterEach {
 
   implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
-  val randomValidationId: ValidationId                               = ValidationId(randomUUID)
-  val personalDetailsValidation: SuccessfulPersonalDetailsValidation = successfulPersonalDetailsValidationObjects.generateOne
+  val randomValidationId: ValidationId = ValidationId(randomUUID)
 
-  val pdvService = new PersonalDetailsValidatorService(mockPdvRepository)
+  val pdvService: PersonalDetailsValidatorService = new PersonalDetailsValidatorService(mockPdvRepository)
 
   override def beforeEach(): Unit = {
     reset(mockPdvRepository)
@@ -46,25 +48,25 @@ class PersonalDetailsValidatorServiceSpec extends AnyWordSpec with UnitSpec with
 
   "PersonalDetailsValidatorService" should {
     "insert an instance of PDV into the PDV repository" in {
-      MockPdvRepository.create(mockPdvRepository, personalDetailsValidation)
+      MockPdvRepository.create(mockPdvRepository, personalDetailsValidationSuccess)
 
-      val result = await(pdvService.insertRecord(personalDetailsValidation).value)
+      val result = await(pdvService.insertRecord(personalDetailsValidationSuccess).value)
 
       result shouldBe Right(Done)
     }
 
     "return an instance of an pdv given a validation id" in {
-      MockPdvRepository.get(mockPdvRepository, personalDetailsValidation.id)(personalDetailsValidation)
+      MockPdvRepository.get(mockPdvRepository, personalDetailsValidationSuccess.id)(personalDetailsValidationSuccess)
 
-      val result = await(pdvService.getRecord(personalDetailsValidation.id))
+      val result: Option[PersonalDetailsValidation] = await(pdvService.getRecord(personalDetailsValidationSuccess.id))
 
-      result shouldBe Some(personalDetailsValidation)
+      result shouldBe Some(personalDetailsValidationSuccess)
     }
 
     "return a None given an invalid validation id" in {
       MockPdvRepository.getError(mockPdvRepository, randomValidationId)
 
-      val result = await(pdvService.getRecord(randomValidationId))
+      val result: Option[PersonalDetailsValidation] = await(pdvService.getRecord(randomValidationId))
 
       result shouldBe None
     }

@@ -30,7 +30,6 @@ import uk.gov.hmrc.support.utils.BaseIntegrationSpec
 
 import java.time.{LocalDate, LocalDateTime}
 import java.util.UUID
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class AssociationControllerISpec extends BaseIntegrationSpec with FutureAwaits with DefaultAwaitTimeout {
@@ -65,7 +64,7 @@ class AssociationControllerISpec extends BaseIntegrationSpec with FutureAwaits w
           createdAt = dateTimeNow
         )
         await(associationService.insertRecord(association))
-        await(personalDetailsValidationService.insertRecord(successPDVRecord).value)
+        await(personalDetailsValidationService.insertRecord(successPDVRecord)(ec).value)
 
         val result = await(retrieveBySession(Json.obj("credentialId" -> credId, "sessionId" -> sessionId).toString()))
 

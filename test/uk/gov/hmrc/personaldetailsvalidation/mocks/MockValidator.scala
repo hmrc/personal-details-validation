@@ -21,7 +21,7 @@ import org.mockito.ArgumentMatchersSugar.{any, eqTo}
 import org.mockito.MockitoSugar.when
 import org.mockito.stubbing.ScalaOngoingStubbing
 import play.api.mvc.Request
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
 import uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidator
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsValidation}
 
@@ -39,10 +39,18 @@ object MockValidator {
   }
 
   def validateNoId(validator: PersonalDetailsValidator,
+                   personalDetailsValidation:PersonalDetailsValidation,
+                   origin: Option[String]): ScalaOngoingStubbing[EitherT[Future, Exception, PersonalDetailsValidation]] = {
+    when(validator.validate(any[PersonalDetails], eqTo(origin), any[Option[String]])(any[HeaderCarrier], any[Request[_]], any[ExecutionContext]))
+      .thenReturn(EitherT.rightT[Future, Exception](personalDetailsValidation))
+  }
+
+  def validateException(validator: PersonalDetailsValidator,
                personalDetails: PersonalDetails,
-               origin: Option[String])(returnValue: PersonalDetailsValidation): ScalaOngoingStubbing[EitherT[Future, Exception, PersonalDetailsValidation]] = {
-    when(validator.validate(eqTo(personalDetails), eqTo(origin), any[Option[String]])(any[HeaderCarrier], any[Request[_]], any[ExecutionContext]))
-      .thenReturn(EitherT.rightT[Future, Exception](returnValue))
+               origin: Option[String],
+               maybeCredId: Option[String])(returnValue: BadGatewayException): ScalaOngoingStubbing[EitherT[Future, Exception, PersonalDetailsValidation]] = {
+    when(validator.validate(eqTo(personalDetails), eqTo(origin), eqTo(maybeCredId))(any[HeaderCarrier], any[Request[_]], any[ExecutionContext]))
+      .thenReturn(EitherT.leftT[Future, PersonalDetailsValidation](returnValue))
   }
 
 }

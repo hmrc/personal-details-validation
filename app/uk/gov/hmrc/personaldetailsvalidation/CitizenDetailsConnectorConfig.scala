@@ -23,5 +23,6 @@ import javax.inject.{Inject, Singleton}
 @Singleton
 class CitizenDetailsConnectorConfig @Inject()(hostProvider: HostConfigProvider) {
 
-  lazy val baseUrl: String = hostProvider.hostFor("citizen-details") + "/citizen-details"
+  lazy val baseUrl: String = hostProvider.hostFor("citizen-details").toString + "/citizen-details"
+
 }

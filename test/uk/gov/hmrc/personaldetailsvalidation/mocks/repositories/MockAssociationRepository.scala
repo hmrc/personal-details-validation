@@ -14,31 +14,26 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.personaldetailsvalidation.mocks.services
+package uk.gov.hmrc.personaldetailsvalidation.mocks.repositories
 
 import org.mockito.ArgumentMatchersSugar.{any, eqTo}
 import org.mockito.MockitoSugar.when
 import org.mockito.stubbing.ScalaOngoingStubbing
+import uk.gov.hmrc.personaldetailsvalidation.AssociationRepository
 import uk.gov.hmrc.personaldetailsvalidation.model.Association
-import uk.gov.hmrc.personaldetailsvalidation.services.AssociationService
 
 import scala.concurrent.Future
 
-object MockAssociationService {
+object MockAssociationRepository {
 
-  def insertRecord(service: AssociationService, association: Association): ScalaOngoingStubbing[Future[Unit]] = {
-    when(service.insertRecord(eqTo(association)))
-      .thenReturn(Future.successful(()))
-  }
-
-  def getRecord(service: AssociationService)(returnValue: Future[Option[Association]]): ScalaOngoingStubbing[Future[Option[Association]]] = {
-    when(service.getRecord(any[String], any[String]))
+  def insertRecord(repository: AssociationRepository, association: Association)(returnValue: Future[Unit]): ScalaOngoingStubbing[Future[Unit]] = {
+    when(repository.insertRecord(eqTo(association)))
       .thenReturn(returnValue)
   }
 
-  def getRecordFailure(service: AssociationService): ScalaOngoingStubbing[Future[Option[Association]]] = {
-    when(service.getRecord(any[String], any[String]))
-      .thenReturn(Future.failed(new Exception("uh oh")))
+  def getRecord(repository: AssociationRepository)(returnValue: Option[Association]): ScalaOngoingStubbing[Future[Option[Association]]] = {
+    when(repository.getRecord(any[String], any[String]))
+      .thenReturn(Future.successful(returnValue))
   }
 
 }

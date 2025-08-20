@@ -22,7 +22,7 @@ import uk.gov.hmrc.config.HostConfigProvider
 @Singleton
 class MatchingConnectorConfig @Inject()(hostProvider: HostConfigProvider) {
 
-  lazy val authenticatorBaseUrl: String = hostProvider.hostFor("authenticator") + "/authenticator"
+  lazy val authenticatorBaseUrl: String = hostProvider.hostFor("authenticator").toString + "/authenticator"
 
   def circuitBreakerNumberOfCallsToTrigger: Int   = hostProvider.circuitBreakerNumberOfCallsToTrigger
   def circuitBreakerUnavailableDuration: Int = hostProvider.circuitBreakerUnavailableDurationInSec * 1000

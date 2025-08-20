@@ -21,7 +21,7 @@ import org.apache.pekko.Done
 import org.mockito.ArgumentMatchersSugar.{any, eqTo}
 import org.mockito.MockitoSugar.when
 import org.mockito.stubbing.ScalaOngoingStubbing
-import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetailsValidation
+import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.personaldetailsvalidation.services.PersonalDetailsValidatorService
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -32,6 +32,11 @@ object MockPdvService {
   def insertRecord(service: PersonalDetailsValidatorService, personalDetails: PersonalDetailsValidation)(returnValue: Done): ScalaOngoingStubbing[EitherT[Future, Exception, Done]] = {
     when(service.insertRecord(eqTo(personalDetails))(any[ExecutionContext]))
       .thenReturn(EitherT.pure[Future, Exception](returnValue))
+  }
+
+  def getRecord(service: PersonalDetailsValidatorService, personalDetailsValidationId: ValidationId)(returnValue: Option[PersonalDetailsValidation]): ScalaOngoingStubbing[Future[Option[PersonalDetailsValidation]]] = {
+    when(service.getRecord(eqTo(personalDetailsValidationId))(any[ExecutionContext]))
+      .thenReturn(Future.successful(returnValue))
   }
 
 }
