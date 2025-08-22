@@ -17,7 +17,7 @@
 package uk.gov.hmrc.support.wiremock
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, equalTo, post, stubFor, urlMatching}
+import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, equalTo, get, post, stubFor, urlMatching}
 import com.github.tomakehurst.wiremock.http.HttpHeader
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import play.api.libs.json.Writes
@@ -39,6 +39,22 @@ trait WiremockStubs {
 
     stubFor(
       mapping
+        .willReturn(
+          aResponse()
+            .withStatus(expectedStatus)
+            .withBody(expectedResponse)
+            .withHeader("Content-Type", "application/json; charset=utf-8")))
+  }
+
+  def stubGetWithResponseBody(url: String,
+                              expectedStatus: Int,
+                              expectedResponse: String,
+                              requestHeaders: Seq[HttpHeader] = Seq.empty): StubMapping = {
+    val mappingWithHeaders: MappingBuilder = requestHeaders.foldLeft(get(urlMatching(url))) { (result, nxt) =>
+      result.withHeader(nxt.key(), equalTo(nxt.firstValue()))
+    }
+    stubFor(
+      mappingWithHeaders
         .willReturn(
           aResponse()
             .withStatus(expectedStatus)

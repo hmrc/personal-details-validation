@@ -18,21 +18,20 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import play.api.Logging
 import play.api.http.Status._
-import play.api.libs.json.{JsError, JsSuccess, Reads, __}
+import play.api.libs.json.{JsError, JsSuccess}
+import uk.gov.hmrc.config.AppConfig
 import uk.gov.hmrc.domain._
 import uk.gov.hmrc.http._
-
-import javax.inject.Inject
-import uk.gov.hmrc.config.AppConfig
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.personaldetailsvalidation.model.Gender
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class CitizenDetailsConnector @Inject()(http: HttpClientV2, val config: CitizenDetailsConnectorConfig,
                                         val appConfig: AppConfig) extends Logging {
 
-  lazy val cdBaseUrl = config.baseUrl
+  private lazy val cdBaseUrl = config.baseUrl
 
   def findDesignatoryDetails(nino: Nino) (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Option[Gender]] = {
     if (appConfig.cidDesignatoryDetailsCallEnabled) {

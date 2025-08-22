@@ -19,15 +19,17 @@ package uk.gov.hmrc.personaldetailsvalidation.matching
 import cats.data.EitherT
 import play.api.http.Status._
 import uk.gov.hmrc.circuitbreaker._
-import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.config.AppConfig
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory
+import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsFormat._
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult._
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector._
 import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
-import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsFormat._
 
+import java.net.URI
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -38,14 +40,16 @@ class MatchingConnector @Inject()(httpClient: HttpClientV2,
                                   auditConnector: AuditConnector) extends UsingCircuitBreaker {
 
   def doMatch(personalDetails: PersonalDetails)
-             (implicit headerCarrier: HeaderCarrier, executionContext: ExecutionContext): EitherT[Future, Exception, MatchResult] =
+             (implicit headerCarrier: HeaderCarrier, executionContext: ExecutionContext): EitherT[Future, Exception, MatchResult] = {
+
+    val uri = URI.create(s"${connectorConfig.authenticatorBaseUrl}/match").toURL
+
     EitherT(
       withCircuitBreaker {
         httpClient
-          .post(url"$connectorConfig.authenticatorBaseUrl/match")
+          .post(uri)(headerCarrier)
           .withBody(personalDetails.toJson)
           .execute[Either[Exception, MatchResult]]
-
       } recover {
         case ex: UnhealthyServiceException =>
           auditConnector.sendEvent(auditDataFactory.createCircuitBreakerEvent(personalDetails))
@@ -54,6 +58,7 @@ class MatchingConnector @Inject()(httpClient: HttpClientV2,
           Left(ex)
       }
     )
+  }
 
   private implicit val matchingResultHttpReads: HttpReads[Either[Exception, MatchResult]] = new HttpReads[Either[Exception, MatchResult]] {
     override def read(method: String, url: String, response: HttpResponse): Either[Exception, MatchResult] = response.status match {

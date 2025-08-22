@@ -18,16 +18,13 @@ package uk.gov.hmrc.personaldetailsvalidation.connectors
 
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
-import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
-import org.scalatestplus.mockito.MockitoSugar.mock
-import play.api.Configuration
-import play.api.http.Status.OK
+import play.api.http.Status._
 import play.api.libs.json.{JsObject, JsString, Json}
-import uk.gov.hmrc.config.HostConfigProvider
+import play.api.test.Helpers.{await, defaultAwaitTimeout}
+import uk.gov.hmrc.circuitbreaker.UnhealthyServiceException
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory.{AuditDetailsProvider, AuditTagProvider}
-import uk.gov.hmrc.personaldetailsvalidation.audit.{AuditConfig, AuditDataEventFactory}
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.MatchSuccessful
+import uk.gov.hmrc.http.BadGatewayException
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.matching._
 import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetailsWithNino
 import uk.gov.hmrc.support.utils.BaseIntegrationSpec
@@ -36,31 +33,7 @@ import uk.gov.hmrc.support.wiremock.WiremockStubs
 class MatchingConnectorISpec extends BaseIntegrationSpec
   with WiremockStubs {
 
-  val auditTagsProvider: AuditTagProvider        = mock[AuditTagProvider]
-  val auditDetailsProvider: AuditDetailsProvider = mock[AuditDetailsProvider]
-  val auditConfig: AuditConfig                   = new AuditConfig(mock[Configuration]) {
-    override lazy val appName: String = "personal-details-validation"
-  }
-
-  val connectorConfig: MatchingConnectorConfig = new MatchingConnectorConfig(mock[HostConfigProvider]) {
-    override lazy val authenticatorBaseUrl = "http://host/authenticator"
-
-    override def circuitBreakerNumberOfCallsToTrigger: Int = 20
-    override def circuitBreakerUnavailableDuration: Int    = 60
-    override def circuitBreakerUnstableDuration: Int       = 300
-  }
-
-  val auditDataFactory: AuditDataEventFactory = new AuditDataEventFactory(
-    auditConfig,
-    auditTagsProvider,
-    auditDetailsProvider)
-
-  val connector: MatchingConnector = new MatchingConnector(
-    mockHttpClient,
-    connectorConfig,
-    auditDataFactory,
-    mockAuditConnector
-  )
+  lazy val connector: MatchingConnector = app.injector.instanceOf[MatchingConnector]
 
   val nino: Nino = Nino("AA000003D")
   val ninoWithDifferentSuffix: Nino = Nino("AA000003C")
@@ -69,10 +42,10 @@ class MatchingConnectorISpec extends BaseIntegrationSpec
   val personalDetails: PersonalDetailsWithNino = generatedPersonalDetails.copy(nino = nino)
 
   val payload: JsObject = Json.obj(
-    "firstName" -> personalDetails.firstName,
-    "lastName" -> personalDetails.lastName,
+    "firstName"   -> personalDetails.firstName,
+    "lastName"    -> personalDetails.lastName,
     "dateOfBirth" -> personalDetails.dateOfBirth,
-    "nino" -> personalDetails.nino
+    "nino"        -> personalDetails.nino
   )
 
   "doMatch" should {
@@ -82,19 +55,63 @@ class MatchingConnectorISpec extends BaseIntegrationSpec
       val matchingResponsePayload: JsObject = payload + ("nino" -> JsString(ninoWithDifferentSuffix.value))
 
       stubPostWithRequestAndResponseBody(
-        url = "http://host/authenticator/match",
+        url = s"/authenticator/match",
         requestBody = payload,
         expectedResponse = matchingResponsePayload.toString(),
         expectedStatus = OK
       )
-//
-//      expectPost(toUrl = "http://host/authenticator/match")
-//        .withPayload(payload)
-//        .returning(OK, matchingResponsePayload)
 
       connector.doMatch(personalDetails)
-        .value.futureValue shouldBe Right(MatchSuccessful(personalDetails.copy(nino = ninoWithDifferentSuffix)))
+        .value.futureValue mustBe Right(MatchSuccessful(personalDetails.copy(nino = ninoWithDifferentSuffix)))
+    }
+
+    "return MatchFailed with errors when POST to authenticator's /authenticator/match returns UNAUTHORISED" in {
+      val errors = "Last Name does not match CID"
+
+      stubPostWithRequestAndResponseBody(
+        url = s"/authenticator/match",
+        requestBody = payload,
+        expectedResponse = Json.obj("errors" -> errors).toString(),
+        expectedStatus = UNAUTHORIZED
+      )
+
+      connector.doMatch(personalDetails).value.futureValue mustBe Right(MatchFailed(errors))
+    }
+
+    Set(NO_CONTENT, NOT_FOUND, INTERNAL_SERVER_ERROR) foreach { unexpectedStatus =>
+
+      s"return Left when POST to /authenticator/match returns $unexpectedStatus" in {
+
+        stubPostWithRequestAndResponseBody(
+          url = s"/authenticator/match",
+          requestBody = payload,
+          expectedResponse = "",
+          expectedStatus = unexpectedStatus
+        )
+
+        val Left(expectedException) = connector.doMatch(personalDetails).value.futureValue
+        expectedException mustBe a[BadGatewayException]
+        expectedException.getMessage mustBe s"Unexpected response from POST http://localhost:11111/authenticator/match with status: '$unexpectedStatus' and body: "
+      }
+    }
+
+    "return Left when authenticator went down" in {
+
+      stubPostWithRequestAndResponseBody(
+        url = "/authenticator/match",
+        requestBody = payload,
+        expectedResponse = "some error",
+        expectedStatus = 500
+      )
+
+      for (_ <- 1 to 20) {
+        await(connector.doMatch(personalDetails).value)
+      }
+
+      val Left(expectedException) = connector.doMatch(personalDetails).value.futureValue
+
+      expectedException mustBe a[UnhealthyServiceException]
     }
   }
-
 }
+
