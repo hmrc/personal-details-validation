@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package uk.gov.hmrc.personaldetailsvalidation.formats
 import generators.Generators.Implicits._
 import generators.ObjectGenerators._
 import org.scalacheck.Gen
-import org.scalamock.scalatest.MockFactory
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 import play.api.libs.json.Json.toJson
 import play.api.libs.json.{JsResultException, Json}
@@ -42,15 +41,21 @@ class PersonalDetailsValidationFormatSpec
     chars <- Gen.listOfN(length, Gen.alphaNumChar)
   } yield chars.mkString
 
+  implicit val uuidProvider: UUIDProvider = new UUIDProvider {
+    override val apply: UUID = randomUUID()
+  }
+
+  val truncateToMillis: LocalDateTime => LocalDateTime = date => LocalDateTime.ofInstant(Instant.ofEpochMilli(date.toInstant(ZoneOffset.UTC).toEpochMilli), ZoneOffset.UTC)
+
   "format" should {
-    "correctly parse valid postcodes" in new Setup {
+    "correctly parse valid postcodes" in {
       import PersonalDetailsFormat._
       forAll { personalDetailsWithPostCode : PersonalDetailsWithPostCode =>
         Json.parse(personalDetailsWithPostCode.toJson.toString()).as[PersonalDetails]
       }
     }
 
-    "correctly fail to parse valid postcodes that do not start at the beginning of the field" in new Setup {
+    "correctly fail to parse valid postcodes that do not start at the beginning of the field" in {
       import PersonalDetailsFormat._
       forAll { (personalDetailsWithPostCode : PersonalDetailsWithPostCode, randomString : String) =>
         val adjustedPostCode = randomString + personalDetailsWithPostCode.postCode.value
@@ -59,7 +64,7 @@ class PersonalDetailsValidationFormatSpec
       }
     }
 
-    "correctly fail to parse valid postcodes that do not end the field" in new Setup {
+    "correctly fail to parse valid postcodes that do not end the field" in {
       import PersonalDetailsFormat._
       forAll { (personalDetailsWithPostCode : PersonalDetailsWithPostCode, randomString : String) =>
         val adjustedPostCode = personalDetailsWithPostCode.postCode.value + randomString
@@ -68,7 +73,7 @@ class PersonalDetailsValidationFormatSpec
       }
     }
 
-    "correctly fail to parse the field if it contains multiple postcodes" in new Setup {
+    "correctly fail to parse the field if it contains multiple postcodes" in {
       import PersonalDetailsFormat._
       forAll { (firstPersonalDetailsWithPostCode : PersonalDetailsWithPostCode, secondPersonalDetailsWithPostCode : PersonalDetailsWithPostCode, randomString : String) =>
         val adjustedPostCode =
@@ -80,7 +85,7 @@ class PersonalDetailsValidationFormatSpec
       }
     }
 
-    "fail validation for invalid postcodes" in new Setup {
+    "fail validation for invalid postcodes" in {
       import PersonalDetailsFormat._
       val badPostcodes = List("ZZ1 1ZZ","YI1 1YY")
 
@@ -92,7 +97,7 @@ class PersonalDetailsValidationFormatSpec
       }
     }
 
-    "allow to serialise SuccessfulPersonalDetailsValidation to JSON" in new Setup {
+    "allow to serialise SuccessfulPersonalDetailsValidation to JSON" in {
       forAll { personalDetailsWithNino: PersonalDetailsWithNino =>
         val createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)
         Json.toJson[PersonalDetailsValidation](PersonalDetailsValidation.successful(personalDetailsWithNino, createdAt)) shouldBe Json.obj(
@@ -110,7 +115,7 @@ class PersonalDetailsValidationFormatSpec
       }
     }
 
-    "allow to serialise FailedPersonalDetailsValidation to JSON" in new Setup {
+    "allow to serialise FailedPersonalDetailsValidation to JSON" in {
       val createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)
       toJson[PersonalDetailsValidation](PersonalDetailsValidation.failed(Some("credentialId"), Some(0), createdAt)) shouldBe Json.obj(
         "id" -> ValidationId(uuidProvider()),
@@ -121,7 +126,7 @@ class PersonalDetailsValidationFormatSpec
       )
     }
 
-    "allow to deserialise SuccessfulPersonalDetailsValidation to JSON" in new Setup {
+    "allow to deserialise SuccessfulPersonalDetailsValidation to JSON" in {
       forAll { personalDetails: PersonalDetailsWithNino =>
         val createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)
         val personalDetailsWithNino = personalDetails
@@ -140,7 +145,7 @@ class PersonalDetailsValidationFormatSpec
 
     }
 
-    "allow to deserialise FailedPersonalDetailsValidation to JSON" in new Setup {
+    "allow to deserialise FailedPersonalDetailsValidation to JSON" in {
       val createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)
       Json.obj(
         "id" -> ValidationId(),
@@ -152,11 +157,4 @@ class PersonalDetailsValidationFormatSpec
     }
   }
 
-  private trait Setup extends MockFactory {
-    implicit val uuidProvider: UUIDProvider = new UUIDProvider {
-      override val apply: UUID = randomUUID()
-    }
-
-    val truncateToMillis: LocalDateTime => LocalDateTime = date => LocalDateTime.ofInstant(Instant.ofEpochMilli(date.toInstant(ZoneOffset.UTC).toEpochMilli), ZoneOffset.UTC)
-  }
 }

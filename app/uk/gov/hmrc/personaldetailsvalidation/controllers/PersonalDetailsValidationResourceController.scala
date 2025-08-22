@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@ import uk.gov.hmrc.personaldetailsvalidation.model._
 import uk.gov.hmrc.personaldetailsvalidation.services.PersonalDetailsValidatorService
 import uk.gov.hmrc.personaldetailsvalidation.{PersonalDetailsValidationRetryRepository, PersonalDetailsValidator, formats}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.play.json.JsonValidation
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -40,7 +39,7 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
                                                             personalDetailsValidator: PersonalDetailsValidator,
                                                             cc: ControllerComponents)
                                                            (implicit val authConnector: AuthConnector, ec: ExecutionContext)
-  extends BackendController(cc) with JsonValidation with AuthorisedFunctions with Logging {
+  extends BackendController(cc) with AuthorisedFunctions with Logging {
 
   import formats.PersonalDetailsFormat._
   import formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats

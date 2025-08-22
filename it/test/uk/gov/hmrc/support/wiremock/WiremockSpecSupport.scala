@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package test.uk.gov.hmrc.support.wiremock
+package uk.gov.hmrc.support.wiremock
 
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
-import test.uk.gov.hmrc.support.stubs.AuditEventStubs.stubAuditEvent
+import test.uk.gov.hmrc.support.wiremock.WiremockHelper
+import uk.gov.hmrc.support.stubs.AuditEventStubs.stubAuditEvent
 
 trait WiremockSpecSupport extends BeforeAndAfterEach with BeforeAndAfterAll with WiremockHelper {
 

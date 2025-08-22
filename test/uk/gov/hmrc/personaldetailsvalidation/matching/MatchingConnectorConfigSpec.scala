@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,26 +16,30 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.matching
 
-import org.scalamock.scalatest.MockFactory
+import org.mockito.MockitoSugar.when
+import org.scalatestplus.mockito.MockitoSugar.mock
 import support.UnitSpec
 import uk.gov.hmrc.config.HostConfigProvider
 import uk.gov.hmrc.http.Host
 
+import java.net.URI
+
 class MatchingConnectorConfigSpec
-  extends UnitSpec
-    with MockFactory {
+  extends UnitSpec {
 
   "authenticatorBaseUrl" should {
 
     "be created using HostConfigProvider" in new Setup {
       val hostValue = "http://localhost:9000"
-      hostProvider.hostFor _ expects "authenticator" returning Host(hostValue)
-      config.authenticatorBaseUrl shouldBe s"$hostValue/authenticator"
+      when(hostProvider.hostFor("authenticator")).thenReturn(Host(hostValue))
+
+      config.authenticatorBaseUrl shouldBe URI.create(s"$hostValue/authenticator").toURL
+
     }
   }
 
   private trait Setup {
-    val hostProvider = mock[HostConfigProvider]
+    val hostProvider: HostConfigProvider = mock[HostConfigProvider]
     val config = new MatchingConnectorConfig(hostProvider)
   }
 

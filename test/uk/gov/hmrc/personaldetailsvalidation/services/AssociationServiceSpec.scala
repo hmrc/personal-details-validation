@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,59 +16,56 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.services
 
-import org.scalamock.scalatest.MockFactory
+import org.mockito.MockitoSugar.{reset, when}
+import org.scalatest.BeforeAndAfterEach
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.Configuration
-import support.UnitSpec
-import uk.gov.hmrc.crypto.{Crypted, Decrypter, Encrypter, PlainContent, PlainText}
-import uk.gov.hmrc.personaldetailsvalidation.AssociationRepository
+import support.{CommonTestData, UnitSpec}
+import uk.gov.hmrc.crypto.{Crypted, Decrypter, Encrypter, PlainText}
+import uk.gov.hmrc.personaldetailsvalidation.mocks.repositories.MockAssociationRepository
 import uk.gov.hmrc.personaldetailsvalidation.model.Association
 
-import java.time.LocalDateTime
-import java.util.UUID
 import scala.concurrent.Future
 
-class AssociationServiceSpec extends UnitSpec with MockFactory {
+class AssociationServiceSpec extends UnitSpec with CommonTestData with BeforeAndAfterEach {
+
+  abstract class mockCryptoImpl extends Encrypter with Decrypter
+
+  val mockCrypto: Encrypter with Decrypter = mock[mockCryptoImpl]
+
+  val mockEncryption: Encryption = new Encryption(mock[Configuration]) {
+    override lazy val crypto: Encrypter with Decrypter = mockCrypto
+  }
+
+  val associationService: AssociationService = new AssociationService(mockAssociationRepository, mockEncryption)
+
+  override def beforeEach(): Unit = {
+    reset(mockAssociationRepository)
+    super.beforeEach()
+  }
 
   "AssociationService" should {
 
-    "insert an instance of Association into the association repository" in new Setup {
+    "insert an instance of Association into the association repository" in {
 
       val association: Association = Association(testCredId, testSessionId, testValidationId, testLastUpdated)
 
-      (mockRepository.insertRecord(_: Association)).expects(association).returning(Future.successful(()))
+      MockAssociationRepository.insertRecord(mockAssociationRepository, association)(Future.successful(()))
 
       await(associationService.insertRecord(association)) shouldBe ()
     }
 
-    "return an instance of an association given a credential and session identifier" in new Setup {
+    "return an instance of an association given a credential and session identifier" in {
 
       val association: Association = Association(testCredId, testSessionId, testValidationId, testLastUpdated)
 
-      (mockCrypto.encrypt(_: PlainContent)).expects(PlainText(testCredId)).returning(Crypted("foo"))
-      (mockCrypto.encrypt(_: PlainContent)).expects(PlainText(testSessionId)).returning(Crypted("bar"))
-      (mockRepository.getRecord(_: String, _: String)).expects("foo", "bar").returning(Future.successful(Some(association)))
+      when(mockCrypto.encrypt(PlainText(testCredId))).thenReturn(Crypted("foo"))
+      when(mockCrypto.encrypt(PlainText(testSessionId))).thenReturn(Crypted("bar"))
+
+      MockAssociationRepository.getRecord(mockAssociationRepository)(Some(association))
 
       await(associationService.getRecord(testCredId, testSessionId)) shouldBe Some(association)
     }
-  }
-
-  trait Setup {
-
-    val testCredId: String = "cred-123"
-    val testSessionId: String = s"session-${UUID.randomUUID().toString}"
-    val testValidationId: String = UUID.randomUUID().toString
-    val testLastUpdated: LocalDateTime = LocalDateTime.now()
-
-    val mockRepository: AssociationRepository = mock[AssociationRepository]
-    abstract class mockCryptoImpl extends Encrypter with Decrypter
-    val mockCrypto: Encrypter with Decrypter = mock[mockCryptoImpl]
-
-    val mockEncryption: Encryption = new Encryption(mock[Configuration]) {
-      override lazy val crypto: Encrypter with Decrypter = mockCrypto
-    }
-
-    val associationService: AssociationService = new AssociationService(mockRepository, mockEncryption)
-
   }
 
 }

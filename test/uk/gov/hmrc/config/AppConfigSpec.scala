@@ -16,8 +16,10 @@
 
 package uk.gov.hmrc.config
 
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.Configuration
 import support.UnitSpec
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 class AppConfigSpec extends UnitSpec {
 
@@ -40,6 +42,7 @@ class AppConfigSpec extends UnitSpec {
   trait Setup {
     lazy val entries: Map[String, Any] = Map()
     lazy val configuration = Configuration.from(entries)
-    lazy val appConfig = new AppConfig(configuration)
+    lazy val mockServicesConfig = mock[ServicesConfig]
+    lazy val appConfig = new AppConfig(configuration, mockServicesConfig)
   }
 }

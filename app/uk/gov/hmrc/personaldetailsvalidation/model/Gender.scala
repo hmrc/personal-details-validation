@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package scalamock
+package uk.gov.hmrc.personaldetailsvalidation.model
 
-import org.scalamock.matchers.{MatcherBase, Matchers => ScalamockMatchers}
-import org.scalamock.scalatest.MockFactory
-import org.scalatest.matchers.should.{Matchers => ScalatestMatchers}
+import play.api.libs.json.{Reads, __}
 
-import scala.reflect.ClassTag
+case class Gender(gender: String)
 
-trait MockArgumentMatchers extends ScalamockMatchers with ScalatestMatchers {
-  self: MockFactory =>
+object Gender {
 
-  def instanceOf[T](implicit classTag: ClassTag[T]): MatcherBase = argAssert{x: T => x.getClass shouldBe classTag.runtimeClass}
+  implicit val reads: Reads[Option[Gender]] = (__ \ "person" \ "sex").readNullable[String].map(gender => gender.map(Gender(_)))
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 package uk.gov.hmrc.personaldetailsvalidation.model
 
 import uk.gov.hmrc.uuid.UUIDProvider
+import play.api.libs.json._
 import uk.gov.voa.valuetype.{StringOptions, StringValue, ValueType}
 
 import java.time.{LocalDateTime, ZoneOffset}
@@ -27,6 +28,9 @@ case class ValidationId(value: UUID) extends ValueType[UUID]
 object ValidationId {
 
   def apply()(implicit uuidProvider: UUIDProvider): ValidationId = ValidationId(uuidProvider())
+
+  implicit val validationIdWrites: Writes[ValidationId] = (id: ValidationId) => Json.obj("value" -> id.value)
+
 }
 
 sealed trait ValidationStatus extends StringValue {
@@ -68,4 +72,5 @@ object PersonalDetailsValidation {
 
   def failed(maybeCredId: Option[String], attempts: Option[Int], createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC))(implicit uuidProvider: UUIDProvider): FailedPersonalDetailsValidation =
     FailedPersonalDetailsValidation(ValidationId(), maybeCredId = maybeCredId, attempt = attempts, createdAt = createdAt)
+
 }

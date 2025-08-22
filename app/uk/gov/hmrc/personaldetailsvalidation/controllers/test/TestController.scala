@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidationRepository
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsWithNino, SuccessfulPersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.play.json.JsonValidation
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -33,13 +32,21 @@ import scala.concurrent.{ExecutionContext, Future}
 class TestController @Inject()(personalDetailsValidationRepository: PersonalDetailsValidationRepository,
                               cc: ControllerComponents)
                               (implicit ec: ExecutionContext)
-  extends BackendController(cc)
-    with JsonValidation {
+  extends BackendController(cc) {
 
   def upsertTestValidation: Action[JsValue] = Action.async(parse.json) { implicit request =>
-    withJsonBody[PersonalDetailsTestValidationData] { personalDetails =>
-      val personData = PersonalDetailsWithNino(firstName = "NA - Test Data", lastName = "NA - Test Data", dateOfBirth = LocalDate.now(), nino = personalDetails.nino)
-      val validationData = SuccessfulPersonalDetailsValidation(ValidationId(personalDetails.validationId), personalDetails = personData, createdAt = LocalDateTime.now(ZoneOffset.UTC))
+    withJsonBody[PersonalDetailsTestValidationData] { personalDetails: PersonalDetailsTestValidationData =>
+      val personData     = PersonalDetailsWithNino(
+        firstName = "NA - Test Data",
+        lastName = "NA - Test Data",
+        dateOfBirth = LocalDate.now(),
+        nino = personalDetails.nino
+      )
+      val validationData = SuccessfulPersonalDetailsValidation(
+        ValidationId(personalDetails.validationId),
+        personalDetails = personData,
+        createdAt = LocalDateTime.now(ZoneOffset.UTC)
+      )
       personalDetailsValidationRepository.create(validationData)
       Future.successful(Created)
     }
