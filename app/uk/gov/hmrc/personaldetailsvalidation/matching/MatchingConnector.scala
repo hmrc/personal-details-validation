@@ -19,7 +19,6 @@ package uk.gov.hmrc.personaldetailsvalidation.matching
 import cats.data.EitherT
 import play.api.http.Status._
 import uk.gov.hmrc.circuitbreaker._
-import uk.gov.hmrc.config.AppConfig
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory

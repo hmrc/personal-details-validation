@@ -69,8 +69,8 @@ class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTag
     }
 
     val age = personalDetails match {
-      case details: PersonalDetailsWithNino => currentAgeFromDateOfBirth(details.dateOfBirth).toString
-      case details: PersonalDetailsWithPostCode => currentAgeFromDateOfBirth(details.dateOfBirth).toString
+      case details: PersonalDetailsWithNino => currentAgeFromDateOfBirth(details.dateOfBirth)
+      case details: PersonalDetailsWithPostCode => currentAgeFromDateOfBirth(details.dateOfBirth)
       case _ => """NOT SUPPLIED"""
     }
 

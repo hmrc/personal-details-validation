@@ -33,9 +33,14 @@ import uk.gov.hmrc.support.wiremock.WiremockStubs
 class MatchingConnectorISpec extends BaseIntegrationSpec
   with WiremockStubs {
 
-  lazy val connector: MatchingConnector = app.injector.instanceOf[MatchingConnector]
+  val connector: MatchingConnector = new MatchingConnector(
+    httpClientV2,
+    matchingConnectorConfig,
+    auditDataFactory,
+    auditConnector
+  )
 
-  val nino: Nino = Nino("AA000003D")
+  val nino: Nino                    = Nino("AA000003D")
   val ninoWithDifferentSuffix: Nino = Nino("AA000003C")
 
   val generatedPersonalDetails: PersonalDetailsWithNino = personalDetailsWithNinoObjects.generateOne

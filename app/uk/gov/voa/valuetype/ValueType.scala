@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,10 +32,6 @@ trait StringValue extends ValueType[String]
 trait IntValue extends ValueType[Int]
 
 trait LongValue extends ValueType[Long]
-
-trait BooleanValue extends ValueType[Boolean]
-
-trait BigDecimalValue extends ValueType[BigDecimal]
 
 trait RoundedBigDecimalValue extends ValueType[BigDecimal] {
 

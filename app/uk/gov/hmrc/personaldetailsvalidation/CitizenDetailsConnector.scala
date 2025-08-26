@@ -28,7 +28,8 @@ import uk.gov.hmrc.personaldetailsvalidation.model.Gender
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
-class CitizenDetailsConnector @Inject()(http: HttpClientV2, val config: CitizenDetailsConnectorConfig,
+class CitizenDetailsConnector @Inject()(http: HttpClientV2,
+                                        val config: CitizenDetailsConnectorConfig,
                                         val appConfig: AppConfig) extends Logging {
 
   private lazy val cdBaseUrl = config.baseUrl

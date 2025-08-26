@@ -21,6 +21,7 @@ import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, equalTo, get,
 import com.github.tomakehurst.wiremock.http.HttpHeader
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import play.api.libs.json.Writes
+import uk.gov.hmrc.http.UpstreamErrorResponse
 
 trait WiremockStubs {
 
@@ -60,6 +61,29 @@ trait WiremockStubs {
             .withStatus(expectedStatus)
             .withBody(expectedResponse)
             .withHeader("Content-Type", "application/json; charset=utf-8")))
+  }
+
+  import uk.gov.hmrc.http.UpstreamErrorResponse
+
+  def stubGetWithUpstreamError(url: String,
+                               expectedStatus: Int,
+                               expectedResponse: String,
+                               requestHeaders: Seq[HttpHeader] = Seq.empty): StubMapping = {
+    val mappingWithHeaders: MappingBuilder = requestHeaders.foldLeft(get(urlMatching(url))) { (result, nxt) =>
+      result.withHeader(nxt.key(), equalTo(nxt.firstValue()))
+    }
+
+    stubFor(
+      mappingWithHeaders
+        .willReturn(
+          aResponse()
+            .withStatus(expectedStatus)
+            .withBody(expectedResponse)
+            .withHeader("Content-Type", "application/json; charset=utf-8")
+        )
+    )
+
+    throw UpstreamErrorResponse(expectedResponse, expectedStatus)
   }
 
 }
