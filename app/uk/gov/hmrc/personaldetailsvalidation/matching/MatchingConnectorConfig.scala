@@ -25,7 +25,7 @@ import java.net.{URI, URL}
 @Singleton
 class MatchingConnectorConfig @Inject()(hostProvider: HostConfigProvider) {
 
-  lazy val authenticatorBaseUrl: URL = URI.create(hostProvider.hostFor("authenticator") + "/authenticator").toURL
+  lazy val authenticatorBaseUrl: URL = URI.create(hostProvider.hostFor("authenticator").value + "/authenticator").toURL
 
   def circuitBreakerNumberOfCallsToTrigger: Int = hostProvider.circuitBreakerNumberOfCallsToTrigger
   def circuitBreakerUnavailableDuration: Int    = hostProvider.circuitBreakerUnavailableDurationInSec * 1000
