@@ -5,7 +5,7 @@ private object AppDependencies {
   def apply(): Seq[ModuleID] = compile ++ test
 
   val hmrcMongo = "2.7.0"
-  val bootstrap = "10.1.0"
+  val bootstrap = "9.14.0"
   
   private val compile = Seq(
     "uk.gov.hmrc.mongo" %% "hmrc-mongo-play-30"        % hmrcMongo,

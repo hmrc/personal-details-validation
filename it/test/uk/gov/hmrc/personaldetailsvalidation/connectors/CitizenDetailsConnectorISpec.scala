@@ -170,7 +170,7 @@ class CitizenDetailsConnectorISpec extends BaseIntegrationSpec
       )
       val config = Configuration.from(configData)
 
-      val testAppConfig = new AppConfig(config, null) {
+      val testAppConfig = new AppConfig(config) {
         val testLogger: Logger = logger
       }
 

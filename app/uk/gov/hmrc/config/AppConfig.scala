@@ -18,10 +18,9 @@ package uk.gov.hmrc.config
 
 import javax.inject.{Inject, Singleton}
 import play.api.{Configuration, Logging}
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 @Singleton
-class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig) extends Logging {
+class AppConfig @Inject() (config: Configuration) extends Logging {
   def returnNinoFromCid: Boolean = config.getOptional[Boolean]("feature.return-nino-from-cid").getOrElse(false)
 
   lazy val cidDesignatoryDetailsCallEnabled: Boolean = {
@@ -31,7 +30,5 @@ class AppConfig @Inject() (config: Configuration, servicesConfig: ServicesConfig
     if (!enabled) logger.warn("[VER-3530] Designatory details call is DISABLED for NPS Migration")
     enabled
   }
-
- lazy val authenticatorBaseUrl: String = s"${servicesConfig.baseUrl("authenticator")}/authenticator/match"
 
 }

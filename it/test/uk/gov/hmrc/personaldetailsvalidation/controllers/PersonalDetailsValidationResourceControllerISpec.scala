@@ -59,10 +59,6 @@ class PersonalDetailsValidationResourceControllerISpec
       createResponse.status mustBe CREATED
 
       val Some(resourceUrl) = createResponse.header(LOCATION)
-//      val resourceUrl: String = createResponse.header(LOCATION) match {
-//        case Some(url) => url
-//        case None => fail("Expected Location header to be present in the response")
-//      }
 
       val validationId: String = resourceUrl.substring(resourceUrl.lastIndexOf("/") + 1)
 
@@ -269,7 +265,7 @@ class PersonalDetailsValidationResourceControllerISpec
 
       val createResponse: WSResponse = sendCreateValidationResourceRequest(personalDetails).futureValue
       createResponse.status mustBe CREATED
-//      val Some(resourceUrl) = createResponse.header(LOCATION)
+
       val resourceUrl: String = createResponse.header(LOCATION) match {
         case Some(url) => url
         case None => fail("Expected Location header to be present in the response")
