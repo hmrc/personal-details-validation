@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,26 +29,3 @@ trait Options[T, VT <: ValueType[T]] extends TypeName {
 }
 
 trait StringOptions[VT <: StringValue] extends Options[String, VT]
-
-trait IntOptions[VT <: IntValue] extends Options[Int, VT]
-
-trait LongOptions[VT <: LongValue] extends Options[Long, VT]
-
-trait Apply[T, VT <: ValueType[T]] {
-
-  self: Options[T, VT] =>
-
-  final def apply(x: T): VT = of(x)
-}
-
-trait StringApply[VT <: StringValue] extends Apply[String, VT] {
-  self: StringOptions[VT] =>
-}
-
-trait IntApply[VT <: IntValue] extends Apply[Int, VT] {
-  self: IntOptions[VT] =>
-}
-
-trait LongApply[VT <: LongValue] extends Apply[Long, VT] {
-  self: LongOptions[VT] =>
-}

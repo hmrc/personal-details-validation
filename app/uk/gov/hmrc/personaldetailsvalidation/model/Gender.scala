@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,26 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.voa.valuetype.constraints
+package uk.gov.hmrc.personaldetailsvalidation.model
 
-import uk.gov.voa.valuetype.{IntValue, LongValue, ValueType}
+import play.api.libs.json.{Reads, __}
 
-trait PositiveInt extends IntValue {
+case class Gender(gender: String)
 
-  require(value > 0, s"$typeName's value has to be positive")
+object Gender {
 
-}
-
-trait PositiveLong extends LongValue {
-
-  require(value > 0, s"$typeName's value has to be positive")
-
-}
-
-trait PositiveBigDecimal {
-
-  self: ValueType[BigDecimal] =>
-
-  require(value > 0, s"$typeName's value has to be positive")
+  implicit val reads: Reads[Option[Gender]] = (__ \ "person" \ "sex").readNullable[String].map(gender => gender.map(Gender(_)))
 
 }

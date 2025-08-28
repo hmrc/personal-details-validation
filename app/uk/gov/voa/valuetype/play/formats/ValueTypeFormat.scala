@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ object ValueTypeFormat extends ValueTypeFormat
 trait ValueTypeFormat {
 
   implicit def parseString: PartialFunction[JsValue, String] = {
-    case JsString(value) if !value.isEmpty => value
+    case JsString(value) if value.nonEmpty => value
   }
 
   implicit def parseInt: PartialFunction[JsValue, Int] = {
@@ -45,11 +45,11 @@ trait ValueTypeFormat {
     case JsBoolean(value) => value
   }
 
-  implicit val stringToJson = JsString.apply _
-  implicit val intToJson = (value: Int) => JsNumber.apply(value)
-  implicit val longToJson = (value: Long) => JsNumber.apply(value)
-  implicit val bigDecimalToJson = (value: BigDecimal) => JsNumber.apply(value)
-  implicit val booleanToJson = JsBoolean.apply _
+  implicit val stringToJson: String         => JsString = JsString.apply
+  implicit val intToJson: Int               => JsNumber = (value: Int) => JsNumber.apply(value)
+  implicit val longToJson: Long             => JsNumber = (value: Long) => JsNumber.apply(value)
+  implicit val bigDecimalToJson: BigDecimal => JsNumber = (value: BigDecimal) => JsNumber.apply(value)
+  implicit val booleanToJson: Boolean       => JsBoolean = JsBoolean.apply
 
   def valueTypeReadsFor[T, V <: ValueType[T]](instantiateFromSimpleType: T => V)
                                              (implicit parse: PartialFunction[JsValue, T]) =
@@ -69,6 +69,6 @@ trait ValueTypeFormat {
 
   def format[T, V <: ValueType[T]](instantiateFromSimpleType: T => V)
                                   (implicit parse: PartialFunction[JsValue, T],
-                                   toJson: T => JsValue) =
+                                   toJson: T => JsValue): Format[V] =
     Format[V](valueTypeReadsFor(instantiateFromSimpleType), valueTypeWritesFor[T, V])
 }

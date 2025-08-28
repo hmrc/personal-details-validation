@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,41 +16,47 @@
 
 package uk.gov.hmrc.play.json
 
+import org.mockito.MockitoSugar.when
+
 import java.time.LocalDateTime
 import java.time.ZoneOffset.UTC
-
-import org.scalamock.scalatest.MockFactory
+import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.libs.json.Json
 import support.UnitSpec
 import uk.gov.hmrc.datetime.CurrentTimeProvider
+import uk.gov.hmrc.play.json.ops.JsonObjectOps
 
-class JsonObjectOpsSpecs extends UnitSpec with MockFactory {
+class JsonObjectOpsSpecs extends UnitSpec {
+
+  implicit val timeProvider: CurrentTimeProvider = mock[CurrentTimeProvider]
+
+  val currentTime: LocalDateTime = LocalDateTime.now()
 
   "withCreatedTimeStamp" should {
-    "timestamp with default fieldName 'createdAt' to provided jsobject" in new Setup {
+    "timestamp with default fieldName 'createdAt' to provided jsobject" in {
 
-      (() => timeProvider.apply()).expects().returning(currentTime)
-      Json.obj("foo" -> "bar")
-        .withCreatedTimeStamp("createdAt") shouldBe Json.obj(
+      when(timeProvider.apply()).thenReturn(currentTime)
+
+      val json = Json.obj("foo" -> "bar")
+      val expected = Json.obj(
         "foo" -> "bar",
         "createdAt" -> Json.obj("$date" -> currentTime.atZone(UTC).toInstant.toEpochMilli)
       )
+
+      json.withCreatedTimeStamp("createdAt") shouldBe expected
+
     }
 
-    "timestamp with provided fieldName to provided jsobject" in new Setup {
+    "timestamp with provided fieldName to provided jsobject" in {
+      when(timeProvider.apply()).thenReturn(currentTime)
 
-      (() => timeProvider.apply()).expects().returning(currentTime)
       Json.obj("foo" -> "bar")
         .withCreatedTimeStamp("timestamp") shouldBe Json.obj(
         "foo" -> "bar",
-        "timestamp" -> Json.obj("$date" -> currentTime.atZone(UTC).toInstant.toEpochMilli))
+        "timestamp" -> Json.obj("$date" -> currentTime.atZone(UTC).toInstant.toEpochMilli)
+      )
+
     }
-  }
-
-  trait Setup extends JsonObjectOps {
-    implicit val timeProvider: CurrentTimeProvider = mock[CurrentTimeProvider]
-
-    val currentTime: LocalDateTime = LocalDateTime.now()
   }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,15 @@ package uk.gov.hmrc.personaldetailsvalidation.matching
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.config.HostConfigProvider
 
+import java.net.{URI, URL}
+
+
 @Singleton
-private class MatchingConnectorConfig @Inject()(hostProvider: HostConfigProvider) {
+class MatchingConnectorConfig @Inject()(hostProvider: HostConfigProvider) {
 
-  lazy val authenticatorBaseUrl: String = hostProvider.hostFor("authenticator") + "/authenticator"
+  lazy val authenticatorBaseUrl: URL = URI.create(hostProvider.hostFor("authenticator").value + "/authenticator").toURL
 
-  def circuitBreakerNumberOfCallsToTrigger: Int   = hostProvider.circuitBreakerNumberOfCallsToTrigger
-  def circuitBreakerUnavailableDuration: Int = hostProvider.circuitBreakerUnavailableDurationInSec * 1000
-  def circuitBreakerUnstableDuration: Int    = hostProvider.circuitBreakerUnstableDurationInSec * 1000
+  def circuitBreakerNumberOfCallsToTrigger: Int = hostProvider.circuitBreakerNumberOfCallsToTrigger
+  def circuitBreakerUnavailableDuration: Int    = hostProvider.circuitBreakerUnavailableDurationInSec * 1000
+  def circuitBreakerUnstableDuration: Int       = hostProvider.circuitBreakerUnstableDurationInSec * 1000
 }

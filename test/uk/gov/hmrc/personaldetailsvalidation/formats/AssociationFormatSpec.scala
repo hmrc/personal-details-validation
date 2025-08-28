@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,20 +17,12 @@
 package uk.gov.hmrc.personaldetailsvalidation.formats
 
 import java.time.{Instant, LocalDateTime, ZoneOffset}
-import java.util.UUID
-
-import play.api.libs.json.{Json, JsError, JsSuccess, JsValue}
-
+import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
 import uk.gov.hmrc.personaldetailsvalidation.model.Association
 import uk.gov.hmrc.personaldetailsvalidation.formats.AssociationFormat.associationFormat
-import support.UnitSpec
+import support.{CommonTestData, UnitSpec}
 
-class AssociationFormatSpec extends UnitSpec {
-
-  val testCredId: String = "cred-123"
-  val testSessionId: String = s"session-${UUID.randomUUID().toString}"
-  val testValidationId: String = UUID.randomUUID().toString
-  val testLastUpdated: LocalDateTime = LocalDateTime.now()
+class AssociationFormatSpec extends UnitSpec with CommonTestData {
 
   val dateToMillis: LocalDateTime => Long = {localDateTime => localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli}
 

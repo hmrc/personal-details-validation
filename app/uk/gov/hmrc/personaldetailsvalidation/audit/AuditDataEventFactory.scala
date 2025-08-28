@@ -29,7 +29,7 @@ import uk.gov.hmrc.play.audit.AuditExtensions
 import uk.gov.hmrc.play.audit.model.DataEvent
 
 @Singleton
-private[personaldetailsvalidation] class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTagProvider, auditDetailsProvider: AuditDetailsProvider) {
+class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTagProvider, auditDetailsProvider: AuditDetailsProvider) {
 
   @Inject() def this(auditConfig: AuditConfig) = this(
     auditConfig,
@@ -69,8 +69,8 @@ private[personaldetailsvalidation] class AuditDataEventFactory(auditConfig: Audi
     }
 
     val age = personalDetails match {
-      case details: PersonalDetailsWithNino => currentAgeFromDateOfBirth(details.dateOfBirth).toString
-      case details: PersonalDetailsWithPostCode => currentAgeFromDateOfBirth(details.dateOfBirth).toString
+      case details: PersonalDetailsWithNino => currentAgeFromDateOfBirth(details.dateOfBirth)
+      case details: PersonalDetailsWithPostCode => currentAgeFromDateOfBirth(details.dateOfBirth)
       case _ => """NOT SUPPLIED"""
     }
 
