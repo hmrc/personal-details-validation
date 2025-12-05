@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.model
 
-import java.time.LocalDate
-import java.time.temporal.ChronoUnit.YEARS
-import play.api.libs.json._
+import play.api.libs.json.*
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.model.NonEmptyString
+
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit.YEARS
 
 trait PersonalDetails {
   def toJson: JsObject

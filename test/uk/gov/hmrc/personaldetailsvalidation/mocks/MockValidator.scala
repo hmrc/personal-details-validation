@@ -17,39 +17,39 @@
 package uk.gov.hmrc.personaldetailsvalidation.mocks
 
 import cats.data.EitherT
-import org.mockito.ArgumentMatchersSugar.{any, eqTo}
-import org.mockito.MockitoSugar.when
-import org.mockito.stubbing.ScalaOngoingStubbing
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
+import org.mockito.Mockito.when
+import org.mockito.stubbing.OngoingStubbing
 import play.api.mvc.Request
 import uk.gov.hmrc.http.{BadGatewayException, HeaderCarrier}
 import uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidator
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetails, PersonalDetailsValidation}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
 
 object MockValidator {
 
   def validate(validator: PersonalDetailsValidator,
                personalDetails: PersonalDetails,
                origin: Option[String],
-               maybeCredId: Option[String])(returnValue: PersonalDetailsValidation): ScalaOngoingStubbing[EitherT[Future, Exception, PersonalDetailsValidation]] = {
-    when(validator.validate(eqTo(personalDetails), eqTo(origin), eqTo(maybeCredId))(any[HeaderCarrier], any[Request[_]], any[ExecutionContext]))
+               maybeCredId: Option[String])(returnValue: PersonalDetailsValidation): OngoingStubbing[EitherT[Future, Exception, PersonalDetailsValidation]] = {
+    when(validator.validate(eqTo(personalDetails), eqTo(origin), eqTo(maybeCredId))(using any[HeaderCarrier], any[Request[?]], any[ExecutionContext]))
       .thenReturn(EitherT.rightT[Future, Exception](returnValue))
   }
 
   def validateNoId(validator: PersonalDetailsValidator,
                    personalDetailsValidation:PersonalDetailsValidation,
-                   origin: Option[String]): ScalaOngoingStubbing[EitherT[Future, Exception, PersonalDetailsValidation]] = {
-    when(validator.validate(any[PersonalDetails], eqTo(origin), any[Option[String]])(any[HeaderCarrier], any[Request[_]], any[ExecutionContext]))
+                   origin: Option[String]): OngoingStubbing[EitherT[Future, Exception, PersonalDetailsValidation]] = {
+    when(validator.validate(any[PersonalDetails], eqTo(origin), any[Option[String]])(using any[HeaderCarrier], any[Request[?]], any[ExecutionContext]))
       .thenReturn(EitherT.rightT[Future, Exception](personalDetailsValidation))
   }
 
   def validateException(validator: PersonalDetailsValidator,
                personalDetails: PersonalDetails,
                origin: Option[String],
-               maybeCredId: Option[String])(returnValue: BadGatewayException): ScalaOngoingStubbing[EitherT[Future, Exception, PersonalDetailsValidation]] = {
-    when(validator.validate(eqTo(personalDetails), eqTo(origin), eqTo(maybeCredId))(any[HeaderCarrier], any[Request[_]], any[ExecutionContext]))
+               maybeCredId: Option[String])(returnValue: BadGatewayException): OngoingStubbing[EitherT[Future, Exception, PersonalDetailsValidation]] = {
+    when(validator.validate(eqTo(personalDetails), eqTo(origin), eqTo(maybeCredId))(using any[HeaderCarrier], any[Request[?]], any[ExecutionContext]))
       .thenReturn(EitherT.leftT[Future, PersonalDetailsValidation](returnValue))
   }
 

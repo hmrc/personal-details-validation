@@ -16,11 +16,11 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import org.apache.pekko.Done
 import cats.data.EitherT
+import org.apache.pekko.Done
+import org.mongodb.scala.model.*
 import org.mongodb.scala.model.Indexes.ascending
-import org.mongodb.scala.model._
-import play.api.libs.json._
+import play.api.libs.json.*
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.personaldetailsvalidation.formats.JavaDateTimeFormatter

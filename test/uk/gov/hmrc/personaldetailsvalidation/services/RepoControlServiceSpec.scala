@@ -19,7 +19,7 @@ package uk.gov.hmrc.personaldetailsvalidation.services
 import cats.data.EitherT
 import ch.qos.logback.classic.Level
 import org.apache.pekko.Done
-import org.mockito.MockitoSugar.reset
+import org.mockito.Mockito.reset
 import org.scalatest.concurrent.Eventually
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfterEach, LoneElement}

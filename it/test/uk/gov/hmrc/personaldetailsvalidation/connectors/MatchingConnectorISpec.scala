@@ -16,16 +16,16 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.connectors
 
-import generators.Generators.Implicits._
-import generators.ObjectGenerators._
-import play.api.http.Status._
+import generators.Generators.Implicits.*
+import generators.ObjectGenerators.*
+import play.api.http.Status.*
 import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.test.Helpers.{await, defaultAwaitTimeout}
 import uk.gov.hmrc.circuitbreaker.UnhealthyServiceException
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.BadGatewayException
+import uk.gov.hmrc.personaldetailsvalidation.matching.*
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
-import uk.gov.hmrc.personaldetailsvalidation.matching._
 import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetailsWithNino
 import uk.gov.hmrc.support.utils.BaseIntegrationSpec
 import uk.gov.hmrc.support.wiremock.WiremockStubs

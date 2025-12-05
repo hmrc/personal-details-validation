@@ -16,12 +16,11 @@
 
 package uk.gov.hmrc.play.pathbinders
 
-import java.util.UUID
-
 import play.api.mvc.PathBindable
 import uk.gov.hmrc.personaldetailsvalidation.model.ValidationId
 import uk.gov.voa.valuetype.play.binders.ValueTypePathBinder
 
+import java.util.UUID
 import scala.util.Try
 
 object PathBinders extends ValueTypePathBinder {
@@ -37,5 +36,5 @@ object PathBinders extends ValueTypePathBinder {
   }
 
   implicit val personalDetailsValidationIdBinder: PathBindable[ValidationId] =
-    valueTypeBinder[ValidationId](stringToPersonalDetailsValidationId)
+    valueTypeBinder[ValidationId](using stringToPersonalDetailsValidationId)
 }

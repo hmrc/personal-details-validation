@@ -16,11 +16,11 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.controllers
 
-import factory.ObjectFactory._
-import generators.Generators.Implicits._
-import generators.ObjectGenerators._
+import factory.ObjectFactory.*
+import generators.Generators.Implicits.*
+import generators.ObjectGenerators.*
 import org.apache.pekko.stream.Materializer
-import org.mockito.MockitoSugar.{reset, when}
+import org.mockito.Mockito.{reset, when}
 import org.scalacheck.Arbitrary
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
@@ -32,21 +32,21 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.*
 import play.api.libs.json.Json.toJson
-import play.api.libs.json._
 import play.api.mvc.Result
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import support.{CommonTestData, UnitSpec}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.personaldetailsvalidation._
+import uk.gov.hmrc.personaldetailsvalidation.*
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
 import uk.gov.hmrc.personaldetailsvalidation.mocks.MockValidator
 import uk.gov.hmrc.personaldetailsvalidation.mocks.connectors.MockAuthConnector
 import uk.gov.hmrc.personaldetailsvalidation.mocks.services.MockPdvService
-import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.personaldetailsvalidation.model.*
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import java.util.UUID.randomUUID
@@ -96,8 +96,8 @@ class PersonalDetailsValidationResourceControllerSpec
 
   "create" should {
 
-    implicit val personalDetailsGenerator: Arbitrary[PersonalDetails] = asArbitrary(personalDetailsObjects)
-    implicit val personalDetailsValidationGenerator: Arbitrary[PersonalDetailsValidation] = asArbitrary(personalDetailsValidationObjects)
+    implicit val personalDetailsGenerator: Arbitrary[PersonalDetails] = asArbitrary(using personalDetailsObjects)
+    implicit val personalDetailsValidationGenerator: Arbitrary[PersonalDetailsValidation] = asArbitrary(using personalDetailsValidationObjects)
 
     "return CREATED when personal details are validated with no error" in {
       forAll { (personalDetails: PersonalDetails, personalDetailsValidation: PersonalDetailsValidation) =>
@@ -230,7 +230,7 @@ class PersonalDetailsValidationResourceControllerSpec
 
   "Get in PersonalDetailsValidationResourceController" should {
 
-    implicit val generator: Arbitrary[PersonalDetailsValidation] = asArbitrary(personalDetailsValidationObjects)
+    implicit val generator: Arbitrary[PersonalDetailsValidation] = asArbitrary(using personalDetailsValidationObjects)
 
     "return Not Found http status code if repository does not return personal details validation" in {
       when(uuidProvider.apply()).thenReturn(randomUUID)
@@ -245,7 +245,7 @@ class PersonalDetailsValidationResourceControllerSpec
     }
 
     "return OK http status code if repository returns personal details validation" in {
-      forAll { personalDetailsValidation: PersonalDetailsValidation =>
+      forAll { (personalDetailsValidation: PersonalDetailsValidation) =>
         MockPdvService.getRecord(mockPersonalDetailsValidatorService, personalDetailsValidation.id)(Some(personalDetailsValidation))
 
         val response = controller.get(personalDetailsValidation.id)(request).futureValue
@@ -255,7 +255,7 @@ class PersonalDetailsValidationResourceControllerSpec
     }
 
     "return personalDetailsValidation id in response body" in {
-      forAll { personalDetailsValidation: PersonalDetailsValidation =>
+      forAll { (personalDetailsValidation: PersonalDetailsValidation) =>
         MockPdvService.getRecord(mockPersonalDetailsValidatorService, personalDetailsValidation.id)(Some(personalDetailsValidation))
 
         val response = controller.get(personalDetailsValidation.id)(request).futureValue
@@ -266,9 +266,9 @@ class PersonalDetailsValidationResourceControllerSpec
 
     "return personal details in response body for SuccessfulPersonalDetailsValidation" in {
 
-      import formats.PersonalDetailsFormat._
+      import formats.PersonalDetailsFormat.*
 
-      forAll { personalDetailsValidation: SuccessfulPersonalDetailsValidation =>
+      forAll { (personalDetailsValidation: SuccessfulPersonalDetailsValidation) =>
         MockPdvService.getRecord(mockPersonalDetailsValidatorService, personalDetailsValidation.id)(Some(personalDetailsValidation))
 
         val response = controller.get(personalDetailsValidation.id)(request).futureValue
@@ -279,7 +279,7 @@ class PersonalDetailsValidationResourceControllerSpec
 
     "do not return personal details in response body for FailedPersonalDetailsValidation" in {
 
-      forAll { personalDetailsValidation: FailedPersonalDetailsValidation =>
+      forAll { (personalDetailsValidation: FailedPersonalDetailsValidation) =>
         MockPdvService.getRecord(mockPersonalDetailsValidatorService, personalDetailsValidation.id)(Some(personalDetailsValidation))
 
         val response = controller.get(personalDetailsValidation.id)(request).futureValue

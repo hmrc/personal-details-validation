@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.mocks.audits
 
-import org.mockito.ArgumentMatchersSugar.{any, eqTo}
-import org.mockito.MockitoSugar.when
-import org.mockito.stubbing.ScalaOngoingStubbing
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
+import org.mockito.Mockito.when
+import org.mockito.stubbing.OngoingStubbing
 import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
@@ -30,8 +30,8 @@ object MockAuditEventConnector {
 
   val mockInstance: AuditConnector  = mock[AuditConnector]
 
-  def sendEvent(event: DataEvent)(returnValue: AuditResult):ScalaOngoingStubbing[Future[AuditResult]] = {
-    when(mockInstance.sendEvent(eqTo(event))(any[HeaderCarrier], any[ExecutionContext]))
+  def sendEvent(event: DataEvent)(returnValue: AuditResult):OngoingStubbing[Future[AuditResult]] = {
+    when(mockInstance.sendEvent(eqTo(event))(using any[HeaderCarrier], any[ExecutionContext]))
       .thenReturn(Future.successful(returnValue))
   }
 

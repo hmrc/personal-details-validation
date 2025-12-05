@@ -22,6 +22,6 @@ trait NonEmpty {
 
   self: StringValue =>
 
-  require(value.length > 0, s"$typeName cannot be empty")
+  require(value.nonEmpty, s"$typeName cannot be empty")
 
 }

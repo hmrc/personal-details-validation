@@ -16,9 +16,10 @@
 
 package uk.gov.hmrc.play.json
 
-import java.time.ZoneOffset.UTC
 import play.api.libs.json.{JsNumber, JsObject, Json}
 import uk.gov.hmrc.datetime.CurrentTimeProvider
+
+import java.time.ZoneOffset.UTC
 
 private[json] trait JsonObjectOps {
 

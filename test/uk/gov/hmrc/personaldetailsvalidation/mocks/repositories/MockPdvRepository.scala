@@ -18,31 +18,30 @@ package uk.gov.hmrc.personaldetailsvalidation.mocks.repositories
 
 import cats.data.EitherT
 import org.apache.pekko.Done
-import org.mockito.ArgumentMatchers.any
-import org.mockito.ArgumentMatchersSugar._
-import org.mockito.MockitoSugar._
-import org.mockito.stubbing.ScalaOngoingStubbing
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
+import org.mockito.Mockito.*
+import org.mockito.stubbing.OngoingStubbing
 import uk.gov.hmrc.personaldetailsvalidation.PdvRepository
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, ValidationId}
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 
 object MockPdvRepository {
 
-  def create(mockInstance: PdvRepository, personalDetails: PersonalDetailsValidation): ScalaOngoingStubbing[EitherT[Future, Exception, Done]] = {
-    when(mockInstance.create(eqTo(personalDetails))(any[ExecutionContext]))
+  def create(mockInstance: PdvRepository, personalDetails: PersonalDetailsValidation): OngoingStubbing[EitherT[Future, Exception, Done]] = {
+    when(mockInstance.create(eqTo(personalDetails))(using any[ExecutionContext]))
       .thenReturn(EitherT.pure[Future, Exception](Done))
   }
 
-  def get(mockInstance: PdvRepository, personalDetailsValidationId: ValidationId)(returnValue: PersonalDetailsValidation): ScalaOngoingStubbing[Future[Option[PersonalDetailsValidation]]] = {
-    when(mockInstance.get(eqTo(personalDetailsValidationId))(any[ExecutionContext]))
+  def get(mockInstance: PdvRepository, personalDetailsValidationId: ValidationId)(returnValue: PersonalDetailsValidation): OngoingStubbing[Future[Option[PersonalDetailsValidation]]] = {
+    when(mockInstance.get(eqTo(personalDetailsValidationId))(using any[ExecutionContext]))
       .thenReturn(Future.successful(Some(returnValue)))
   }
 
-  def getError(mockInstance: PdvRepository, personalDetailsValidationId: ValidationId): ScalaOngoingStubbing[Future[Option[PersonalDetailsValidation]]] = {
-    when(mockInstance.get(eqTo(personalDetailsValidationId))(any[ExecutionContext]))
+  def getError(mockInstance: PdvRepository, personalDetailsValidationId: ValidationId): OngoingStubbing[Future[Option[PersonalDetailsValidation]]] = {
+    when(mockInstance.get(eqTo(personalDetailsValidationId))(using any[ExecutionContext]))
       .thenReturn(Future.successful(None))
   }
 

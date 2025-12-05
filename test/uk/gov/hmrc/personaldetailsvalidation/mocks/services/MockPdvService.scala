@@ -18,9 +18,9 @@ package uk.gov.hmrc.personaldetailsvalidation.mocks.services
 
 import cats.data.EitherT
 import org.apache.pekko.Done
-import org.mockito.ArgumentMatchersSugar.{any, eqTo}
-import org.mockito.MockitoSugar.when
-import org.mockito.stubbing.ScalaOngoingStubbing
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
+import org.mockito.Mockito.when
+import org.mockito.stubbing.OngoingStubbing
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.personaldetailsvalidation.services.PersonalDetailsValidatorService
 
@@ -29,13 +29,13 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object MockPdvService {
 
-  def insertRecord(service: PersonalDetailsValidatorService, personalDetails: PersonalDetailsValidation)(returnValue: Done): ScalaOngoingStubbing[EitherT[Future, Exception, Done]] = {
-    when(service.insertRecord(eqTo(personalDetails))(any[ExecutionContext]))
+  def insertRecord(service: PersonalDetailsValidatorService, personalDetails: PersonalDetailsValidation)(returnValue: Done): OngoingStubbing[EitherT[Future, Exception, Done]] = {
+    when(service.insertRecord(eqTo(personalDetails))(using any[ExecutionContext]))
       .thenReturn(EitherT.pure[Future, Exception](returnValue))
   }
 
-  def getRecord(service: PersonalDetailsValidatorService, personalDetailsValidationId: ValidationId)(returnValue: Option[PersonalDetailsValidation]): ScalaOngoingStubbing[Future[Option[PersonalDetailsValidation]]] = {
-    when(service.getRecord(eqTo(personalDetailsValidationId))(any[ExecutionContext]))
+  def getRecord(service: PersonalDetailsValidatorService, personalDetailsValidationId: ValidationId)(returnValue: Option[PersonalDetailsValidation]): OngoingStubbing[Future[Option[PersonalDetailsValidation]]] = {
+    when(service.getRecord(eqTo(personalDetailsValidationId))(using any[ExecutionContext]))
       .thenReturn(Future.successful(returnValue))
   }
 

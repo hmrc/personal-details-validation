@@ -16,14 +16,14 @@
 
 package uk.gov.hmrc.config
 
-import java.time.Duration
-
 import play.api.Configuration
 import uk.gov.hmrc.http.Host
 
+import java.time.Duration
+
 package object implicits {
 
-  import ops._
+  import ops.*
 
   implicit def stringValueFinder(key: String)(configuration: Configuration): Option[String] = configuration.getOptional[String](key)
 

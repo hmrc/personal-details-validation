@@ -16,12 +16,12 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.services
 
-import org.apache.pekko.Done
 import cats.data.EitherT
+import org.apache.pekko.Done
 import uk.gov.hmrc.personaldetailsvalidation.PdvRepository
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, ValidationId}
 
-import javax.inject.{Inject,Singleton}
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton

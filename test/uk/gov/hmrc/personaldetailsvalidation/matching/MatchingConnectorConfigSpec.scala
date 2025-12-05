@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.matching
 
-import org.mockito.MockitoSugar.when
+import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar.mock
 import support.UnitSpec
 import uk.gov.hmrc.config.HostConfigProvider

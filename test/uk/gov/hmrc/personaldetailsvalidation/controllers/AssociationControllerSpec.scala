@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.controllers
 
-import org.mockito.MockitoSugar.reset
+import org.mockito.Mockito.reset
 import org.scalatest.BeforeAndAfterEach
 import play.api.http.Status.{BAD_REQUEST, NOT_FOUND, OK}
 import play.api.libs.json.Json
@@ -26,7 +26,7 @@ import play.api.test.Helpers.stubControllerComponents
 import support.{CommonTestData, UnitSpec}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.personaldetailsvalidation.mocks.services.{MockAssociationService, MockPdvService}
-import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.personaldetailsvalidation.model.*
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global

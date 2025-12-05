@@ -17,15 +17,14 @@
 package uk.gov.hmrc.personaldetailsvalidation
 
 import com.google.inject.ImplementedBy
-
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model.Indexes.ascending
-import org.mongodb.scala.model.{Filters, FindOneAndUpdateOptions, IndexModel, IndexOptions, Updates}
 import org.mongodb.scala.model.Updates.combine
+import org.mongodb.scala.model.*
 import play.api.Logging
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import uk.gov.hmrc.personaldetailsvalidation.AssociationRepositoryConstants._
+import uk.gov.hmrc.personaldetailsvalidation.AssociationRepositoryConstants.*
 import uk.gov.hmrc.personaldetailsvalidation.formats.AssociationFormat.associationFormat
 import uk.gov.hmrc.personaldetailsvalidation.model.Association
 

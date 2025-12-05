@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package test.uk.gov.hmrc.support.wiremock
+package uk.gov.hmrc.support.wiremock
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock
@@ -28,7 +28,7 @@ object WiremockConfiguration {
 
 trait WiremockHelper {
 
-  import WiremockConfiguration._
+  import WiremockConfiguration.*
 
   val wmConfig: WireMockConfiguration = wireMockConfig().port(wiremockPort)
   val wireMockServer = new WireMockServer(wmConfig)

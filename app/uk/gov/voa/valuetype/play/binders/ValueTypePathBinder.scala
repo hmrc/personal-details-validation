@@ -25,7 +25,7 @@ object ValueTypePathBinder extends ValueTypePathBinder
 
 trait ValueTypePathBinder {
 
-  implicit def valueTypeBinder[T <: ValueType[_]](implicit parse: String => Try[T]): PathBindable[T] = new PathBindable[T] {
+  implicit def valueTypeBinder[T <: ValueType[?]](implicit parse: String => Try[T]): PathBindable[T] = new PathBindable[T] {
 
     def bind(key: String, value: String) = parse(value) match {
       case Success(valueType) => Right(valueType)

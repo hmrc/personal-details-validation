@@ -19,12 +19,13 @@ package uk.gov.hmrc.personaldetailsvalidation.controllers
 import play.api.http.MimeTypes
 import play.api.http.Status.{BAD_REQUEST, NOT_FOUND, OK}
 import play.api.libs.json.{JsNull, Json}
+import play.api.libs.ws.DefaultBodyWritables.*
 import play.api.libs.ws.WSResponse
 import play.api.test.{DefaultAwaitTimeout, FutureAwaits}
 import play.mvc.Http.HeaderNames.CONTENT_TYPE
 import uk.gov.hmrc.crypto.PlainText
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.personaldetailsvalidation.model.*
 import uk.gov.hmrc.personaldetailsvalidation.services.{AssociationService, Encryption, PersonalDetailsValidatorService}
 import uk.gov.hmrc.support.utils.BaseIntegrationSpec
 

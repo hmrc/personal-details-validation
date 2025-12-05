@@ -16,11 +16,10 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.formats
 
-import java.time.LocalDateTime
-
 import play.api.libs.json.{Format, Json}
-
 import uk.gov.hmrc.personaldetailsvalidation.model.Association
+
+import java.time.LocalDateTime
 
 object AssociationFormat extends JavaDateTimeFormatter {
 

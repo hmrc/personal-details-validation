@@ -17,7 +17,6 @@
 package uk.gov.hmrc.datetime
 
 import java.time.LocalDateTime
-
 import javax.inject.Singleton
 
 @Singleton

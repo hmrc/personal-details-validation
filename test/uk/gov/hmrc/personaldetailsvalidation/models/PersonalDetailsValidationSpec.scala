@@ -18,7 +18,7 @@ package uk.gov.hmrc.personaldetailsvalidation.models
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.libs.json._
+import play.api.libs.json.*
 import support.CommonTestData
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, ValidationId, ValidationStatus}
 import uk.gov.hmrc.uuid.UUIDProvider
@@ -50,7 +50,7 @@ class PersonalDetailsValidationSpec extends AnyWordSpec with Matchers with Commo
 
     "write to JSON correctly" in {
       val id   = ValidationId(UUID.fromString(testValidationId))
-      val json = Json.toJson(id)(ValidationId.validationIdWrites)
+      val json = Json.toJson(id)(using ValidationId.validationIdWrites)
 
       (json \ "value").as[UUID] shouldBe id.value
     }

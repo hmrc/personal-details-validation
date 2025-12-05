@@ -16,10 +16,11 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.audit
 
-import javax.inject.{Inject, Singleton}
 import play.api.Configuration
-import uk.gov.hmrc.config.implicits._
-import uk.gov.hmrc.config.ops._
+import uk.gov.hmrc.config.implicits.*
+import uk.gov.hmrc.config.ops.*
+
+import javax.inject.{Inject, Singleton}
 
 
 @Singleton

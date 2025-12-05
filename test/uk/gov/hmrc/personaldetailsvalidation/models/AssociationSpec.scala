@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.models
 
-import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import play.api.libs.json.*
 import support.CommonTestData
 import uk.gov.hmrc.personaldetailsvalidation.model.{Association, RetrieveAssociation}
-import play.api.libs.json._
+
 import java.time.LocalDateTime
 
 class AssociationSpec extends AnyWordSpec with Matchers with CommonTestData {

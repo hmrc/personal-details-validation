@@ -16,17 +16,17 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.audit
 
-import java.time.LocalDate
-
-import javax.inject.{Inject, Singleton}
 import play.api.mvc.Request
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory._
+import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory.*
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful, NoLivingMatch}
-import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.personaldetailsvalidation.model.*
 import uk.gov.hmrc.play.audit.AuditExtensions
 import uk.gov.hmrc.play.audit.model.DataEvent
+
+import java.time.LocalDate
+import javax.inject.{Inject, Singleton}
 
 @Singleton
 class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTagProvider, auditDetailsProvider: AuditDetailsProvider) {
@@ -38,10 +38,10 @@ class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTag
   )
 
   def createEvent(matchResult: MatchResult, personalDetails: PersonalDetails)
-                 (implicit hc: HeaderCarrier, request: Request[_]): DataEvent = createEvent(personalDetails, matchResult.toMatchingStatus, matchResult.otherDetails)
+                 (implicit hc: HeaderCarrier, request: Request[?]): DataEvent = createEvent(personalDetails, matchResult.toMatchingStatus, matchResult.otherDetails)
 
   def createErrorEvent(personalDetails: PersonalDetails)
-                      (implicit hc: HeaderCarrier, request: Request[_]): DataEvent = createEvent(personalDetails, "technicalError")
+                      (implicit hc: HeaderCarrier, request: Request[?]): DataEvent = createEvent(personalDetails, "technicalError")
 
   def createCircuitBreakerEvent(personalDetails: PersonalDetails): DataEvent = {
     val personalVerifier: Map[AuditType, String] = personalDetails match {
@@ -57,7 +57,7 @@ class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTag
   }
 
   private def createEvent(personalDetails: PersonalDetails, matchingStatus: String, otherDetails: Map[String, String] = Map.empty)
-                         (implicit hc: HeaderCarrier, request: Request[_]): DataEvent = {
+                         (implicit hc: HeaderCarrier, request: Request[?]): DataEvent = {
     val nino = personalDetails match {
       case details: PersonalDetailsNino => details.nino.value
       case _ => "NOT SUPPLIED"
@@ -107,7 +107,7 @@ private[personaldetailsvalidation] object AuditDataEventFactory {
   type AuditTags = Map[String, String]
   type AuditDetails = Map[String, String]
 
-  type AuditTagProvider = (HeaderCarrier, AuditType, Request[_]) => AuditTags
+  type AuditTagProvider = (HeaderCarrier, AuditType, Request[?]) => AuditTags
   type AuditDetailsProvider = HeaderCarrier => AuditDetails
 
   val auditType: AuditType = "MatchingResult"

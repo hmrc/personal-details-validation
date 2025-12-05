@@ -16,7 +16,7 @@
 
 package uk.gov.voa.valuetype.play.formats
 
-import play.api.libs.json._
+import play.api.libs.json.*
 import uk.gov.voa.valuetype.ValueType
 
 import scala.util.{Failure, Success, Try}

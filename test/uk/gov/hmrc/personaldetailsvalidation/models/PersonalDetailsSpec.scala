@@ -21,7 +21,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import support.CommonTestData
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.model.NonEmptyString
-import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.personaldetailsvalidation.model.*
 
 import java.time.{LocalDate, Period}
 

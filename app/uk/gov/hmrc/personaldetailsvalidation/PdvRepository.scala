@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
-import org.apache.pekko.Done
 import cats.data.EitherT
 import com.google.inject.ImplementedBy
+import org.apache.pekko.Done
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, ValidationId}
 
 import scala.concurrent.{ExecutionContext, Future}

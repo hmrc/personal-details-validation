@@ -17,15 +17,16 @@
 package uk.gov.hmrc.personaldetailsvalidation.matching
 
 import cats.data.EitherT
-import play.api.http.Status._
-import uk.gov.hmrc.circuitbreaker._
-import uk.gov.hmrc.http._
+import play.api.http.Status.*
+import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
+import uk.gov.hmrc.circuitbreaker.*
+import uk.gov.hmrc.http.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory
-import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsFormat._
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult._
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector._
-import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsFormat.*
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.*
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.*
+import uk.gov.hmrc.personaldetailsvalidation.model.*
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
 import java.net.URI
@@ -46,7 +47,7 @@ class MatchingConnector @Inject()(httpClient: HttpClientV2,
     EitherT(
       withCircuitBreaker {
         httpClient
-          .post(uri)(headerCarrier)
+          .post(uri)(using headerCarrier)
           .withBody(personalDetails.toJson)
           .execute[Either[Exception, MatchResult]]
       } recover {

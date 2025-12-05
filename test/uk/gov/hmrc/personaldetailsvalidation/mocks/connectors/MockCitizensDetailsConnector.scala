@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.mocks.connectors
 
-import org.mockito.ArgumentMatchersSugar.any
-import org.mockito.MockitoSugar.when
-import org.mockito.stubbing.ScalaOngoingStubbing
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.when
+import org.mockito.stubbing.OngoingStubbing
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.CitizenDetailsConnector
@@ -28,8 +28,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object MockCitizensDetailsConnector {
 
-  def findDesignatoryDetails(connector: CitizenDetailsConnector)(returnValue: Option[Gender]): ScalaOngoingStubbing[Future[Option[Gender]]] = {
-    when(connector.findDesignatoryDetails(any[Nino])(any[HeaderCarrier], any[ExecutionContext]))
+  def findDesignatoryDetails(connector: CitizenDetailsConnector)(returnValue: Option[Gender]): OngoingStubbing[Future[Option[Gender]]] = {
+    when(connector.findDesignatoryDetails(any[Nino])(using any[HeaderCarrier], any[ExecutionContext]))
       .thenReturn(Future.successful(returnValue))
 
   }

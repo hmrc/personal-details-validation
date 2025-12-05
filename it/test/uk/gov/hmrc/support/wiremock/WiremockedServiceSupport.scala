@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package test.uk.gov.hmrc.support.wiremock
+package uk.gov.hmrc.support.wiremock
 
-import test.uk.gov.hmrc.support.wiremock.WiremockConfiguration._
+import uk.gov.hmrc.support.wiremock.WiremockConfiguration.*
 
 trait WiremockedServiceSupport {
 

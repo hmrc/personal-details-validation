@@ -18,11 +18,11 @@ package uk.gov.voa.valuetype
 
 trait TypeName {
 
-  lazy val typeName = getClass.getSimpleName.foldLeft("" -> false) { case ((name, wasDollarFound), char) =>
+  lazy val typeName: String = getClass.getSimpleName.foldLeft("" -> false) { case ((name, wasDollarFound), char) =>
     if (wasDollarFound) name -> true
     else char match {
       case c if c == '$' => name -> true
-      case c => s"$name$char" -> false
+      case _ => s"$name$char" -> false
     }
   }._1
 

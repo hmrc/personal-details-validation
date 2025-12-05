@@ -17,11 +17,11 @@
 package uk.gov.hmrc.personaldetailsvalidation
 
 import play.api.Logging
-import play.api.http.Status._
+import play.api.http.Status.*
 import play.api.libs.json.{JsError, JsSuccess}
 import uk.gov.hmrc.config.AppConfig
-import uk.gov.hmrc.domain._
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.domain.*
+import uk.gov.hmrc.http.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.personaldetailsvalidation.model.Gender
 

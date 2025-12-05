@@ -16,18 +16,18 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.formats
 
-import java.util.UUID
-
 import play.api.libs.json.{Format, JsString}
 import uk.gov.hmrc.personaldetailsvalidation.model.{ValidationId, ValidationStatus}
 import uk.gov.voa.valuetype.play.formats.OptionsFormat.stringOptionsFormat
 import uk.gov.voa.valuetype.play.formats.ValueTypeFormat.format
 
+import java.util.UUID
+
 object TinyTypesFormats {
 
   implicit val personalDetailsValidationIdFormats: Format[ValidationId] = format[UUID, ValidationId](
     uuid => ValidationId(uuid))(
-    parse = {
+    using parse = {
       case JsString(value) => UUID.fromString(value)
       case x => throw new IllegalArgumentException(s"Expected a JsString, received $x")
     },

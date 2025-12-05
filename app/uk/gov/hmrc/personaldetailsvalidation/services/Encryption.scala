@@ -18,9 +18,10 @@ package uk.gov.hmrc.personaldetailsvalidation.services
 
 import play.api.Configuration
 import uk.gov.hmrc.crypto.{Decrypter, Encrypter, SymmetricCryptoFactory}
+
 import javax.inject.Inject
 
 class Encryption @Inject()(configuration: Configuration) {
 
-  lazy val crypto: Encrypter with Decrypter = SymmetricCryptoFactory.aesCryptoFromConfig("mongodb.encryption", configuration.underlying)
+  lazy val crypto: Encrypter & Decrypter = SymmetricCryptoFactory.aesCryptoFromConfig("mongodb.encryption", configuration.underlying)
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package test.uk.gov.hmrc.personaldetailsvalidation
+package uk.gov.hmrc.personaldetailsvalidation
 
 import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.model.IndexModel
@@ -23,14 +23,14 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
-import uk.gov.hmrc.personaldetailsvalidation.{AssociationMongoRepository, PersonalDetailsValidationMongoRepositoryConfig}
 import uk.gov.hmrc.personaldetailsvalidation.model.Association
+import uk.gov.hmrc.personaldetailsvalidation.{AssociationMongoRepository, PersonalDetailsValidationMongoRepositoryConfig}
 
-import scala.concurrent.ExecutionContext
-import java.time.{Instant, LocalDateTime, ZoneOffset}
 import java.time.format.DateTimeFormatter
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import scala.concurrent.ExecutionContext
 
 class AssociationMongoRepositoryISpec extends AnyWordSpec
   with Matchers
@@ -44,7 +44,7 @@ class AssociationMongoRepositoryISpec extends AnyWordSpec
 
   val config: PersonalDetailsValidationMongoRepositoryConfig = app.injector.instanceOf[PersonalDetailsValidationMongoRepositoryConfig]
 
-  override lazy val repository = new AssociationMongoRepository(config, mongoComponent)(ec)
+  override val repository: AssociationMongoRepository = new AssociationMongoRepository(config, mongoComponent)(ec)
 
   override def beforeEach(): Unit = {
     super.beforeEach()

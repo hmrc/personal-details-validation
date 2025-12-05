@@ -16,10 +16,10 @@
 
 package support
 
-import generators.Generators.Implicits._
+import generators.Generators.Implicits.*
 import generators.ObjectGenerators.{failedPersonalDetailsValidationObjects, personalDetailsObjects, personalDetailsValidationObjects, successfulPersonalDetailsValidationObjects}
 import uk.gov.hmrc.http.BadGatewayException
-import uk.gov.hmrc.personaldetailsvalidation.model.{FailedPersonalDetailsValidation, PersonalDetails, PersonalDetailsValidation, SuccessfulPersonalDetailsValidation, ValidationId}
+import uk.gov.hmrc.personaldetailsvalidation.model.*
 
 import java.time.LocalDateTime
 import java.util.UUID
