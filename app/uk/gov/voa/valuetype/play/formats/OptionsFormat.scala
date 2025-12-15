@@ -16,8 +16,8 @@
 
 package uk.gov.voa.valuetype.play.formats
 
-import play.api.libs.json._
-import uk.gov.voa.valuetype._
+import play.api.libs.json.*
+import uk.gov.voa.valuetype.*
 
 object OptionsFormat extends OptionsFormat
 

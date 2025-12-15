@@ -16,8 +16,9 @@
 
 package uk.gov.hmrc.config
 
-import javax.inject.{Inject, Singleton}
 import play.api.{Configuration, Logging}
+
+import javax.inject.{Inject, Singleton}
 
 @Singleton
 class AppConfig @Inject() (config: Configuration) extends Logging {

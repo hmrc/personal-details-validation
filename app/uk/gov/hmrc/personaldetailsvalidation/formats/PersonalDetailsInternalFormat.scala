@@ -16,13 +16,12 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.formats
 
-import java.time.LocalDate
-
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.personaldetailsvalidation.model.*
 
+import java.time.LocalDate
 import scala.util.Try
 
 object PersonalDetailsInternalFormat {

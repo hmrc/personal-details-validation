@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.formats
 
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
-import uk.gov.hmrc.personaldetailsvalidation._
-import uk.gov.hmrc.personaldetailsvalidation.model._
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
+import uk.gov.hmrc.personaldetailsvalidation.*
+import uk.gov.hmrc.personaldetailsvalidation.model.*
 
 import java.time.{LocalDateTime, ZoneOffset}
 
@@ -27,8 +27,8 @@ import java.time.{LocalDateTime, ZoneOffset}
 object PersonalDetailsValidationFormat extends JavaDateTimeFormatter {
 
   import PersonalDetailsInternalFormat.repositoryPersonalDetailsReads
-  import TinyTypesFormats._
-  import model.ValidationStatus._
+  import TinyTypesFormats.*
+  import model.ValidationStatus.*
 
   implicit val dateTimeFormats: Format[LocalDateTime] = localDateTimeFormat
 

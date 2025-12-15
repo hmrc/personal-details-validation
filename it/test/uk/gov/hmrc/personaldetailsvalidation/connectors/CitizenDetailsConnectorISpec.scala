@@ -170,9 +170,7 @@ class CitizenDetailsConnectorISpec extends BaseIntegrationSpec
       )
       val config = Configuration.from(configData)
 
-      val testAppConfig = new AppConfig(config) {
-        val testLogger: Logger = logger
-      }
+      val testAppConfig = new AppConfig(config)
 
       val connector: CitizenDetailsConnector = new CitizenDetailsConnector(
         null,
@@ -180,7 +178,7 @@ class CitizenDetailsConnectorISpec extends BaseIntegrationSpec
         testAppConfig
       )
 
-      withCaptureOfLoggingFrom(testAppConfig.testLogger) { logEvents =>
+      withCaptureOfLoggingFrom(Logger(classOf[AppConfig])) { logEvents =>
         connector.findDesignatoryDetails(nino).futureValue mustBe None
 
         eventually {

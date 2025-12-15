@@ -17,30 +17,30 @@
 package uk.gov.hmrc.personaldetailsvalidation.mocks.connectors
 
 import cats.data.EitherT
-import org.mockito.ArgumentMatchersSugar.{any, eqTo}
-import org.mockito.MockitoSugar.when
-import org.mockito.stubbing.ScalaOngoingStubbing
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
+import org.mockito.Mockito.when
+import org.mockito.stubbing.OngoingStubbing
 import org.scalatestplus.mockito.MockitoSugar.mock
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.model.PersonalDetails
 
-import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
 
 object MockMatchingConnector {
 
   val mockInstance: MatchingConnector = mock[MatchingConnector]
 
-  def doMatch(connector: MatchingConnector, personalDetails: PersonalDetails)(returnValue: MatchResult): ScalaOngoingStubbing[EitherT[Future, Exception, MatchResult]] = {
-    when(connector.doMatch(eqTo(personalDetails))(any[HeaderCarrier], any[ExecutionContext]))
+  def doMatch(connector: MatchingConnector, personalDetails: PersonalDetails)(returnValue: MatchResult): OngoingStubbing[EitherT[Future, Exception, MatchResult]] = {
+    when(connector.doMatch(eqTo(personalDetails))(using any[HeaderCarrier], any[ExecutionContext]))
       .thenReturn(
         EitherT.rightT[Future, Exception](returnValue))
   }
 
-  def doMatchError(connector: MatchingConnector, personalDetails: PersonalDetails)(returnValue: RuntimeException): ScalaOngoingStubbing[EitherT[Future, Exception, MatchResult]] = {
-    when(connector.doMatch(eqTo(personalDetails))(any[HeaderCarrier], any[ExecutionContext]))
+  def doMatchError(connector: MatchingConnector, personalDetails: PersonalDetails)(returnValue: RuntimeException): OngoingStubbing[EitherT[Future, Exception, MatchResult]] = {
+    when(connector.doMatch(eqTo(personalDetails))(using any[HeaderCarrier], any[ExecutionContext]))
       .thenReturn(
         EitherT.leftT[Future, MatchResult](returnValue))
   }

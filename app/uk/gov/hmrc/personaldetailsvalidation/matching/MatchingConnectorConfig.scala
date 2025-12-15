@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.matching
 
-import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.config.HostConfigProvider
 
 import java.net.{URI, URL}
+import javax.inject.{Inject, Singleton}
 
 
 @Singleton

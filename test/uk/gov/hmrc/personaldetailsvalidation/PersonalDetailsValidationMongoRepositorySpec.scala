@@ -17,6 +17,7 @@
 package uk.gov.hmrc.personaldetailsvalidation
 
 import org.apache.pekko.Done
+import org.mongodb.scala.ObservableFuture
 import org.mongodb.scala.bson.BsonDocument
 import org.mongodb.scala.model.{Filters, IndexModel}
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}

@@ -19,11 +19,11 @@ package generators
 import org.scalacheck.{Arbitrary, Gen}
 import uk.gov.hmrc.model.NonEmptyString
 
-import java.time._
+import java.time.*
 
 trait Generators {
 
-  import DatesAndTimes._
+  import DatesAndTimes.*
 
   implicit val booleans: Gen[Boolean] = Gen.oneOf(true, false)
 
@@ -40,8 +40,8 @@ trait Generators {
 
   def strings(maxLength: Int): Gen[String] = strings(1, maxLength)
 
-  def strings(minLenght: Int, maxLength: Int): Gen[String] = for {
-    length <- Gen.chooseNum(minLenght, maxLength)
+  def strings(minLength: Int, maxLength: Int): Gen[String] = for {
+    length <- Gen.chooseNum(minLength, maxLength)
     chars <- Gen.listOfN(length, Gen.alphaNumChar)
   } yield chars.mkString
 
@@ -91,15 +91,16 @@ trait Generators {
         arbitrary.arbitrary.retryUntil(generated => !values.contains(generated))
 
       def generateValueDifferentThan(values: T*): T =
-        exclude(values: _*)
+        exclude(values*)
           .sample.getOrElse {
           throw new IllegalArgumentException(s"Cannot generate value different than: ${values.mkString(", ")}")
         }
 
       def generateValueDifferentThan(maybeValue: Option[T]): Option[T] =
-        Generators.probableBoolean(percentTrue = 33).generateOne match {
-          case true => None
-          case false => maybeValue match {
+        if (Generators.probableBoolean(percentTrue = 33).generateOne) {
+          None
+        } else {
+          maybeValue match {
             case Some(value) => exclude(value).sample
             case _ => arbitrary.arbitrary.sample
           }

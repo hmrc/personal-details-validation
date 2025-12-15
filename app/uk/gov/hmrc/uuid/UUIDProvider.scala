@@ -17,7 +17,6 @@
 package uk.gov.hmrc.uuid
 
 import java.util.UUID
-
 import javax.inject.Singleton
 
 @Singleton

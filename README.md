@@ -42,10 +42,10 @@ or
 
 **Response**
 
-| Status |Description|
-|--------|-----------|
-| 200    | Regardless of validation results. Response contains `Location` header pointing to an endpoint to retrieve the results.|
-| 400    | When the given payload is invalid.|
+| Status | Description                                                                                                            |
+|--------|------------------------------------------------------------------------------------------------------------------------|
+| 200    | Regardless of validation results. Response contains `Location` header pointing to an endpoint to retrieve the results. |
+| 400    | When the given payload is invalid.                                                                                     |
 
 Examples of OK response body:
 * Successful validation
@@ -93,10 +93,10 @@ Returns validation results for the given `validationId`.
 
 **Response**
 
-| Status  |Description|
-|---------|-----------|
-| 200     | When validation data exists.|
-| 404     | When there is no validation results for the given `validationId`.|
+| Status | Description                                                       |
+|--------|-------------------------------------------------------------------|
+| 200    | When validation data exists.                                      |
+| 404    | When there is no validation results for the given `validationId`. |
 
 Examples of OK responses:
 * Successful validation
@@ -136,7 +136,7 @@ Examples of OK responses:
 |--------|-----------------------------------------------------------------|
 | 200    | When validation data exists.                                    |
 | 404    | When there is no validation results for the given request body. |
-| 400    | Invalid request                                                 
+| 400    | Invalid request                                                 |
 
 Examples of OK responses:
 * Successful validation

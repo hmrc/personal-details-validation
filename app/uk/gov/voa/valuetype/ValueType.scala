@@ -35,7 +35,7 @@ trait LongValue extends ValueType[Long]
 
 trait RoundedBigDecimalValue extends ValueType[BigDecimal] {
 
-  protected[this] def nonRoundedValue: BigDecimal
+  protected def nonRoundedValue: BigDecimal
 
   val decimalPlaces: Int = 2
   val roundingMode: RoundingMode = RoundingMode.HALF_UP
@@ -47,7 +47,7 @@ trait RoundedBigDecimalValue extends ValueType[BigDecimal] {
     case _ => false
   }
 
-  protected[this] def isOfThisInstance(other: RoundedBigDecimalValue): Boolean
+  protected def isOfThisInstance(other: RoundedBigDecimalValue): Boolean
 
   final override def hashCode: Int = (41 * value).toInt
 }

@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.models
 
-import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
-import play.api.libs.json._
+import org.scalatest.wordspec.AnyWordSpec
+import play.api.libs.json.*
 import uk.gov.hmrc.personaldetailsvalidation.model.Gender
 
 class GenderSpec extends AnyWordSpec with Matchers {

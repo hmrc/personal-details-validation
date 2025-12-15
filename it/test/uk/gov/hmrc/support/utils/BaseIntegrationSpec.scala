@@ -17,6 +17,7 @@
 package uk.gov.hmrc.support.utils
 
 import org.bson.BsonDocument
+import org.mongodb.scala.SingleObservableFuture
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.{Eventually, IntegrationPatience, ScalaFutures}
 import org.scalatestplus.play.PlaySpec
@@ -24,7 +25,7 @@ import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.WSClient
-import test.uk.gov.hmrc.support.wiremock.WiremockedServiceSupport
+import uk.gov.hmrc.support.wiremock.WiremockedServiceSupport
 import uk.gov.hmrc.config.AppConfig
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, SessionId}

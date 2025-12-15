@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.play.json
 
-import play.api.libs.json._
+import play.api.libs.json.*
 
 private[json] trait ReadOps {
 

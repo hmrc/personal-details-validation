@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.mocks.services
 
-import org.mockito.ArgumentMatchersSugar.{any, eqTo}
-import org.mockito.MockitoSugar.when
-import org.mockito.stubbing.ScalaOngoingStubbing
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
+import org.mockito.Mockito.when
+import org.mockito.stubbing.OngoingStubbing
 import uk.gov.hmrc.personaldetailsvalidation.model.Association
 import uk.gov.hmrc.personaldetailsvalidation.services.AssociationService
 
@@ -26,17 +26,17 @@ import scala.concurrent.Future
 
 object MockAssociationService {
 
-  def insertRecord(service: AssociationService, association: Association): ScalaOngoingStubbing[Future[Unit]] = {
+  def insertRecord(service: AssociationService, association: Association): OngoingStubbing[Future[Unit]] = {
     when(service.insertRecord(eqTo(association)))
       .thenReturn(Future.successful(()))
   }
 
-  def getRecord(service: AssociationService)(returnValue: Future[Option[Association]]): ScalaOngoingStubbing[Future[Option[Association]]] = {
+  def getRecord(service: AssociationService)(returnValue: Future[Option[Association]]): OngoingStubbing[Future[Option[Association]]] = {
     when(service.getRecord(any[String], any[String]))
       .thenReturn(returnValue)
   }
 
-  def getRecordFailure(service: AssociationService): ScalaOngoingStubbing[Future[Option[Association]]] = {
+  def getRecordFailure(service: AssociationService): OngoingStubbing[Future[Option[Association]]] = {
     when(service.getRecord(any[String], any[String]))
       .thenReturn(Future.failed(new Exception("uh oh")))
   }

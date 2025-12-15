@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.services
 
-import org.mockito.MockitoSugar.{reset, when}
+import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.Configuration
@@ -31,10 +31,10 @@ class AssociationServiceSpec extends UnitSpec with CommonTestData with BeforeAnd
 
   abstract class mockCryptoImpl extends Encrypter with Decrypter
 
-  val mockCrypto: Encrypter with Decrypter = mock[mockCryptoImpl]
+  val mockCrypto: Encrypter & Decrypter = mock[mockCryptoImpl]
 
   val mockEncryption: Encryption = new Encryption(mock[Configuration]) {
-    override lazy val crypto: Encrypter with Decrypter = mockCrypto
+    override lazy val crypto: Encrypter & Decrypter = mockCrypto
   }
 
   val associationService: AssociationService = new AssociationService(mockAssociationRepository, mockEncryption)

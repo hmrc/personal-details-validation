@@ -16,10 +16,10 @@
 
 package generators
 
+import generators.PostCodeGenerator.*
 import org.scalacheck.Gen
-import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.personaldetailsvalidation.model.*
 import uk.gov.hmrc.play.audit.model.DataEvent
-import PostCodeGenerator._
 
 import java.time.{LocalDateTime, ZoneOffset}
 

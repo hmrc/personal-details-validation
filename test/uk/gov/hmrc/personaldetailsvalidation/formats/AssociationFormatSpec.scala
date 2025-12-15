@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.formats
 
-import java.time.{Instant, LocalDateTime, ZoneOffset}
 import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
-import uk.gov.hmrc.personaldetailsvalidation.model.Association
-import uk.gov.hmrc.personaldetailsvalidation.formats.AssociationFormat.associationFormat
 import support.{CommonTestData, UnitSpec}
+import uk.gov.hmrc.personaldetailsvalidation.formats.AssociationFormat.associationFormat
+import uk.gov.hmrc.personaldetailsvalidation.model.Association
+
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 
 class AssociationFormatSpec extends UnitSpec with CommonTestData {
 

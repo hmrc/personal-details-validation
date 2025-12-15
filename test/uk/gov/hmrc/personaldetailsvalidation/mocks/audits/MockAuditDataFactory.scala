@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.mocks.audits
 
-import org.mockito.MockitoSugar.when
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
+import org.mockito.Mockito.when
+import org.mockito.stubbing.OngoingStubbing
 import org.scalatestplus.mockito.MockitoSugar.mock
-import org.mockito.ArgumentMatchersSugar.{any, eqTo}
-import org.mockito.stubbing.ScalaOngoingStubbing
 import play.api.mvc.Request
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory
@@ -32,13 +32,13 @@ object MockAuditDataFactory {
 
   val mockInstance: AuditDataEventFactory = mock[AuditDataEventFactory]
 
-  def createEvent(matchResult: MatchResult, personalDetails: PersonalDetails)(returnValue: DataEvent): ScalaOngoingStubbing[DataEvent] = {
-    when(mockInstance.createEvent(eqTo(matchResult), eqTo(personalDetails))(any[HeaderCarrier], any[Request[_]]))
+  def createEvent(matchResult: MatchResult, personalDetails: PersonalDetails)(returnValue: DataEvent): OngoingStubbing[DataEvent] = {
+    when(mockInstance.createEvent(eqTo(matchResult), eqTo(personalDetails))(using any[HeaderCarrier], any[Request[?]]))
       .thenReturn(returnValue)
   }
 
-  def createErrorEvent(personalDetails: PersonalDetails)(returnValue: DataEvent): ScalaOngoingStubbing[DataEvent] = {
-    when(mockInstance.createErrorEvent(eqTo(personalDetails))(any[HeaderCarrier], any[Request[_]]))
+  def createErrorEvent(personalDetails: PersonalDetails)(returnValue: DataEvent): OngoingStubbing[DataEvent] = {
+    when(mockInstance.createErrorEvent(eqTo(personalDetails))(using any[HeaderCarrier], any[Request[?]]))
       .thenReturn(returnValue)
   }
 

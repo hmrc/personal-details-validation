@@ -17,7 +17,7 @@
 package uk.gov.hmrc.personaldetailsvalidation.controllers
 
 import cats.data.EitherT
-import cats.implicits._
+import cats.implicits.*
 import play.api.Logging
 import play.api.libs.json.Json.toJson
 import play.api.libs.json.{JsValue, Json}
@@ -25,7 +25,7 @@ import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
 import uk.gov.hmrc.auth.core.retrieve.Credentials
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.credentials
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
-import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.personaldetailsvalidation.model.*
 import uk.gov.hmrc.personaldetailsvalidation.services.PersonalDetailsValidatorService
 import uk.gov.hmrc.personaldetailsvalidation.{PersonalDetailsValidationRetryRepository, PersonalDetailsValidator, formats}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -41,7 +41,7 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
                                                            (implicit val authConnector: AuthConnector, ec: ExecutionContext)
   extends BackendController(cc) with AuthorisedFunctions with Logging {
 
-  import formats.PersonalDetailsFormat._
+  import formats.PersonalDetailsFormat.*
   import formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
 
   def create(origin: Option[String] = None): Action[JsValue] = Action.async(parse.json) { implicit request =>

@@ -16,9 +16,9 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.mocks.repositories
 
-import org.mockito.ArgumentMatchersSugar.{any, eqTo}
-import org.mockito.MockitoSugar.when
-import org.mockito.stubbing.ScalaOngoingStubbing
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
+import org.mockito.Mockito.when
+import org.mockito.stubbing.OngoingStubbing
 import uk.gov.hmrc.personaldetailsvalidation.AssociationRepository
 import uk.gov.hmrc.personaldetailsvalidation.model.Association
 
@@ -26,12 +26,12 @@ import scala.concurrent.Future
 
 object MockAssociationRepository {
 
-  def insertRecord(repository: AssociationRepository, association: Association)(returnValue: Future[Unit]): ScalaOngoingStubbing[Future[Unit]] = {
+  def insertRecord(repository: AssociationRepository, association: Association)(returnValue: Future[Unit]): OngoingStubbing[Future[Unit]] = {
     when(repository.insertRecord(eqTo(association)))
       .thenReturn(returnValue)
   }
 
-  def getRecord(repository: AssociationRepository)(returnValue: Option[Association]): ScalaOngoingStubbing[Future[Option[Association]]] = {
+  def getRecord(repository: AssociationRepository)(returnValue: Option[Association]): OngoingStubbing[Future[Option[Association]]] = {
     when(repository.getRecord(any[String], any[String]))
       .thenReturn(Future.successful(returnValue))
   }

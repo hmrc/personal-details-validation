@@ -17,13 +17,14 @@
 package uk.gov.hmrc.personaldetailsvalidation.services
 
 import org.apache.pekko.Done
-import org.mockito.MockitoSugar
+import org.mockito.Mockito.reset
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
 import support.{CommonTestData, UnitSpec}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.mocks.repositories.MockPdvRepository
-import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.personaldetailsvalidation.model.*
 
 import java.util.UUID.randomUUID
 import scala.concurrent.ExecutionContext.Implicits.global

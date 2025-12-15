@@ -17,10 +17,11 @@
 package uk.gov.hmrc.personaldetailsvalidation
 
 import com.codahale.metrics.SharedMetricRegistries
-import generators.Generators.Implicits._
-import generators.ObjectGenerators._
+import generators.Generators.Implicits.*
+import generators.ObjectGenerators.*
 import org.apache.pekko.Done
-import org.mockito.MockitoSugar.{reset, when}
+import org.mockito.Mockito.{reset, when}
+import org.mongodb.scala.SingleObservableFuture
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -33,13 +34,14 @@ import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchRes
 import uk.gov.hmrc.personaldetailsvalidation.mocks.audits.{MockAuditDataFactory, MockAuditEventConnector}
 import uk.gov.hmrc.personaldetailsvalidation.mocks.connectors.{MockCitizensDetailsConnector, MockMatchingConnector}
 import uk.gov.hmrc.personaldetailsvalidation.mocks.services.MockRepoControlService
-import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.personaldetailsvalidation.model.*
 import uk.gov.hmrc.personaldetailsvalidation.services.Encryption
 import uk.gov.hmrc.play.audit.http.connector.AuditResult
 import uk.gov.hmrc.play.audit.model.DataEvent
 import uk.gov.hmrc.uuid.UUIDProvider
 
-import scala.concurrent.ExecutionContext.Implicits.{global => executionContext}
+import scala.concurrent.ExecutionContext.Implicits.global
+
 
 class PersonalDetailsValidatorSpec extends
   UnitSpec
@@ -82,7 +84,7 @@ class PersonalDetailsValidatorSpec extends
 
   def stubReturnNinoFromCid(value: Boolean, times: Int): Unit = {
     val values = Seq.fill(times)(value)
-    when(mockAppConfig.returnNinoFromCid).thenReturn(values.head, values.tail: _*)
+    when(mockAppConfig.returnNinoFromCid).thenReturn(values.head, values.tail*)
   }
 
   def stubReturnNinoFromCidFalse(value: Boolean): Unit = {
@@ -104,6 +106,7 @@ class PersonalDetailsValidatorSpec extends
       mockCitizenDetailsConnector,
       mockMatchingAuditConnector,
       mockRepoControlService)
+    await(personalDetailsValidationRetryRepository.collection.drop().toFuture())
     super.beforeEach()
   }
 
@@ -211,7 +214,6 @@ class PersonalDetailsValidatorSpec extends
       "store them as FailedPersonalDetailsValidation for unsuccessful match " +
       "and return the ValidationId" in {
 
-      await(personalDetailsValidationRetryRepository.collection.drop().toFuture())
       val matchResult: MatchFailed = MatchFailed("some error")
 
       MockMatchingConnector.doMatch(mockMatchingConnector, personalDetails)(matchResult)

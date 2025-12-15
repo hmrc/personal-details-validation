@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.model
 
+import play.api.libs.json.*
 import uk.gov.hmrc.uuid.UUIDProvider
-import play.api.libs.json._
 import uk.gov.voa.valuetype.{StringOptions, StringValue, ValueType}
 
 import java.time.{LocalDateTime, ZoneOffset}

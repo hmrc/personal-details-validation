@@ -17,20 +17,19 @@
 package uk.gov.hmrc.personaldetailsvalidation
 
 import cats.data.EitherT
-import cats.implicits._
+import cats.implicits.*
 import com.google.inject.ImplementedBy
 import play.api.mvc.Request
 import uk.gov.hmrc.config.AppConfig
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory
-import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful, NoLivingMatch}
-import uk.gov.hmrc.personaldetailsvalidation.model._
-import uk.gov.hmrc.personaldetailsvalidation.services.RepoControlService
+import uk.gov.hmrc.personaldetailsvalidation.model.*
+import uk.gov.hmrc.personaldetailsvalidation.services.{Encryption, RepoControlService}
+import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.uuid.UUIDProvider
-import uk.gov.hmrc.personaldetailsvalidation.services.Encryption
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -39,7 +38,7 @@ import scala.concurrent.{ExecutionContext, Future}
 trait PersonalDetailsValidator {
 
   def validate(personalDetails: PersonalDetails, origin: Option[String], maybeCredId: Option[String])
-              (implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): EitherT[Future, Exception, PersonalDetailsValidation]
+              (implicit hc: HeaderCarrier, request: Request[?], ec: ExecutionContext): EitherT[Future, Exception, PersonalDetailsValidation]
 
   def eventDetailsToSend(matchResult: MatchResult, personalDetails: PersonalDetails): PersonalDetails
 
@@ -58,11 +57,11 @@ class PersonalDetailsValidatorImpl @Inject() (
   matchingAuditConnector: AuditConnector,
   appConfig: AppConfig)(implicit uuidProvider: UUIDProvider, encryption: Encryption) extends PersonalDetailsValidator {
 
-  import matchingConnector._
-  import matchingAuditConnector._
+  import matchingAuditConnector.*
+  import matchingConnector.*
 
   def validate(personalDetails: PersonalDetails, origin: Option[String], maybeCredId: Option[String])
-              (implicit hc: HeaderCarrier, request: Request[_], ec: ExecutionContext): EitherT[Future, Exception, PersonalDetailsValidation] = {
+              (implicit hc: HeaderCarrier, request: Request[?], ec: ExecutionContext): EitherT[Future, Exception, PersonalDetailsValidation] = {
     for {
       matchResult <- doMatch(personalDetails)
       personalDetailsValidation <- toPersonalDetailsValidation(matchResult, personalDetails, maybeCredId)

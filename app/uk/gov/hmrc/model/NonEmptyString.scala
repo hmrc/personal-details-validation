@@ -18,10 +18,10 @@ package uk.gov.hmrc.model
 
 import play.api.libs.json.Format
 import uk.gov.voa.valuetype.StringValue
-import uk.gov.voa.valuetype.play.formats.ValueTypeFormat._
+import uk.gov.voa.valuetype.play.formats.ValueTypeFormat.*
 
 case class NonEmptyString(value: String) extends StringValue {
-  require(value.trim.length > 0, s"$typeName cannot be empty")
+  require(value.trim.nonEmpty, s"$typeName cannot be empty")
 }
 
 object NonEmptyString {

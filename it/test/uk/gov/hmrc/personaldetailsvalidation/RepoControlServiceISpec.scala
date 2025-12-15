@@ -14,29 +14,29 @@
  * limitations under the License.
  */
 
-package test.uk.gov.hmrc.personaldetailsvalidation
+package uk.gov.hmrc.personaldetailsvalidation
 
-import org.apache.pekko.Done
 import cats.data.EitherT
 import ch.qos.logback.classic.Level
-import org.scalatest.{BeforeAndAfterEach, LoneElement}
+import org.apache.pekko.Done
 import org.scalatest.concurrent.{Eventually, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.{BeforeAndAfterEach, LoneElement}
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Logger
+import uk.gov.hmrc.crypto.PlainText
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.{HeaderCarrier, SessionId}
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsWithNino, SuccessfulPersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.personaldetailsvalidation.services.{AssociationService, Encryption, PersonalDetailsValidatorService, RepoControlService}
+import uk.gov.hmrc.personaldetailsvalidation.{AssociationMongoRepository, PdvRepository, PersonalDetailsValidationMongoRepositoryConfig}
+import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
 
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, LocalDateTime}
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.crypto.PlainText
-import uk.gov.hmrc.personaldetailsvalidation.{AssociationMongoRepository, PdvRepository, PersonalDetailsValidationMongoRepositoryConfig}
-import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
 
 class RepoControlServiceISpec extends AnyWordSpec
   with Matchers

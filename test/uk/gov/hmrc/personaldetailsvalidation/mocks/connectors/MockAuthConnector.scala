@@ -16,8 +16,8 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.mocks.connectors
 
-import org.mockito.ArgumentMatchersSugar._
-import org.mockito.MockitoSugar.when
+import org.mockito.ArgumentMatchers.*
+import org.mockito.Mockito.when
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.auth.core.authorise.Predicate
 import uk.gov.hmrc.auth.core.retrieve.{Credentials, Retrieval}
@@ -31,7 +31,7 @@ object MockAuthConnector {
     when(mockAuthConnector.authorise[Option[Credentials]](
       any[Predicate],
       any[Retrieval[Option[Credentials]]]
-    )(any[HeaderCarrier], any[ExecutionContext]))
+    )(using any[HeaderCarrier], any[ExecutionContext]))
       .thenReturn(Future.successful(Some(creds)))
   }
 

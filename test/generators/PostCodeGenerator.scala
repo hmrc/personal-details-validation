@@ -35,7 +35,7 @@ object PostCodeGenerator extends Generators {
       "3P", "3R", "3V", "4A", "4M", "4N", "4P", "4R", "4V", "4Y")
   )
 
-  private val unitDigits = oneOf("ABDEFGHJLNPQRSTUWXYZ".toCharArray)
+  private val unitDigits = oneOf("ABDEFGHJLNPQRSTUWXYZ".toCharArray.toIndexedSeq)
 
   private def outbound(area: String): Gen[String] = {
     area match {

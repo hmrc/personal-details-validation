@@ -15,7 +15,6 @@
  */
 
 package support
-import java.nio.charset.Charset
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.util.ByteString
 import org.scalatest.matchers.should.Matchers
@@ -26,15 +25,16 @@ import play.api.mvc.{AnyContentAsEmpty, Result}
 import play.api.test.FakeRequest
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.config.AppConfig
-import uk.gov.hmrc.personaldetailsvalidation.{AssociationRepository, CitizenDetailsConnector, PdvRepository, PersonalDetailsValidator}
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.services.{AssociationService, PersonalDetailsValidatorService, RepoControlService}
+import uk.gov.hmrc.personaldetailsvalidation.{AssociationRepository, CitizenDetailsConnector, PdvRepository, PersonalDetailsValidator}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
+import java.nio.charset.Charset
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.{Duration, *}
 import scala.concurrent.{Await, Future}
-import scala.concurrent.duration.{Duration, _}
 
 trait UnitSpec extends AnyWordSpec with Matchers {
 

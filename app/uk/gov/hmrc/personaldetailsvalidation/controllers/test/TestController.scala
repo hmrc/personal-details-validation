@@ -16,9 +16,6 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.controllers.test
 
-import java.time.{LocalDate, LocalDateTime, ZoneOffset}
-import java.util.UUID
-import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{Format, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents}
 import uk.gov.hmrc.domain.Nino
@@ -26,7 +23,10 @@ import uk.gov.hmrc.personaldetailsvalidation.PersonalDetailsValidationRepository
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsWithNino, SuccessfulPersonalDetailsValidation, ValidationId}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.{ExecutionContext, Future}
+import java.time.{LocalDate, LocalDateTime, ZoneOffset}
+import java.util.UUID
+import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 @Singleton
 class TestController @Inject()(personalDetailsValidationRepository: PersonalDetailsValidationRepository,
@@ -34,8 +34,10 @@ class TestController @Inject()(personalDetailsValidationRepository: PersonalDeta
                               (implicit ec: ExecutionContext)
   extends BackendController(cc) {
 
+  implicit val prvtdFormat: Format[PersonalDetailsTestValidationData] = Json.format[PersonalDetailsTestValidationData]
+
   def upsertTestValidation: Action[JsValue] = Action.async(parse.json) { implicit request =>
-    withJsonBody[PersonalDetailsTestValidationData] { personalDetails: PersonalDetailsTestValidationData =>
+    withJsonBody[PersonalDetailsTestValidationData] { personalDetails =>
       val personData     = PersonalDetailsWithNino(
         firstName = "NA - Test Data",
         lastName = "NA - Test Data",
@@ -47,12 +49,12 @@ class TestController @Inject()(personalDetailsValidationRepository: PersonalDeta
         personalDetails = personData,
         createdAt = LocalDateTime.now(ZoneOffset.UTC)
       )
-      personalDetailsValidationRepository.create(validationData)
-      Future.successful(Created)
+      personalDetailsValidationRepository.create(validationData).value.map {
+        case Right(_) => Created
+        case Left(exception) => InternalServerError(exception.getMessage)
+      }
     }
   }
-
-  implicit val prvtdFormat: Format[PersonalDetailsTestValidationData] = Json.format[PersonalDetailsTestValidationData]
 }
 
 case class PersonalDetailsTestValidationData(validationId: UUID, nino: Nino)

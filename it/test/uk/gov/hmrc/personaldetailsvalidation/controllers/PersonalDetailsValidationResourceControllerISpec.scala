@@ -16,19 +16,22 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.controllers
 
+import scala.language.reflectiveCalls
+
 import ch.qos.logback.classic.Level
 import org.scalatest.LoneElement
 import play.api.Logger
 import play.api.http.ContentTypes.JSON
-import play.api.http.Status._
+import play.api.http.Status.*
 import play.api.libs.json.{JsNull, JsUndefined, JsValue, Json}
+import play.api.libs.ws.WSBodyWritables.writeableOf_String
 import play.api.libs.ws.WSResponse
 import play.api.test.DefaultAwaitTimeout
 import play.api.test.Helpers.await
 import play.mvc.Http.HeaderNames.{CONTENT_TYPE, LOCATION}
 import uk.gov.hmrc.crypto.PlainText
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.personaldetailsvalidation.model.*
 import uk.gov.hmrc.personaldetailsvalidation.services.Encryption
 import uk.gov.hmrc.personaldetailsvalidation.{AssociationMongoRepository, PersonalDetailsValidationRepository}
 import uk.gov.hmrc.play.bootstrap.tools.LogCapturing

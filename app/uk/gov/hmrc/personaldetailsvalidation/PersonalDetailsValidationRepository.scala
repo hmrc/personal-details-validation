@@ -24,7 +24,7 @@ import play.api.Logging
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat
-import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.personaldetailsvalidation.model.*
 
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}

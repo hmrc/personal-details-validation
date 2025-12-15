@@ -16,15 +16,15 @@
 
 package uk.gov.hmrc.play.json
 
-import org.mockito.MockitoSugar.when
-
-import java.time.LocalDateTime
-import java.time.ZoneOffset.UTC
+import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.libs.json.Json
 import support.UnitSpec
 import uk.gov.hmrc.datetime.CurrentTimeProvider
 import uk.gov.hmrc.play.json.ops.JsonObjectOps
+
+import java.time.LocalDateTime
+import java.time.ZoneOffset.UTC
 
 class JsonObjectOpsSpecs extends UnitSpec {
 

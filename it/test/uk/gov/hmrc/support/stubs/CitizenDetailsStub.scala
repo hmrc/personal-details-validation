@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.support.stubs
 
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import org.scalatest.concurrent.{Eventually, IntegrationPatience}
 import play.api.http.Status.OK
 import play.api.libs.json.JsValue
@@ -25,7 +25,7 @@ object CitizenDetailsStub extends Eventually with IntegrationPatience {
 
   private val path: String = "/citizen-details/AA000003D/designatory-details"
 
-  def expecting() = new {
+  case class StubBuilder() {
 
     private val mappingBuilder = get(urlEqualTo(path))
 
@@ -55,4 +55,6 @@ object CitizenDetailsStub extends Eventually with IntegrationPatience {
       )
     }
   }
+
+  def expecting(): StubBuilder = StubBuilder()
 }

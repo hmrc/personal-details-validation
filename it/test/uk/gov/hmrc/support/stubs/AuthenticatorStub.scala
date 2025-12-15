@@ -16,15 +16,15 @@
 
 package uk.gov.hmrc.support.stubs
 
-import com.github.tomakehurst.wiremock.client.WireMock._
-import play.api.http.Status._
+import com.github.tomakehurst.wiremock.client.WireMock.*
+import play.api.http.Status.*
 import play.api.libs.json.JsValue
 
 object AuthenticatorStub {
 
   private val path: String = "/authenticator/match"
 
-  def expecting(personalDetailsJson: String) = new {
+  case class StubBuilder(personalDetailsJson: String) {
 
     private val mappingBuilder = post(urlEqualTo(path)).withRequestBody(equalToJson(personalDetailsJson, true, false))
 
@@ -54,5 +54,7 @@ object AuthenticatorStub {
       )
     }
   }
+
+  def expecting(personalDetailsJson: String): StubBuilder = StubBuilder(personalDetailsJson)
 
 }

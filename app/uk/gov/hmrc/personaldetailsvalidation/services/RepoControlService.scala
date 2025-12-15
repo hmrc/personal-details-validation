@@ -16,16 +16,15 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.services
 
-import org.apache.pekko.Done
 import cats.data.EitherT
+import org.apache.pekko.Done
 import play.api.Logging
+import uk.gov.hmrc.crypto.PlainText
 import uk.gov.hmrc.http.{HeaderCarrier, SessionId}
+import uk.gov.hmrc.personaldetailsvalidation.model.*
 
 import java.time.LocalDateTime
-import javax.inject.{Inject,Singleton}
-import uk.gov.hmrc.personaldetailsvalidation.model._
-import uk.gov.hmrc.crypto.PlainText
-
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton

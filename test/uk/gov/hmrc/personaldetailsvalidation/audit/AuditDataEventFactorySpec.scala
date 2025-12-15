@@ -16,21 +16,22 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.audit
 
-import java.time.LocalDate
-import generators.Generators.Implicits._
+import generators.Generators.Implicits.*
 import generators.Generators.nonEmptyMap
-import generators.ObjectGenerators._
-import org.mockito.MockitoSugar.when
+import generators.ObjectGenerators.*
+import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar.mock
 import play.api.Configuration
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
 import support.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory._
+import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory.*
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful, NoLivingMatch}
-import uk.gov.hmrc.personaldetailsvalidation.model._
+import uk.gov.hmrc.personaldetailsvalidation.model.*
 import uk.gov.hmrc.play.audit.model.DataEvent
+
+import java.time.LocalDate
 
 class AuditDataEventFactorySpec extends UnitSpec {
 
@@ -45,7 +46,7 @@ class AuditDataEventFactorySpec extends UnitSpec {
       NoLivingMatch -> Map("matchingStatus" -> "success")
     )
 
-    matchingResultAndDetails.foreach { case (matchResult, matchingingDetails) =>
+    matchingResultAndDetails.foreach { case (matchResult, matchingDetails) =>
       s"create data event for ${matchResult.getClass.getName.split("\\$").last}" in new Setup {
         val dataEvent: DataEvent = auditDataFactory.createEvent(matchResult, personalDetails)
 
@@ -56,7 +57,7 @@ class AuditDataEventFactorySpec extends UnitSpec {
           ("nino" -> personalDetails.nino.value) +
           ("postCode" -> "NOT SUPPLIED") +
           ("age" -> currentAgeFromDateOfBirth(personalDetails.dateOfBirth)) ++
-          matchingingDetails
+          matchingDetails
       }
     }
 
@@ -89,7 +90,7 @@ class AuditDataEventFactorySpec extends UnitSpec {
     }
 
     "create error data event for user without nino" in new Setup {
-      val adjustedPerson = new PersonalDetailsWithPostCode(personalDetails.firstName, personalDetails.lastName, personalDetails.dateOfBirth, postCode = "SE1 9NT")
+      val adjustedPerson = PersonalDetailsWithPostCode(personalDetails.firstName, personalDetails.lastName, personalDetails.dateOfBirth, postCode = "SE1 9NT")
       val dataEvent: DataEvent = auditDataFactory.createErrorEvent(adjustedPerson)
 
       dataEvent.auditSource shouldBe auditConfig.appName
