@@ -96,6 +96,8 @@ object MatchingConnector {
 
     case object NoLivingMatch extends MatchResult
 
-  }
+    case class MatchPreconditionFailed(errors: String) extends MatchResult
 
+    case object MatchPreconditionSuccessful extends MatchResult
+  }
 }

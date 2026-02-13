@@ -30,7 +30,7 @@ import support.{CommonTestData, UnitSpec}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchPreconditionFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.mocks.audits.{MockAuditDataFactory, MockAuditEventConnector}
 import uk.gov.hmrc.personaldetailsvalidation.mocks.connectors.{MockCitizensDetailsConnector, MockMatchingConnector}
 import uk.gov.hmrc.personaldetailsvalidation.mocks.services.MockRepoControlService
@@ -40,6 +40,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditResult
 import uk.gov.hmrc.play.audit.model.DataEvent
 import uk.gov.hmrc.uuid.UUIDProvider
 
+import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
@@ -199,6 +200,25 @@ class PersonalDetailsValidatorSpec extends
       MockCitizensDetailsConnector.findDesignatoryDetails(mockCitizenDetailsConnector)(Some(Gender(gender)))
 
       stubReturnNinoFromCid(value = true, times = 2)
+
+      MockAuditDataFactory.createEvent(matchResultWithGender, personalDetails)(dataEvent)
+      MockAuditEventConnector.sendEvent(dataEvent)(AuditResult.Success)
+      MockRepoControlService.insertPDVAndAssociationRecord(
+        mockRepoControlService, testMaybeCredId)(Done)
+
+      await(validator.validate(enteredPersonalDetails, testOrigin, testMaybeCredId).value).map { personalDetailsValidation =>
+        personalDetailsValidation.id shouldBe Right(personalDetailsValidation).value.id
+      }
+    }
+
+    "do not match when the age precondition is failed" +
+      "store the returned Nino as FailedPersonalDetailsValidation for unsuccessful precondition check " +
+      "and return the ValidationId" in {
+      val personalDetails: PersonalDetailsWithNino        = personalDetailsObjects.generateOne.asInstanceOf[PersonalDetailsWithNino].copy(dateOfBirth = LocalDate.now.minusDays(1))
+      val enteredNino: Nino                               = adjustedNino(personalDetails.nino)
+      val enteredPersonalDetails: PersonalDetailsWithNino = personalDetails.copy(nino = enteredNino)
+
+      val matchResultWithGender: MatchSuccessful = MatchSuccessful(personalDetails.addGender(gender))
 
       MockAuditDataFactory.createEvent(matchResultWithGender, personalDetails)(dataEvent)
       MockAuditEventConnector.sendEvent(dataEvent)(AuditResult.Success)

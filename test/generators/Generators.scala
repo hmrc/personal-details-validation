@@ -20,6 +20,7 @@ import org.scalacheck.{Arbitrary, Gen}
 import uk.gov.hmrc.model.NonEmptyString
 
 import java.time.*
+import java.time.temporal.ChronoUnit
 
 trait Generators {
 
@@ -45,6 +46,11 @@ trait Generators {
     chars <- Gen.listOfN(length, Gen.alphaNumChar)
   } yield chars.mkString
 
+  def dateInRange(start: LocalDate, end: LocalDate): Gen[LocalDate] = {
+    val daysBetween: Long = ChronoUnit.DAYS.between(start, end)
+    for (daysToAdd <- Gen.choose(0L, daysBetween)) yield start.plusDays(daysToAdd)
+  }
+
   val nonEmptyStrings: Gen[NonEmptyString] = for {
     length <- Gen.chooseNum(1, 10)
     chars <- Gen.listOfN(length, Gen.alphaNumChar)
@@ -61,6 +67,7 @@ trait Generators {
 
   implicit val localDates: Gen[LocalDate] = instants.map(toDate)
   implicit val localDateTime: Gen[LocalDateTime] = instants.map(toDateTime)
+  implicit val localDateOfBirth: Gen[LocalDate] = dateInRange(LocalDate.now.minusYears(80), LocalDate.now.minusYears(20))
 
   object Implicits {
 

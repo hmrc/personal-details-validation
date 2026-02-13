@@ -34,6 +34,7 @@ trait PersonalDetails {
 
   def age: Int
 
+  def dateOfBirth: LocalDate
 }
 
 trait PersonalDetailsNino {
