@@ -30,7 +30,7 @@ import support.{CommonTestData, UnitSpec}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchPreconditionFailed, MatchSuccessful}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.mocks.audits.{MockAuditDataFactory, MockAuditEventConnector}
 import uk.gov.hmrc.personaldetailsvalidation.mocks.connectors.{MockCitizensDetailsConnector, MockMatchingConnector}
 import uk.gov.hmrc.personaldetailsvalidation.mocks.services.MockRepoControlService

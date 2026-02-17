@@ -113,7 +113,6 @@ class PersonalDetailsValidatorImpl @Inject() (
       case  MatchPreconditionSuccessful => // A precondition success as the final status implies that matching hasn't been attempted.  This should never happen.
         personalDetailsValidationRetryRepository.getAttempts(maybeCredId).map(attempts => PersonalDetailsValidation.failed(maybeCredId, Some(attempts + 1)))
       case MatchPreconditionFailed(_) | MatchFailed(_) =>
-        // todo : this failure doesn't appear to log anything specific as the failure detail, just that it failed
         personalDetailsValidationRetryRepository.getAttempts(maybeCredId).map(attempts => PersonalDetailsValidation.failed(maybeCredId, Some(attempts + 1)))
     }
 
@@ -124,7 +123,7 @@ class PersonalDetailsValidatorImpl @Inject() (
     } else
       EitherT(Future.successful(MatchPreconditionSuccessful).map(_.asRight[Exception]))
 
-  def isYoungerThan15Years9Months(birthDate: LocalDate): Boolean =
+  private def isYoungerThan15Years9Months(birthDate: LocalDate): Boolean =
     val minimumAgeInMonths: Int = 189
     ChronoUnit.MONTHS.between(birthDate, LocalDate.now()) < minimumAgeInMonths
 

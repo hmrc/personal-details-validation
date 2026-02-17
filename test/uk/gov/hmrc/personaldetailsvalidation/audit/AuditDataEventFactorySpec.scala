@@ -117,7 +117,7 @@ class AuditDataEventFactorySpec extends UnitSpec {
     val auditTags: Map[String, String] = nonEmptyMap.generateOne
     val auditDetails: Map[String, String] = nonEmptyMap.generateOne
 
-    when(auditTagsProvider.apply(headerCarrier, auditType, request)).thenReturn(auditTags)
+    when(auditTagsProvider.apply(headerCarrier, matchingResultAuditType, request)).thenReturn(auditTags)
     when(auditDetailsProvider.apply(headerCarrier)).thenReturn(auditDetails)
 
     val auditDataFactory = new AuditDataEventFactory(auditConfig, auditTagsProvider, auditDetailsProvider)

@@ -42,10 +42,11 @@ or
 
 **Response**
 
-| Status | Description                                                                                                            |
-|--------|------------------------------------------------------------------------------------------------------------------------|
-| 200    | Regardless of validation results. Response contains `Location` header pointing to an endpoint to retrieve the results. |
-| 400    | When the given payload is invalid.                                                                                     |
+| Status | Description                                                                                                                                                            |
+|--------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 200    | Regardless of validation results. Response contains `Location` header pointing to an endpoint to retrieve the results.                                                 |
+| 200    | Validation precondition failure, birth date is less than 15 years 9 months prior. Response contains `Location` header pointing to an endpoint to retrieve the results. |
+| 400    | When the given payload is invalid.                                                                                                                                     |
 
 Examples of OK response body:
 * Successful validation

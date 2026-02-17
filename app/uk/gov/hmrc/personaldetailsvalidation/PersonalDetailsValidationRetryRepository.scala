@@ -74,8 +74,8 @@ class PersonalDetailsValidationRetryRepository @Inject()(config: PersonalDetails
       maybeCredId.fold(Future.successful(Right(0))){ credId =>
         val completeFilter = Filters.and(Filters.eq(retryKey, credId))
         collection.find(completeFilter).toFuture().map { personalDetailsValidation =>
-          personalDetailsValidation.last match {
-            case maybeRetry: Retry => Right(maybeRetry.attempts.getOrElse(0))
+          personalDetailsValidation.lastOption match {
+            case Some(maybeRetry) => Right(maybeRetry.attempts.getOrElse(0))
             case _ => Right(0)
           }
         }
