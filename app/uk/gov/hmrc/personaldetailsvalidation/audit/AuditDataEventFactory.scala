@@ -59,6 +59,15 @@ class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTag
 
   private def createEvent(personalDetails: PersonalDetails, matchingStatus: String, otherDetails: Map[String, String], auditType: AuditType)
                          (implicit hc: HeaderCarrier, request: Request[?]): DataEvent = {
+    DataEvent(
+      auditSource = auditConfig.appName,
+      auditType = auditType,
+      tags = auditTagProvider(hc, auditType, request),
+      detail = auditDetailsProvider(hc) ++ matchResultDetails(personalDetails, matchingStatus, auditType) ++ otherDetails
+    )
+  }
+
+  private def matchResultDetails(personalDetails: PersonalDetails, matchingStatus: String, auditType: AuditType) = {
     val nino = personalDetails match {
       case details: PersonalDetailsNino => details.nino.value
       case _ => "NOT SUPPLIED"
@@ -75,19 +84,10 @@ class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTag
       case _ => """NOT SUPPLIED"""
     }
 
-    val details: AuditDetails = auditType match {
+    auditType match {
       case "MatchingPreconditionFailedUnderage" => Map("nino" -> nino, "postCode" -> postCode, "dateOfBirth" -> personalDetails.dateOfBirth.toString, "age" -> age, "matchingStatus" -> matchingStatus)
       case _ => Map("nino" -> nino, "postCode" -> postCode, "age" -> age, "matchingStatus" -> matchingStatus)
     }
-    
-    val v: AuditDetails = auditDetailsProvider(hc)
-    
-    DataEvent(
-      auditSource = auditConfig.appName,
-      auditType = auditType,
-      tags = auditTagProvider(hc, auditType, request),
-      detail = auditDetailsProvider(hc) ++ details ++ otherDetails
-    )
   }
 
   private def currentAgeFromDateOfBirth(dateOfBirth: LocalDate): String = {
@@ -96,7 +96,7 @@ class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTag
   }
 
   private implicit class MatchResultOps(target: MatchResult) {
-    def toMatchingStatus: AuditType = target match {
+    def toMatchingStatus: MatchingStatus = target match {
       case MatchSuccessful(_) | NoLivingMatch => "success"
       case MatchPreconditionFailed(_) => "preconditionFailed"
       case _ => "failed"
@@ -107,7 +107,7 @@ class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTag
       case MatchPreconditionFailed(_) | MatchPreconditionSuccessful => matchingPreconditionFailedUnderageAuditType
     }
 
-    def otherDetails: Map[AuditType, String] = target match {
+    def otherDetails: Map[DetailLabel, String] = target match {
       case MatchSuccessful(_) | NoLivingMatch | MatchPreconditionSuccessful => Map.empty[String, String]
       case MatchFailed(errors)  => Map("failureDetail" -> errors)
       case MatchPreconditionFailed(errors) => Map("failureDetail" -> errors)
@@ -119,6 +119,8 @@ class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTag
 private[personaldetailsvalidation] object AuditDataEventFactory {
 
   type AuditType = String
+  type MatchingStatus = String
+  type DetailLabel = String
   type AuditTags = Map[String, String]
   type AuditDetails = Map[String, String]
 
