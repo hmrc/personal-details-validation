@@ -81,9 +81,7 @@ class PersonalDetailsValidatorImpl @Inject() (
         }
         repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation, maybeCredId)
       }
-      _ = {
-        sendEvent(auditDataFactory.createEvent(addValidatedPersonalDetailsToMatchResult(personalDetailsValidation, matchResult), eventDetailsToSend(matchResult, personalDetails)))
-      }
+      _ = sendEvent(auditDataFactory.createEvent(addValidatedPersonalDetailsToMatchResult(personalDetailsValidation, matchResult), eventDetailsToSend(matchResult, personalDetails)))
     } yield personalDetailsValidation
   }.leftMap { error =>  sendEvent(auditDataFactory.createErrorEvent(personalDetails)); error }
 
