@@ -85,7 +85,7 @@ class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTag
     }
 
     auditType match {
-      case "MatchingPreconditionFailedUnderage" => Map("nino" -> nino, "postCode" -> postCode, "dateOfBirth" -> personalDetails.dateOfBirth.toString, "age" -> age, "matchingStatus" -> matchingStatus)
+      case AuditDataEventFactory.matchingPreconditionFailedUnderageAuditType => Map("nino" -> nino, "postCode" -> postCode, "dateOfBirth" -> personalDetails.dateOfBirth.toString, "age" -> age, "matchingStatus" -> matchingStatus)
       case _ => Map("nino" -> nino, "postCode" -> postCode, "age" -> age, "matchingStatus" -> matchingStatus)
     }
   }
@@ -127,6 +127,6 @@ private[personaldetailsvalidation] object AuditDataEventFactory {
   type AuditTagProvider = (HeaderCarrier, AuditType, Request[?]) => AuditTags
   type AuditDetailsProvider = HeaderCarrier => AuditDetails
 
-  val matchingResultAuditType = "MatchingResult"
-  val matchingPreconditionFailedUnderageAuditType = "MatchingPreconditionFailedUnderage"
+  val matchingResultAuditType: AuditType = "MatchingResult"
+  val matchingPreconditionFailedUnderageAuditType: AuditType = "MatchingPreconditionFailedUnderage"
 }

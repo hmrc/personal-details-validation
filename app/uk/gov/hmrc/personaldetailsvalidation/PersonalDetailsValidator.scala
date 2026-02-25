@@ -81,7 +81,9 @@ class PersonalDetailsValidatorImpl @Inject() (
         }
         repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation, maybeCredId)
       }
-      _ = sendEvent(auditDataFactory.createEvent(addValidatedPersonalDetailsToMatchResult(personalDetailsValidation, matchResult), eventDetailsToSend(matchResult, personalDetails)))
+      _ = {
+        sendEvent(auditDataFactory.createEvent(addValidatedPersonalDetailsToMatchResult(personalDetailsValidation, matchResult), eventDetailsToSend(matchResult, personalDetails)))
+      }
     } yield personalDetailsValidation
   }.leftMap { error =>  sendEvent(auditDataFactory.createErrorEvent(personalDetails)); error }
 
@@ -116,7 +118,7 @@ class PersonalDetailsValidatorImpl @Inject() (
         personalDetailsValidationRetryRepository.getAttempts(maybeCredId).map(attempts => PersonalDetailsValidation.failed(maybeCredId, Some(attempts + 1)))
     }
 
-  private def matchPreconditionCheck(personalDetails: PersonalDetails)
+  def matchPreconditionCheck(personalDetails: PersonalDetails)
                                     (implicit executionContext: ExecutionContext): EitherT[Future, Exception, MatchResult] =
     if (isYoungerThan15Years9Months(personalDetails.dateOfBirth)) {
       EitherT(Future.successful(MatchPreconditionFailed(s"The supplied details have an age younger than 15 years 9 months")).map(_.asRight[Exception]))
