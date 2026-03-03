@@ -30,7 +30,8 @@ import support.{CommonTestData, UnitSpec}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchPreconditionFailed, MatchPreconditionSuccessful, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.mocks.audits.{MockAuditDataFactory, MockAuditEventConnector}
 import uk.gov.hmrc.personaldetailsvalidation.mocks.connectors.{MockCitizensDetailsConnector, MockMatchingConnector}
 import uk.gov.hmrc.personaldetailsvalidation.mocks.services.MockRepoControlService
@@ -40,6 +41,7 @@ import uk.gov.hmrc.play.audit.http.connector.AuditResult
 import uk.gov.hmrc.play.audit.model.DataEvent
 import uk.gov.hmrc.uuid.UUIDProvider
 
+import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
@@ -207,6 +209,27 @@ class PersonalDetailsValidatorSpec extends
 
       await(validator.validate(enteredPersonalDetails, testOrigin, testMaybeCredId).value).map { personalDetailsValidation =>
         personalDetailsValidation.id shouldBe Right(personalDetailsValidation).value.id
+        personalDetailsValidation shouldBe a [SuccessfulPersonalDetailsValidation]
+      }
+    }
+
+    "do not match the given personal details with matching service, " +
+      "store them as FailedPersonalDetailsValidation for unsuccessful precondition check " +
+      "and return the ValidationId" in {
+
+      val matchResult: MatchPreconditionFailed = MatchPreconditionFailed("underage")
+
+      val personalDetailsUnderage =
+        personalDetailsWithPostCodeObjects.generateOne.copy(dateOfBirth = LocalDate.now().minusYears(1))
+
+      MockAuditDataFactory.createEvent(matchResult, personalDetailsUnderage)(dataEvent)
+      MockAuditEventConnector.sendEvent(dataEvent)(AuditResult.Success)
+      MockRepoControlService.insertPDVAndAssociationRecord(
+        mockRepoControlService, testMaybeCredId)(Done)
+
+      await(validator.validate(personalDetailsUnderage, testOrigin, testMaybeCredId).value).map { personalDetailsValidation =>
+        personalDetailsValidation.id shouldBe Right(personalDetailsValidation).value.id
+        personalDetailsValidation shouldBe a [FailedPersonalDetailsValidation]
       }
     }
 
@@ -226,6 +249,7 @@ class PersonalDetailsValidatorSpec extends
 
       await(validator.validate(personalDetails, testOrigin, testMaybeCredId).value).map { personalDetailsValidation =>
         personalDetailsValidation.id shouldBe Right(personalDetailsValidation).value.id
+        personalDetailsValidation shouldBe a [FailedPersonalDetailsValidation]
       }
     }
 
@@ -282,4 +306,28 @@ class PersonalDetailsValidatorSpec extends
     }
 
   }
+
+  "matchPreconditionCheck" should {
+    val fifteenYearsNineMonthsInMonths = 189
+    "return MatchPreconditionFailed when personal details contain and DOB less than 15 years 9 months ago" in {
+      val matchResult = MatchPreconditionFailed(s"The supplied details have an age younger than 15 years 9 months")
+      val personalDetailsUnderage =
+        personalDetailsWithPostCodeObjects.generateOne.copy(dateOfBirth = LocalDate.now().minusMonths(fifteenYearsNineMonthsInMonths).plusDays(1))
+
+      await(validator.matchPreconditionCheck(personalDetailsUnderage).value) shouldBe Right(matchResult)
+    }
+    "1 return MatchPreconditionSuccessful when personal details contain and DOB 15 years 9 months ago" in {
+      val personalDetailsUnderage =
+        personalDetailsWithPostCodeObjects.generateOne.copy(dateOfBirth = LocalDate.now().minusMonths(fifteenYearsNineMonthsInMonths))
+
+      await(validator.matchPreconditionCheck(personalDetailsUnderage).value) shouldBe Right(MatchPreconditionSuccessful)
+    }
+    "2 return MatchPreconditionSuccessful when personal details contain and DOB more than 15 years 9 months ago" in {
+      val personalDetailsUnderage =
+        personalDetailsWithPostCodeObjects.generateOne.copy(dateOfBirth = LocalDate.now().minusMonths(fifteenYearsNineMonthsInMonths).minusDays(1))
+
+      await(validator.matchPreconditionCheck(personalDetailsUnderage).value) shouldBe Right(MatchPreconditionSuccessful)
+    }
+  }
+
 }

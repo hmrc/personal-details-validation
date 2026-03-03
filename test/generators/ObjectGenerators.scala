@@ -28,14 +28,14 @@ object ObjectGenerators extends ValueGenerators {
   implicit val personalDetailsWithNinoObjects: Gen[PersonalDetailsWithNino] = for {
     firstName <- nonEmptyStrings
     lastName <- nonEmptyStrings
-    dateOfBirth <- localDates
+    dateOfBirth <- localDateOfBirth
     nino <- ninos
   } yield PersonalDetailsWithNino(firstName, lastName, dateOfBirth, nino)
 
   implicit val personalDetailsWithNinoGenderObjects: Gen[PersonalDetailsWithNinoAndGender] = for {
     firstName <- nonEmptyStrings
     lastName <- nonEmptyStrings
-    dateOfBirth <- localDates
+    dateOfBirth <- localDateOfBirth
     nino <- ninos
     gender <- nonEmptyStrings
   } yield PersonalDetailsWithNinoAndGender(firstName, lastName, dateOfBirth, nino, gender)
@@ -43,7 +43,7 @@ object ObjectGenerators extends ValueGenerators {
   implicit val personalDetailsWithPostCodeObjects: Gen[PersonalDetailsWithPostCode] = for {
     firstName <- nonEmptyStrings
     lastName <- nonEmptyStrings
-    dateOfBirth <- localDates
+    dateOfBirth <- localDateOfBirth
     postCode <- postCode
   } yield PersonalDetailsWithPostCode(firstName, lastName, dateOfBirth, postCode)
 

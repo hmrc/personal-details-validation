@@ -27,7 +27,7 @@ import play.api.test.FakeRequest
 import support.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory.*
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful, NoLivingMatch}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchPreconditionFailed, MatchSuccessful, NoLivingMatch}
 import uk.gov.hmrc.personaldetailsvalidation.model.*
 import uk.gov.hmrc.play.audit.model.DataEvent
 
@@ -56,6 +56,26 @@ class AuditDataEventFactorySpec extends UnitSpec {
         dataEvent.detail shouldBe auditDetails +
           ("nino" -> personalDetails.nino.value) +
           ("postCode" -> "NOT SUPPLIED") +
+          ("age" -> currentAgeFromDateOfBirth(personalDetails.dateOfBirth)) ++
+          matchingDetails
+      }
+    }
+
+    val matchingResultAndDetailsForPrecondition = Map(
+      MatchPreconditionFailed("underage") -> Map("matchingStatus" -> "preconditionFailed", "failureDetail" -> "underage")
+    )
+
+    matchingResultAndDetailsForPrecondition.foreach { case (matchResult, matchingDetails) =>
+      s"create precondition failed data event for ${matchResult.getClass.getName.split("\\$").last}" in new Setup {
+        val dataEvent: DataEvent = auditDataFactory.createEvent(matchResult, personalDetails)
+
+        dataEvent.auditSource shouldBe auditConfig.appName
+        dataEvent.auditType shouldBe "MatchingPreconditionFailedUnderage"
+        dataEvent.tags shouldBe auditTags
+        dataEvent.detail shouldBe auditDetails +
+          ("nino" -> personalDetails.nino.value) +
+          ("postCode" -> "NOT SUPPLIED") +
+          ("dateOfBirth" -> personalDetails.dateOfBirth.toString) +
           ("age" -> currentAgeFromDateOfBirth(personalDetails.dateOfBirth)) ++
           matchingDetails
       }
@@ -117,7 +137,8 @@ class AuditDataEventFactorySpec extends UnitSpec {
     val auditTags: Map[String, String] = nonEmptyMap.generateOne
     val auditDetails: Map[String, String] = nonEmptyMap.generateOne
 
-    when(auditTagsProvider.apply(headerCarrier, auditType, request)).thenReturn(auditTags)
+    when(auditTagsProvider.apply(headerCarrier, matchingResultAuditType, request)).thenReturn(auditTags)
+    when(auditTagsProvider.apply(headerCarrier, matchingPreconditionFailedUnderageAuditType, request)).thenReturn(auditTags)
     when(auditDetailsProvider.apply(headerCarrier)).thenReturn(auditDetails)
 
     val auditDataFactory = new AuditDataEventFactory(auditConfig, auditTagsProvider, auditDetailsProvider)

@@ -25,12 +25,14 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchSuccessful, NoLivingMatch}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchPreconditionFailed, MatchPreconditionSuccessful, MatchSuccessful, NoLivingMatch}
 import uk.gov.hmrc.personaldetailsvalidation.model.*
 import uk.gov.hmrc.personaldetailsvalidation.services.{Encryption, RepoControlService}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.uuid.UUIDProvider
 
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -63,7 +65,11 @@ class PersonalDetailsValidatorImpl @Inject() (
   def validate(personalDetails: PersonalDetails, origin: Option[String], maybeCredId: Option[String])
               (implicit hc: HeaderCarrier, request: Request[?], ec: ExecutionContext): EitherT[Future, Exception, PersonalDetailsValidation] = {
     for {
-      matchResult <- doMatch(personalDetails)
+      matchPreconditionResult <- matchPreconditionCheck(personalDetails)
+      matchResult <- matchPreconditionResult match {
+        case mpr: MatchPreconditionFailed => EitherT(Future.successful(mpr).map(_.asRight[Exception]))
+        case _ => doMatch(personalDetails)
+      }
       personalDetailsValidation <- toPersonalDetailsValidation(matchResult, personalDetails, maybeCredId)
       _ <- {
         if (maybeCredId.isDefined) {
@@ -104,9 +110,22 @@ class PersonalDetailsValidatorImpl @Inject() (
         EitherT(toPersonalDetails(pd, optionallyHaving) map (pd => PersonalDetailsValidation.successful(pd)) map (_.asRight[Exception]))
       case NoLivingMatch =>
         EitherT(Future.successful(PersonalDetailsValidation.successful(optionallyHaving, deceased = true)).map(_.asRight[Exception]))
-      case MatchFailed(_) =>
+      case  MatchPreconditionSuccessful => // A precondition success as the final status implies that matching hasn't been attempted.  This should never happen.
+        personalDetailsValidationRetryRepository.getAttempts(maybeCredId).map(attempts => PersonalDetailsValidation.failed(maybeCredId, Some(attempts + 1)))
+      case MatchPreconditionFailed(_) | MatchFailed(_) =>
         personalDetailsValidationRetryRepository.getAttempts(maybeCredId).map(attempts => PersonalDetailsValidation.failed(maybeCredId, Some(attempts + 1)))
     }
+
+  def matchPreconditionCheck(personalDetails: PersonalDetails)
+                                    (implicit executionContext: ExecutionContext): EitherT[Future, Exception, MatchResult] =
+    if (isYoungerThan15Years9Months(personalDetails.dateOfBirth)) {
+      EitherT(Future.successful(MatchPreconditionFailed(s"The supplied details have an age younger than 15 years 9 months")).map(_.asRight[Exception]))
+    } else
+      EitherT(Future.successful(MatchPreconditionSuccessful).map(_.asRight[Exception]))
+
+  private def isYoungerThan15Years9Months(birthDate: LocalDate): Boolean =
+    val minimumAgeInMonths: Int = 189
+    ChronoUnit.MONTHS.between(birthDate, LocalDate.now()) < minimumAgeInMonths
 
   def toPersonalDetails(personalDetails: PersonalDetails, optionallyHaving: PersonalDetails)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[PersonalDetails] =
     toPersonalDetailsWithGender ((personalDetails, optionallyHaving) match {
