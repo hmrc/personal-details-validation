@@ -62,7 +62,7 @@ class AuditDataEventFactorySpec extends UnitSpec {
     }
 
     val matchingResultAndDetailsForPrecondition = Map(
-      MatchPreconditionFailed("underage") -> Map("matchingStatus" -> "preconditionFailed", "failureDetail" -> "underage")
+      MatchPreconditionFailed("underage") -> Map("matchingStatus" -> "failed", "failureDetail" -> "underage")
     )
 
     matchingResultAndDetailsForPrecondition.foreach { case (matchResult, matchingDetails) =>

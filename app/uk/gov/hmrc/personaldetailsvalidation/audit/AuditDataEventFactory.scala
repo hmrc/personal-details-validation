@@ -98,7 +98,7 @@ class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTag
   private implicit class MatchResultOps(target: MatchResult) {
     def toMatchingStatus: MatchingStatus = target match {
       case MatchSuccessful(_) | NoLivingMatch => "success"
-      case MatchPreconditionFailed(_) => "preconditionFailed"
+      case MatchPreconditionFailed(_) => "failed"
       case _ => "failed"
     }
 
