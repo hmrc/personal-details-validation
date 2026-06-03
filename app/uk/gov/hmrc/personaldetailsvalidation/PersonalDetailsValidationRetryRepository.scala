@@ -24,6 +24,7 @@ import play.api.libs.json.*
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.personaldetailsvalidation.formats.JavaDateTimeFormatter
+import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, SuccessfulPersonalDetailsValidation}
 
 import java.time.{LocalDateTime, ZoneOffset}
 import java.util.concurrent.TimeUnit
@@ -61,27 +62,52 @@ class PersonalDetailsValidationRetryRepository @Inject()(config: PersonalDetails
   //user's CredId is the retry key
   lazy val retryKey = "credentialId"
 
-  def recordAttempt(maybeCredId: String, attempts: Int = 0): Future[Done] = {
+  def recordAttempt(maybeCredId: String, attempts: Int = 0): Future[Either[Exception, Done]] = {
     val update = Retry(maybeCredId, Some(attempts + 1))
-    collection.replaceOne(Filters.eq(retryKey, maybeCredId), update, ReplaceOptions().upsert(true)).toFuture().map(_ => Done)
+    collection.replaceOne(Filters.eq(retryKey, maybeCredId), update, ReplaceOptions().upsert(true)).toFuture().map(_ => Right(Done))
+      .recover {
+        case ex: Exception => Left(ex)
+      }
   }
 
-  def deleteAttempts(credId: String): Future[Done] =
-    collection.deleteOne(Filters.eq(retryKey, credId)).toFuture().map(_ => Done)
+  def deleteAttempts(credId: String): Future[Either[Exception, Done]] = {
+    collection.deleteOne(Filters.eq(retryKey, credId)).toFuture().map(_ => Right(Done))
+      .recover {
+        case ex: Exception => Left(ex)
+      }
+  }
 
-  def getAttempts(maybeCredId: Option[String])(implicit ec: ExecutionContext): EitherT[Future, Exception, Int] = {
-    EitherT(
-      maybeCredId.fold(Future.successful(Right(0))){ credId =>
-        val completeFilter = Filters.and(Filters.eq(retryKey, credId))
-        collection.find(completeFilter).toFuture().map { personalDetailsValidation =>
-          personalDetailsValidation.last match {
-            case maybeRetry: Retry => Right(maybeRetry.attempts.getOrElse(0))
-            case _ => Right(0)
+  def getAttempts(maybeCredId:Option[String])(implicit ec: ExecutionContext): Future[Either[Exception, Int]] = {
+    maybeCredId.fold(Future.successful(Right(0))){ credId =>
+      val completeFilter = Filters.and(Filters.eq(retryKey, credId))
+      collection.find(completeFilter).toFuture().map { personalDetailsValidation =>
+        if(personalDetailsValidation.isEmpty) Right(0) else Right(personalDetailsValidation.last.attempts.getOrElse(0))
+      }.recover {
+        case ex: Exception => Left(ex)
+      }
+    }
+  }
+
+  private def updateRetryAttempts(maybeCredId: Option[String], personalDetailsValidation: PersonalDetailsValidation)(implicit ec: ExecutionContext): Future[Either[Exception, Done]] = {
+    maybeCredId match {
+      case Some(credId) =>
+        personalDetailsValidation match {
+          case _: SuccessfulPersonalDetailsValidation => deleteAttempts(credId)
+          case _ => getAttempts(Some(credId)).flatMap {
+            case Right(attempts) => recordAttempt(credId, attempts)
+            case Left(exception) => Future.successful(Left(exception))
           }
         }
-      }.recover {
-        case _: Exception => Right(0)
-      }
-    )
+      case None => Future.successful(Right(Done))
+    }
   }
+
+  def updateRetryAttemptsT(maybeCredId: Option[String], personalDetailsValidation: PersonalDetailsValidation)(implicit ec: ExecutionContext): EitherT[Future, Exception, Done] = {
+    EitherT(updateRetryAttempts(maybeCredId, personalDetailsValidation)(using ec))
+  }
+
+  def getAttemptsT(maybeCredId: Option[String])(implicit ec: ExecutionContext): EitherT[Future, Exception, Int] = {
+    EitherT(getAttempts(maybeCredId)(using ec))
+  }
+
 }

@@ -64,7 +64,7 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
     lazy val toAuthCredentialId: Option[Credentials] => Future[Option[String]] = (credentials: Option[Credentials]) => Future.successful(credentials.map(_.providerId))
     val attempts: EitherT[Future, Exception, Result] = for {
       maybeCredId <- EitherT.right(authorised().retrieve(credentials)(toAuthCredentialId).recover{case _ => None})
-      attempts <- personalDetailsValidationRetryRepository.getAttempts(maybeCredId)
+      attempts <- personalDetailsValidationRetryRepository.getAttemptsT(maybeCredId)
     } yield {
       Ok(Json.toJson(UserAttemptsDetails(attempts, maybeCredId)))
     }
