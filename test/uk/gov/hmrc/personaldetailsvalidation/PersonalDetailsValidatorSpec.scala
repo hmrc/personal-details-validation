@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.personaldetailsvalidation
 
+import cats.data.EitherT
 import com.codahale.metrics.SharedMetricRegistries
 import generators.Generators.Implicits.*
 import generators.ObjectGenerators.*
@@ -42,6 +43,7 @@ import uk.gov.hmrc.play.audit.model.DataEvent
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import java.time.LocalDate
+import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
@@ -285,7 +287,7 @@ class PersonalDetailsValidatorSpec extends
         MatchSuccessful(inputPersonalDetails.addNino(matchedPersonalDetails.nino).addGender(gender))
 
       await(personalDetailsValidationRetryRepository.recordAttempt(testMaybeCredId.get, 3))
-      await(personalDetailsValidationRetryRepository.getAttempts(testMaybeCredId).value) shouldBe Right(4)
+      await(personalDetailsValidationRetryRepository.getAttemptsT(testMaybeCredId).value) shouldBe Right(4)
 
       MockMatchingConnector.doMatch(mockMatchingConnector, inputPersonalDetails)(matchResult)
       MockCitizensDetailsConnector.findDesignatoryDetails(mockCitizenDetailsConnector)(Some(Gender(gender)))
@@ -302,7 +304,13 @@ class PersonalDetailsValidatorSpec extends
         personalDetailsValidation.id shouldBe Right(personalDetailsValidation).value.id
       }
 
-      await(personalDetailsValidationRetryRepository.getAttempts(testMaybeCredId).value) shouldBe Right(0)
+      val result: EitherT[Future, Exception, Int] = personalDetailsValidationRetryRepository.getAttemptsT(testMaybeCredId)
+
+      await(result.value) match {
+        case Right(attempts) => attempts shouldBe 0
+        case Left(exception) => fail(s"Expected Right(0) but got Left($exception)")
+      }
+
     }
 
   }

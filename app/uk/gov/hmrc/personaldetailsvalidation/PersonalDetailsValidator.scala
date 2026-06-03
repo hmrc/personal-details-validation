@@ -64,6 +64,7 @@ class PersonalDetailsValidatorImpl @Inject() (
 
   def validate(personalDetails: PersonalDetails, origin: Option[String], maybeCredId: Option[String])
               (implicit hc: HeaderCarrier, request: Request[?], ec: ExecutionContext): EitherT[Future, Exception, PersonalDetailsValidation] = {
+
     for {
       matchPreconditionResult <- matchPreconditionCheck(personalDetails)
       matchResult <- matchPreconditionResult match {
@@ -71,16 +72,9 @@ class PersonalDetailsValidatorImpl @Inject() (
         case _ => doMatch(personalDetails)
       }
       personalDetailsValidation <- toPersonalDetailsValidation(matchResult, personalDetails, maybeCredId)
-      _ <- {
-        if (maybeCredId.isDefined) {
-          val attempts: EitherT[Future, Exception, Int] = personalDetailsValidationRetryRepository.getAttempts(maybeCredId).map(attempts => attempts)
-          personalDetailsValidation match {
-            case _ : SuccessfulPersonalDetailsValidation => personalDetailsValidationRetryRepository.deleteAttempts(maybeCredId.get)
-            case _ => attempts.map { attempts => personalDetailsValidationRetryRepository.recordAttempt(maybeCredId.get, attempts) }
-          }
-        }
-        repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation, maybeCredId)
-      }
+      _ <- personalDetailsValidationRetryRepository.updateRetryAttemptsT(maybeCredId, personalDetailsValidation)
+      _ <- repoControlService.insertPDVAndAssociationRecord(personalDetailsValidation, maybeCredId)
+
       _ = sendEvent(auditDataFactory.createEvent(addValidatedPersonalDetailsToMatchResult(personalDetailsValidation, matchResult), eventDetailsToSend(matchResult, personalDetails)))
     } yield personalDetailsValidation
   }.leftMap { error =>  sendEvent(auditDataFactory.createErrorEvent(personalDetails)); error }
@@ -111,9 +105,9 @@ class PersonalDetailsValidatorImpl @Inject() (
       case NoLivingMatch =>
         EitherT(Future.successful(PersonalDetailsValidation.successful(optionallyHaving, deceased = true)).map(_.asRight[Exception]))
       case  MatchPreconditionSuccessful => // A precondition success as the final status implies that matching hasn't been attempted.  This should never happen.
-        personalDetailsValidationRetryRepository.getAttempts(maybeCredId).map(attempts => PersonalDetailsValidation.failed(maybeCredId, Some(attempts + 1)))
+        personalDetailsValidationRetryRepository.getAttemptsT(maybeCredId).map(attempts => PersonalDetailsValidation.failed(maybeCredId, Some(attempts + 1)))
       case MatchPreconditionFailed(_) | MatchFailed(_) =>
-        personalDetailsValidationRetryRepository.getAttempts(maybeCredId).map(attempts => PersonalDetailsValidation.failed(maybeCredId, Some(attempts + 1)))
+        personalDetailsValidationRetryRepository.getAttemptsT(maybeCredId).map(attempts => PersonalDetailsValidation.failed(maybeCredId, Some(attempts + 1)))
     }
 
   def matchPreconditionCheck(personalDetails: PersonalDetails)
