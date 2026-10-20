@@ -21,28 +21,30 @@ import com.codahale.metrics.SharedMetricRegistries
 import generators.Generators.Implicits.*
 import generators.ObjectGenerators.*
 import org.apache.pekko.Done
-import org.mockito.Mockito.{reset, when}
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
+import org.mockito.Mockito.{reset, verifyNoInteractions, when}
 import org.mongodb.scala.SingleObservableFuture
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.mvc.Request
 import support.{CommonTestData, UnitSpec}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchPreconditionFailed, MatchPreconditionSuccessful, MatchSuccessful}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchNinoLocked, MatchPreconditionFailed, MatchPreconditionSuccessful, MatchSuccessful}
 import uk.gov.hmrc.personaldetailsvalidation.mocks.audits.{MockAuditDataFactory, MockAuditEventConnector}
 import uk.gov.hmrc.personaldetailsvalidation.mocks.connectors.{MockCitizensDetailsConnector, MockMatchingConnector}
 import uk.gov.hmrc.personaldetailsvalidation.mocks.services.MockRepoControlService
 import uk.gov.hmrc.personaldetailsvalidation.model.*
-import uk.gov.hmrc.personaldetailsvalidation.services.Encryption
+import uk.gov.hmrc.personaldetailsvalidation.services.{Encryption, NinoRetryLockService}
 import uk.gov.hmrc.play.audit.http.connector.AuditResult
 import uk.gov.hmrc.play.audit.model.DataEvent
 import uk.gov.hmrc.uuid.UUIDProvider
 
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime, ZoneOffset}
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -100,6 +102,7 @@ class PersonalDetailsValidatorSpec extends
     mockCitizenDetailsConnector,
     mockRepoControlService,
     personalDetailsValidationRetryRepository,
+    mockNinoRetryLockService,
     mockAuditDataFactory,
     mockMatchingAuditConnector,
     mockAppConfig
@@ -109,8 +112,13 @@ class PersonalDetailsValidatorSpec extends
     reset(mockMatchingConnector,
       mockCitizenDetailsConnector,
       mockMatchingAuditConnector,
-      mockRepoControlService)
+      mockRepoControlService,
+      mockNinoRetryLockService)
     await(personalDetailsValidationRetryRepository.collection.drop().toFuture())
+    when(mockNinoRetryLockService.lockStatus(any[PersonalDetails], any[Option[String]])(using any[HeaderCarrier], any[Request[?]]))
+      .thenReturn(EitherT.rightT[Future, Exception](NinoRetryLockService.NinoLockStatus.NotLocked))
+    when(mockNinoRetryLockService.recordOutcome(any[PersonalDetails], any[MatchResult], any[Option[String]])(using any[HeaderCarrier], any[Request[?]]))
+      .thenReturn(EitherT.rightT[Future, Exception](()))
     super.beforeEach()
   }
 
@@ -286,8 +294,10 @@ class PersonalDetailsValidatorSpec extends
       val matchResult: MatchSuccessful =
         MatchSuccessful(inputPersonalDetails.addNino(matchedPersonalDetails.nino).addGender(gender))
 
-      await(personalDetailsValidationRetryRepository.recordAttempt(testMaybeCredId.get, 3))
-      await(personalDetailsValidationRetryRepository.getAttemptsT(testMaybeCredId).value) shouldBe Right(4)
+      await(personalDetailsValidationRetryRepository.incrementAttempts(testMaybeCredId.get))
+      await(personalDetailsValidationRetryRepository.incrementAttempts(testMaybeCredId.get))
+      await(personalDetailsValidationRetryRepository.incrementAttempts(testMaybeCredId.get))
+      await(personalDetailsValidationRetryRepository.getAttemptsT(testMaybeCredId).value) shouldBe Right(3)
 
       MockMatchingConnector.doMatch(mockMatchingConnector, inputPersonalDetails)(matchResult)
       MockCitizensDetailsConnector.findDesignatoryDetails(mockCitizenDetailsConnector)(Some(Gender(gender)))
@@ -311,6 +321,52 @@ class PersonalDetailsValidatorSpec extends
         case Left(exception) => fail(s"Expected Right(0) but got Left($exception)")
       }
 
+    }
+
+    "return an ordinary failed validation without calling authenticator or citizen details when the nino is locked" in {
+      val ninoDetails: PersonalDetailsWithNino = PersonalDetailsWithNino("Jim", "Ferguson", LocalDate.of(1980, 1, 1), nino)
+
+      when(mockNinoRetryLockService.lockStatus(eqTo(ninoDetails), eqTo(testMaybeCredId))(using any[HeaderCarrier], any[Request[?]]))
+        .thenReturn(EitherT.rightT[Future, Exception](NinoRetryLockService.NinoLockStatus.Locked(LocalDateTime.now(ZoneOffset.UTC).plusHours(1))))
+
+      MockAuditDataFactory.createEvent(MatchNinoLocked, ninoDetails)(dataEvent)
+      MockAuditEventConnector.sendEvent(dataEvent)(AuditResult.Success)
+      MockRepoControlService.insertPDVAndAssociationRecord(
+        mockRepoControlService, testMaybeCredId)(Done)
+
+      val result = await(validator.validate(ninoDetails, testOrigin, testMaybeCredId).value)
+
+      result match {
+        case Right(failure: FailedPersonalDetailsValidation) => failure.attempt shouldBe Some(1)
+        case other => fail(s"Expected Right(FailedPersonalDetailsValidation) but got $other")
+      }
+
+      verifyNoInteractions(mockMatchingConnector)
+      verifyNoInteractions(mockCitizenDetailsConnector)
+    }
+
+    "fail closed without calling authenticator when the nino lock store cannot be read" in {
+      when(mockNinoRetryLockService.lockStatus(any[PersonalDetails], any[Option[String]])(using any[HeaderCarrier], any[Request[?]]))
+        .thenReturn(EitherT.leftT[Future, NinoRetryLockService.NinoLockStatus](exception))
+
+      MockAuditDataFactory.createErrorEvent(personalDetails)(dataEvent)
+      MockAuditEventConnector.sendEvent(dataEvent)(AuditResult.Success)
+
+      await(validator.validate(personalDetails, testOrigin, testMaybeCredId).value) shouldBe Left(exception)
+
+      verifyNoInteractions(mockMatchingConnector)
+    }
+
+    "fail closed when recording the nino lock outcome fails" in {
+      when(mockNinoRetryLockService.recordOutcome(any[PersonalDetails], any[MatchResult], any[Option[String]])(using any[HeaderCarrier], any[Request[?]]))
+        .thenReturn(EitherT.leftT[Future, Unit](exception))
+
+      MockMatchingConnector.doMatch(mockMatchingConnector, personalDetails)(MatchFailed("some error"))
+      stubReturnNinoFromCidFalse(value = false)
+      MockAuditDataFactory.createErrorEvent(personalDetails)(dataEvent)
+      MockAuditEventConnector.sendEvent(dataEvent)(AuditResult.Success)
+
+      await(validator.validate(personalDetails, testOrigin, testMaybeCredId).value) shouldBe Left(exception)
     }
 
   }

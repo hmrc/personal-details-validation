@@ -27,11 +27,11 @@ import play.api.test.FakeRequest
 import support.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory.*
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchPreconditionFailed, MatchSuccessful, NoLivingMatch}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchNinoLocked, MatchPreconditionFailed, MatchSuccessful, NoLivingMatch}
 import uk.gov.hmrc.personaldetailsvalidation.model.*
 import uk.gov.hmrc.play.audit.model.DataEvent
 
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime}
 
 class AuditDataEventFactorySpec extends UnitSpec {
 
@@ -122,6 +122,70 @@ class AuditDataEventFactorySpec extends UnitSpec {
         ("age" -> currentAgeFromDateOfBirth(adjustedPerson.dateOfBirth)) +
         ("matchingStatus" -> "technicalError")
     }
+
+    "create data event for a blocked nino submission" in new Setup {
+      val dataEvent: DataEvent = auditDataFactory.createEvent(MatchNinoLocked, personalDetails)
+
+      dataEvent.auditSource shouldBe auditConfig.appName
+      dataEvent.auditType shouldBe "MatchingResult"
+      dataEvent.tags shouldBe auditTags
+      dataEvent.detail shouldBe auditDetails +
+        ("nino" -> personalDetails.nino.value) +
+        ("postCode" -> "NOT SUPPLIED") +
+        ("age" -> currentAgeFromDateOfBirth(personalDetails.dateOfBirth)) +
+        ("matchingStatus" -> "failed") +
+        ("failureDetail" -> "Nino submission blocked: nino locked")
+    }
+
+    "create a NinoFailureRecorded event without any nino details" in new Setup {
+      val dataEvent: DataEvent = auditDataFactory.createNinoFailureRecordedEvent(Some("cred-123"), failedAttempts = 2)
+
+      dataEvent.auditSource shouldBe auditConfig.appName
+      dataEvent.auditType shouldBe "NinoFailureRecorded"
+      dataEvent.tags shouldBe auditTags
+      dataEvent.detail shouldBe auditDetails + ("credId" -> "cred-123") + ("failedAttempts" -> "2")
+      dataEvent.detail.keySet.map(_.toLowerCase) should not contain "nino"
+    }
+
+    "create a NinoFailureRecorded event for a submission without a credId" in new Setup {
+      val dataEvent: DataEvent = auditDataFactory.createNinoFailureRecordedEvent(None, failedAttempts = 1)
+
+      dataEvent.auditType shouldBe "NinoFailureRecorded"
+      dataEvent.detail shouldBe auditDetails + ("credId" -> "NOT SUPPLIED") + ("failedAttempts" -> "1")
+      dataEvent.detail.keySet.map(_.toLowerCase) should not contain "nino"
+    }
+
+    "create a NinoLockCreated event without any nino details" in new Setup {
+      val lockedUntil: LocalDateTime = LocalDateTime.of(2026, 1, 2, 12, 0)
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockCreatedEvent(Some("cred-123"), lockedUntil)
+
+      dataEvent.auditType shouldBe "NinoLockCreated"
+      dataEvent.detail shouldBe auditDetails + ("credId" -> "cred-123") + ("lockedUntil" -> lockedUntil.toString)
+      dataEvent.detail.keySet.map(_.toLowerCase) should not contain "nino"
+    }
+
+    "create a NinoSubmissionBlocked event without any nino details" in new Setup {
+      val dataEvent: DataEvent = auditDataFactory.createNinoSubmissionBlockedEvent(Some("cred-123"))
+
+      dataEvent.auditType shouldBe "NinoSubmissionBlocked"
+      dataEvent.detail shouldBe auditDetails + ("credId" -> "cred-123")
+      dataEvent.detail.keySet.map(_.toLowerCase) should not contain "nino"
+    }
+
+    "create a NinoSubmissionBlocked event for a submission without a credId" in new Setup {
+      val dataEvent: DataEvent = auditDataFactory.createNinoSubmissionBlockedEvent(None)
+
+      dataEvent.auditType shouldBe "NinoSubmissionBlocked"
+      dataEvent.detail shouldBe auditDetails + ("credId" -> "NOT SUPPLIED")
+    }
+
+    "create a NinoLockStoreError event without any nino details" in new Setup {
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockStoreErrorEvent("read", "mongo down")
+
+      dataEvent.auditType shouldBe "NinoLockStoreError"
+      dataEvent.detail shouldBe auditDetails + ("operation" -> "read") + ("error" -> "mongo down")
+      dataEvent.detail.keySet.map(_.toLowerCase) should not contain "nino"
+    }
   }
 
   trait Setup {
@@ -139,6 +203,10 @@ class AuditDataEventFactorySpec extends UnitSpec {
 
     when(auditTagsProvider.apply(headerCarrier, matchingResultAuditType, request)).thenReturn(auditTags)
     when(auditTagsProvider.apply(headerCarrier, matchingPreconditionFailedUnderageAuditType, request)).thenReturn(auditTags)
+    when(auditTagsProvider.apply(headerCarrier, ninoFailureRecordedAuditType, request)).thenReturn(auditTags)
+    when(auditTagsProvider.apply(headerCarrier, ninoLockCreatedAuditType, request)).thenReturn(auditTags)
+    when(auditTagsProvider.apply(headerCarrier, ninoSubmissionBlockedAuditType, request)).thenReturn(auditTags)
+    when(auditTagsProvider.apply(headerCarrier, ninoLockStoreErrorAuditType, request)).thenReturn(auditTags)
     when(auditDetailsProvider.apply(headerCarrier)).thenReturn(auditDetails)
 
     val auditDataFactory = new AuditDataEventFactory(auditConfig, auditTagsProvider, auditDetailsProvider)

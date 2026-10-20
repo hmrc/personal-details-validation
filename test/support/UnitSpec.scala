@@ -27,7 +27,7 @@ import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.config.AppConfig
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
-import uk.gov.hmrc.personaldetailsvalidation.services.{AssociationService, PersonalDetailsValidatorService, RepoControlService}
+import uk.gov.hmrc.personaldetailsvalidation.services.{AssociationService, NinoRetryLockService, PersonalDetailsValidatorService, RepoControlService}
 import uk.gov.hmrc.personaldetailsvalidation.{AssociationRepository, CitizenDetailsConnector, PdvRepository, PersonalDetailsValidator}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
@@ -73,6 +73,8 @@ trait UnitSpec extends AnyWordSpec with Matchers {
 
   val mockPdvRepository: PdvRepository                 = mock[PdvRepository]
   val mockAssociationRepository: AssociationRepository = mock[AssociationRepository]
+
+  val mockNinoRetryLockService: NinoRetryLockService = mock[NinoRetryLockService]
 
   val mockValidator: PersonalDetailsValidator = mock[PersonalDetailsValidator]
 

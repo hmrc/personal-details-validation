@@ -99,5 +99,9 @@ object MatchingConnector {
     case class MatchPreconditionFailed(errors: String) extends MatchResult
 
     case object MatchPreconditionSuccessful extends MatchResult
+
+    // Never returned by the connector itself: synthesised by PersonalDetailsValidatorImpl
+    // when the submitted direct NINO is currently locked (VER-7058).
+    case object MatchNinoLocked extends MatchResult
   }
 }

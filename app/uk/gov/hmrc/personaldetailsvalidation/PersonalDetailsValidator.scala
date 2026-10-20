@@ -25,9 +25,9 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchPreconditionFailed, MatchPreconditionSuccessful, MatchSuccessful, NoLivingMatch}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchNinoLocked, MatchPreconditionFailed, MatchPreconditionSuccessful, MatchSuccessful, NoLivingMatch}
 import uk.gov.hmrc.personaldetailsvalidation.model.*
-import uk.gov.hmrc.personaldetailsvalidation.services.{Encryption, RepoControlService}
+import uk.gov.hmrc.personaldetailsvalidation.services.{Encryption, NinoRetryLockService, RepoControlService}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.uuid.UUIDProvider
 
@@ -55,6 +55,7 @@ class PersonalDetailsValidatorImpl @Inject() (
   citizenDetailsConnector: CitizenDetailsConnector,
   repoControlService: RepoControlService,
   personalDetailsValidationRetryRepository: PersonalDetailsValidationRetryRepository,
+  ninoRetryLockService: NinoRetryLockService,
   auditDataFactory: AuditDataEventFactory,
   matchingAuditConnector: AuditConnector,
   appConfig: AppConfig)(implicit uuidProvider: UUIDProvider, encryption: Encryption) extends PersonalDetailsValidator {
@@ -66,10 +67,19 @@ class PersonalDetailsValidatorImpl @Inject() (
               (implicit hc: HeaderCarrier, request: Request[?], ec: ExecutionContext): EitherT[Future, Exception, PersonalDetailsValidation] = {
 
     for {
-      matchPreconditionResult <- matchPreconditionCheck(personalDetails)
-      matchResult <- matchPreconditionResult match {
-        case mpr: MatchPreconditionFailed => EitherT(Future.successful(mpr).map(_.asRight[Exception]))
-        case _ => doMatch(personalDetails)
+      ninoLockStatus <- ninoRetryLockService.lockStatus(personalDetails, maybeCredId)
+      matchResult <- ninoLockStatus match {
+        case NinoRetryLockService.NinoLockStatus.Locked(_) =>
+          EitherT.rightT[Future, Exception](MatchNinoLocked: MatchResult)
+        case _ =>
+          for {
+            matchPreconditionResult <- matchPreconditionCheck(personalDetails)
+            matchOutcome <- matchPreconditionResult match {
+              case mpr: MatchPreconditionFailed => EitherT(Future.successful(mpr).map(_.asRight[Exception]))
+              case _ => doMatch(personalDetails)
+            }
+            _ <- ninoRetryLockService.recordOutcome(personalDetails, matchOutcome, maybeCredId)
+          } yield matchOutcome
       }
       personalDetailsValidation <- toPersonalDetailsValidation(matchResult, personalDetails, maybeCredId)
       _ <- personalDetailsValidationRetryRepository.updateRetryAttemptsT(maybeCredId, personalDetailsValidation)
@@ -106,7 +116,7 @@ class PersonalDetailsValidatorImpl @Inject() (
         EitherT(Future.successful(PersonalDetailsValidation.successful(optionallyHaving, deceased = true)).map(_.asRight[Exception]))
       case  MatchPreconditionSuccessful => // A precondition success as the final status implies that matching hasn't been attempted.  This should never happen.
         personalDetailsValidationRetryRepository.getAttemptsT(maybeCredId).map(attempts => PersonalDetailsValidation.failed(maybeCredId, Some(attempts + 1)))
-      case MatchPreconditionFailed(_) | MatchFailed(_) =>
+      case MatchNinoLocked | MatchPreconditionFailed(_) | MatchFailed(_) =>
         personalDetailsValidationRetryRepository.getAttemptsT(maybeCredId).map(attempts => PersonalDetailsValidation.failed(maybeCredId, Some(attempts + 1)))
     }
 

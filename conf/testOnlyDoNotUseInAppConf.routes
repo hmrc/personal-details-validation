@@ -12,3 +12,5 @@
 # Add all the application routes to the prod.routes file
 ->         /                          prod.Routes
 POST       /test-only/validNino       uk.gov.hmrc.personaldetailsvalidation.controllers.test.TestController.upsertTestValidation
+POST       /test-only/nino-lock       uk.gov.hmrc.personaldetailsvalidation.controllers.test.TestNinoLockController.upsertNinoLock
+POST       /test-only/nino-lock/delete uk.gov.hmrc.personaldetailsvalidation.controllers.test.TestNinoLockController.deleteNinoLock

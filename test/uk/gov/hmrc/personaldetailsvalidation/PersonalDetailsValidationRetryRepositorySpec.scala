@@ -18,14 +18,14 @@ package uk.gov.hmrc.personaldetailsvalidation
 
 import cats.data.EitherT
 import com.mongodb.MongoException
-import com.mongodb.client.result.{DeleteResult, UpdateResult}
+import com.mongodb.client.result.DeleteResult
 import org.apache.pekko.Done
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.*
 import org.mongodb.scala.*
 import org.mongodb.scala.bson.conversions.Bson
-import org.mongodb.scala.model.ReplaceOptions
+import org.mongodb.scala.model.{FindOneAndUpdateOptions, ReturnDocument}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
@@ -46,32 +46,33 @@ class PersonalDetailsValidationRetryRepositorySpec extends UnitSpec with CommonT
 
   "PersonalDetailsValidationRetryRepository" should {
 
-    "successfully record a validation attempt" in new Setup {
+    "atomically increment the attempts and return the new count" in new Setup {
 
-      val mockUpdateResult: UpdateResult = mock[UpdateResult]
+      val updatedRetry: Retry = Retry(testCredId, Some(2))
+      stubFindOneAndUpdate(Future.successful(Some(updatedRetry)))
 
-      when(mockCollection.replaceOne(any[Bson], any[Retry], any[ReplaceOptions])).thenReturn(SingleObservable(mockUpdateResult))
-
-      val result: Either[Exception, Done] = repository.recordAttempt(testCredId).futureValue
+      val result: Either[Exception, Int] = repository.incrementAttempts(testCredId).futureValue
 
       result match {
-        case Right(done) => done shouldBe Done
-        case Left(exception) => fail(s"Expected Right(Done) but got Left($exception)")
+        case Right(attempts) => attempts shouldBe 2
+        case Left(exception) => fail(s"Expected Right(2) but got Left($exception)")
       }
+
+      val optionsCaptor: ArgumentCaptor[FindOneAndUpdateOptions] = ArgumentCaptor.forClass(classOf[FindOneAndUpdateOptions])
+      verify(mockCollection, times(1)).findOneAndUpdate(any[Bson], any[Bson], optionsCaptor.capture())
+      optionsCaptor.getValue.isUpsert shouldBe true
+      optionsCaptor.getValue.getReturnDocument shouldBe ReturnDocument.AFTER
 
     }
 
-    "raise an exception when mongo fails when recording a validation attempt" in new Setup {
+    "raise an exception when mongo fails when incrementing the attempts" in new Setup {
 
-      val failedObservable: SingleObservable[UpdateResult] = mock[SingleObservable[UpdateResult]]
-      when(failedObservable.toFuture()).thenReturn(Future.failed(new MongoException(exceptionMessage)))
+      stubFindOneAndUpdate(Future.failed(new MongoException(exceptionMessage)))
 
-      when(mockCollection.replaceOne(any[Bson], any[Retry], any[ReplaceOptions])).thenReturn(failedObservable)
-
-      val result: Either[Exception, Done] = repository.recordAttempt(testCredId).futureValue
+      val result: Either[Exception, Int] = repository.incrementAttempts(testCredId).futureValue
 
       result match {
-        case Right(_) => fail("Expected Left(Exception) but got Right(Done)")
+        case Right(_) => fail("Expected Left(Exception) but got Right(attempts)")
         case Left(exception) => exception shouldBe a[MongoException]
           exception.getMessage shouldBe exceptionMessage
       }
@@ -191,18 +192,7 @@ class PersonalDetailsValidationRetryRepositorySpec extends UnitSpec with CommonT
 
     "return Done when updating the number of retry attempts after a failed validation attempt" in new Setup {
 
-      val mockFindObservable: FindObservable[Retry] = mock[FindObservable[Retry]]
-      val mockSingleObservable: SingleObservable[Seq[Retry]] = mock[SingleObservable[Seq[Retry]]]
-
-      val mockUpdateResult: UpdateResult = mock[UpdateResult]
-
-      when(mockCollection.find[Retry](any[Bson])(using any, any)).thenReturn(mockFindObservable)
-      when(mockFindObservable.collect()).thenReturn(mockSingleObservable)
-      when(mockSingleObservable.toFuture()).thenReturn(Future.successful(Seq(Retry(testCredId, Some(1)))))
-
-      val retryCaptor: ArgumentCaptor[Retry] = ArgumentCaptor.forClass(classOf[Retry])
-
-      when(mockCollection.replaceOne(any[Bson], any[Retry], any[ReplaceOptions])).thenReturn(SingleObservable(mockUpdateResult))
+      stubFindOneAndUpdate(Future.successful(Some(Retry(testCredId, Some(1)))))
 
       val result: EitherT[Future, Exception, Done] = repository.updateRetryAttemptsT(Some(testCredId), personalDetailsValidationFailure)(using ExecutionContext.global)
 
@@ -210,44 +200,11 @@ class PersonalDetailsValidationRetryRepositorySpec extends UnitSpec with CommonT
         case Right(done) => done shouldBe Done
         case Left(exception) => fail(s"Expected Right(Done) but got Left($exception)")
       }
-
-      verify(mockCollection, times(1)).replaceOne(any[Bson], retryCaptor.capture(), any[ReplaceOptions])
-
-      retryCaptor.getValue.attempts shouldBe Some(2)
     }
 
-    "raise an exception when getAttempts fails when updating the number of retry attempts after a failed validation attempt" in new Setup {
+    "raise an exception when mongo fails when updating the number of retry attempts after a failed validation attempt" in new Setup {
 
-      val mockFindObservable: FindObservable[Retry] = mock[FindObservable[Retry]]
-      val mockSingleObservable: SingleObservable[Seq[Retry]] = mock[SingleObservable[Seq[Retry]]]
-
-      when(mockCollection.find[Retry](any[Bson])(using any, any)).thenReturn(mockFindObservable)
-      when(mockFindObservable.collect()).thenReturn(mockSingleObservable)
-      when(mockSingleObservable.toFuture()).thenReturn(Future.failed(new MongoException(exceptionMessage)))
-
-      val result: EitherT[Future, Exception, Done] = repository.updateRetryAttemptsT(Some(testCredId), personalDetailsValidationFailure)(using ExecutionContext.global)
-
-      result.value.futureValue match {
-        case Right(_) => fail("Expected Left(Exception) but got Right(Done)")
-        case Left(exception) => exception shouldBe a[MongoException]
-          exception.getMessage shouldBe exceptionMessage
-      }
-
-    }
-
-    "raise an exception when recordAttempt fails when updating the number of retry attempts after a failed validation attempt" in new Setup {
-
-      val mockFindObservable: FindObservable[Retry] = mock[FindObservable[Retry]]
-      val mockSingleObservable: SingleObservable[Seq[Retry]] = mock[SingleObservable[Seq[Retry]]]
-
-      when(mockCollection.find[Retry](any[Bson])(using any, any)).thenReturn(mockFindObservable)
-      when(mockFindObservable.collect()).thenReturn(mockSingleObservable)
-      when(mockSingleObservable.toFuture()).thenReturn(Future.successful(Seq(Retry(testCredId, Some(1)))))
-
-      val failedObservable: SingleObservable[UpdateResult] = mock[SingleObservable[UpdateResult]]
-      when(failedObservable.toFuture()).thenReturn(Future.failed(new MongoException(exceptionMessage)))
-
-      when(mockCollection.replaceOne(any[Bson], any[Retry], any[ReplaceOptions])).thenReturn(failedObservable)
+      stubFindOneAndUpdate(Future.failed(new MongoException(exceptionMessage)))
 
       val result: EitherT[Future, Exception, Done] = repository.updateRetryAttemptsT(Some(testCredId), personalDetailsValidationFailure)(using ExecutionContext.global)
 
@@ -294,6 +251,12 @@ class PersonalDetailsValidationRetryRepositorySpec extends UnitSpec with CommonT
     }
 
     val exceptionMessage: String = "MongoDB error"
+
+    def stubFindOneAndUpdate(result: Future[Option[Retry]]): Unit = {
+      val mockObservable: SingleObservable[Retry] = mock[SingleObservable[Retry]]
+      when(mockObservable.toFutureOption()).thenReturn(result)
+      when(mockCollection.findOneAndUpdate(any[Bson], any[Bson], any[FindOneAndUpdateOptions])).thenReturn(mockObservable)
+    }
 
   }
 
