@@ -99,5 +99,7 @@ object MatchingConnector {
     case class MatchPreconditionFailed(errors: String) extends MatchResult
 
     case object MatchPreconditionSuccessful extends MatchResult
+    
+    case object MatchNinoLocked extends MatchResult
   }
 }

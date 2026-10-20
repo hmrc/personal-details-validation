@@ -19,9 +19,11 @@ package uk.gov.hmrc.personaldetailsvalidation.controllers
 import cats.data.EitherT
 import cats.implicits.*
 import play.api.Logging
+import play.api.libs.json.JsResultException
 import play.api.libs.json.Json.toJson
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Result}
+import uk.gov.hmrc.auth.core.NoActiveSession
 import uk.gov.hmrc.auth.core.retrieve.Credentials
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals.credentials
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
@@ -53,7 +55,11 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
       def handleException(exception: Exception): Future[Result] = Future.failed(exception)
 
       lazy val toAuthCredentialId: Option[Credentials] => Future[Option[String]] = (credentials: Option[Credentials]) => Future.successful(credentials.map(_.providerId))
-      val credentialId: Future[Option[String]] = authorised().retrieve(credentials)(toAuthCredentialId).recover{case _ => None}
+
+      val credentialId: Future[Option[String]] = authorised().retrieve(credentials)(toAuthCredentialId).recover {
+        case _: NoActiveSession   => None
+        case _: JsResultException => None
+      }
       credentialId.flatMap { maybeCredId =>
         personalDetailsValidator.validate(personalDetails, origin, maybeCredId).fold(handleException, handleMatchingDone).flatten
       }
@@ -63,17 +69,18 @@ class PersonalDetailsValidationResourceController @Inject()(personalDetailsValid
   def getUserAttempts: Action[AnyContent] = Action.async { implicit request =>
     lazy val toAuthCredentialId: Option[Credentials] => Future[Option[String]] = (credentials: Option[Credentials]) => Future.successful(credentials.map(_.providerId))
     val attempts: EitherT[Future, Exception, Result] = for {
-      maybeCredId <- EitherT.right(authorised().retrieve(credentials)(toAuthCredentialId).recover{case _ => None})
+      maybeCredId <- EitherT.right(authorised().retrieve(credentials)(toAuthCredentialId).recover {
+        case _: NoActiveSession   => None
+        case _: JsResultException => None
+      })
       attempts <- personalDetailsValidationRetryRepository.getAttemptsT(maybeCredId)
     } yield {
       Ok(Json.toJson(UserAttemptsDetails(attempts, maybeCredId)))
     }
 
-    attempts.value match {
-      case value => value.map {
-        case Right(httpResult) => httpResult
-        case _ => Ok(Json.toJson(UserAttemptsDetails(0, None)))
-      }
+    attempts.value.flatMap {
+      case Right(httpResult) => Future.successful(httpResult)
+      case Left(exception)   => Future.failed(exception)
     }
   }
 
