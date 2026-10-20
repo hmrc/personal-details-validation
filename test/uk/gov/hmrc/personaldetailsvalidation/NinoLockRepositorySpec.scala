@@ -73,12 +73,14 @@ class NinoLockRepositorySpec extends UnitSpec with CommonTestData with MockitoSu
       val updatedLock: NinoLock = ninoLock(failedAttempts = 2)
       stubFindOneAndUpdate(Future.successful(Some(updatedLock)))
 
-      repository.incrementFailedAttempts(ninoKey, now, expiresAt).futureValue shouldBe Right(updatedLock)
+      repository.incrementFailedAttempts(ninoKey, now, expiresAt).futureValue shouldBe Right(Some(updatedLock))
 
       val optionsCaptor: ArgumentCaptor[FindOneAndUpdateOptions] = ArgumentCaptor.forClass(classOf[FindOneAndUpdateOptions])
-      verify(mockCollection, times(1)).findOneAndUpdate(any[Bson], any[Bson], optionsCaptor.capture())
+      val filterCaptor: ArgumentCaptor[Bson] = ArgumentCaptor.forClass(classOf[Bson])
+      verify(mockCollection, times(1)).findOneAndUpdate(filterCaptor.capture(), any[Bson], optionsCaptor.capture())
       optionsCaptor.getValue.isUpsert shouldBe true
       optionsCaptor.getValue.getReturnDocument shouldBe AFTER
+      filterCaptor.getValue.toBsonDocument.toJson.toString should include("lockedUntil")
     }
 
     "raise an exception when mongo fails when incrementing the failed attempts" in new Setup {
@@ -98,7 +100,18 @@ class NinoLockRepositorySpec extends UnitSpec with CommonTestData with MockitoSu
         .thenReturn(Future.successful(Some(updatedLock)))
       when(mockCollection.findOneAndUpdate(any[Bson], any[Bson], any[FindOneAndUpdateOptions])).thenReturn(mockObservable)
 
-      repository.incrementFailedAttempts(ninoKey, now, expiresAt).futureValue shouldBe Right(updatedLock)
+      repository.incrementFailedAttempts(ninoKey, now, expiresAt).futureValue shouldBe Right(Some(updatedLock))
+      verify(mockCollection, times(2)).findOneAndUpdate(any[Bson], any[Bson], any[FindOneAndUpdateOptions])
+    }
+
+    "not increment and return Right(None) when the record is already locked" in new Setup {
+      val mockObservable: SingleObservable[NinoLock] = mock[SingleObservable[NinoLock]]
+      when(mockObservable.toFutureOption())
+        .thenReturn(Future.failed(duplicateKeyException))
+        .thenReturn(Future.failed(duplicateKeyException))
+      when(mockCollection.findOneAndUpdate(any[Bson], any[Bson], any[FindOneAndUpdateOptions])).thenReturn(mockObservable)
+
+      repository.incrementFailedAttempts(ninoKey, now, expiresAt).futureValue shouldBe Right(None)
       verify(mockCollection, times(2)).findOneAndUpdate(any[Bson], any[Bson], any[FindOneAndUpdateOptions])
     }
 
@@ -174,7 +187,6 @@ class NinoLockRepositorySpec extends UnitSpec with CommonTestData with MockitoSu
     NinoLock(
       ninoKey = "AA000003",
       failedAttempts = failedAttempts,
-      firstFailedAt = now,
       lastFailedAt = now,
       lockedUntil = lockedUntil,
       expiresAt = lockedUntil.getOrElse(now.plusHours(24))

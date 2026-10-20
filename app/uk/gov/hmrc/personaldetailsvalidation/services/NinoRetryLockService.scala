@@ -50,7 +50,7 @@ class NinoRetryLockService @Inject()(ninoKeyService: NinoKeyService,
         val key = ninoKeyService.ninoKey(nino)
         EitherT(ninoLockRepository.findByNinoKey(key))
           .leftMap { ex =>
-            auditConnector.sendEvent(auditDataEventFactory.createNinoLockStoreErrorEvent("read", ex.getMessage))
+            auditConnector.sendEvent(auditDataEventFactory.createNinoLockStoreErrorEvent("read", ex.getClass.getSimpleName))
             ex
           }
           .flatMap {
@@ -62,7 +62,7 @@ class NinoRetryLockService @Inject()(ninoKeyService: NinoKeyService,
             case Some(record) if isStale(record) =>
               EitherT(ninoLockRepository.delete(key))
                 .leftMap { ex =>
-                  auditConnector.sendEvent(auditDataEventFactory.createNinoLockStoreErrorEvent("delete-stale", ex.getMessage))
+                  auditConnector.sendEvent(auditDataEventFactory.createNinoLockStoreErrorEvent("delete-stale", ex.getClass.getSimpleName))
                   ex
                 }
                 .map(_ => NinoLockStatus.NotLocked)
@@ -84,35 +84,38 @@ class NinoRetryLockService @Inject()(ninoKeyService: NinoKeyService,
         val failedAt = now
         EitherT(ninoLockRepository.incrementFailedAttempts(key, failedAt, failedAt.plus(ninoLockConfig.lockDuration)))
           .leftMap { ex =>
-            auditConnector.sendEvent(auditDataEventFactory.createNinoLockStoreErrorEvent("write", ex.getMessage))
+            auditConnector.sendEvent(auditDataEventFactory.createNinoLockStoreErrorEvent("write", ex.getClass.getSimpleName))
             ex
           }
-          .flatMap { updated =>
-            if (updated.failedAttempts >= ninoLockConfig.maxFailedAttempts && updated.lockedUntil.isEmpty) {
+          .flatMap {
+            case Some(updated) if updated.failedAttempts >= ninoLockConfig.maxFailedAttempts && updated.lockedUntil.isEmpty =>
               val lockedUntil = failedAt.plus(ninoLockConfig.lockDuration)
               EitherT(ninoLockRepository.createLock(key, lockedUntil))
                 .leftMap { ex =>
-                  auditConnector.sendEvent(auditDataEventFactory.createNinoLockStoreErrorEvent("write", ex.getMessage))
+                  auditConnector.sendEvent(auditDataEventFactory.createNinoLockStoreErrorEvent("write", ex.getClass.getSimpleName))
                   ex
                 }
                 .map {
                   case Some(_) =>
                     auditConnector.sendEvent(auditDataEventFactory.createNinoLockCreatedEvent(maybeCredId, lockedUntil))
                     ()
-                  case None => ()
+                  case None =>
+                    // lost the createLock race: the lock now exists, but this failure was still counted
+                    auditConnector.sendEvent(auditDataEventFactory.createNinoFailureRecordedEvent(maybeCredId, updated.failedAttempts))
+                    ()
                 }
-            } else {
+            case Some(updated) =>
               EitherT.rightT[Future, Exception] {
                 auditConnector.sendEvent(auditDataEventFactory.createNinoFailureRecordedEvent(maybeCredId, updated.failedAttempts))
                 ()
               }
-            }
+            case None => EitherT.rightT[Future, Exception](())
           }
       case (Some(nino), MatchSuccessful(_) | NoLivingMatch) =>
         val key = ninoKeyService.ninoKey(nino)
         EitherT(ninoLockRepository.delete(key))
           .leftMap { ex =>
-            auditConnector.sendEvent(auditDataEventFactory.createNinoLockStoreErrorEvent("delete", ex.getMessage))
+            auditConnector.sendEvent(auditDataEventFactory.createNinoLockStoreErrorEvent("delete", ex.getClass.getSimpleName))
             ex
           }
           .map(_ => ())

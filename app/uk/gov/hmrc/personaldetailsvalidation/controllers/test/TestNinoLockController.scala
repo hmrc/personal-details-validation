@@ -52,7 +52,6 @@ class TestNinoLockController @Inject()(ninoKeyService: NinoKeyService,
         val ninoLock = NinoLock(
           ninoKey = key,
           failedAttempts = body.failedAttempts,
-          firstFailedAt = now,
           lastFailedAt = now,
           lockedUntil = lockedUntil,
           expiresAt = lockedUntil.getOrElse(now.plus(ninoLockConfig.lockDuration))

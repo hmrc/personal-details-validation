@@ -92,10 +92,10 @@ class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTag
     ninoLockEvent(ninoSubmissionBlockedAuditType,
       Map("credId" -> maybeCredId.getOrElse("NOT SUPPLIED")))
 
-  def createNinoLockStoreErrorEvent(operation: String, errorMessage: String)
+  def createNinoLockStoreErrorEvent(operation: String, errorType: String)
                                    (implicit hc: HeaderCarrier, request: Request[?]): DataEvent =
     ninoLockEvent(ninoLockStoreErrorAuditType,
-      Map("operation" -> operation, "error" -> errorMessage))
+      Map("operation" -> operation, "errorType" -> errorType))
 
   private def matchResultDetails(personalDetails: PersonalDetails, matchingStatus: String, auditType: AuditType) = {
     val nino = personalDetails match {

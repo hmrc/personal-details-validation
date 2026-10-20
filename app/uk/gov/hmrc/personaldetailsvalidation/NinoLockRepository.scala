@@ -63,21 +63,29 @@ class NinoLockRepository @Inject()(mongo: MongoComponent)(implicit ec: Execution
       .map(result => Right(result): Either[Exception, Option[NinoLock]])
       .recover { case ex: Exception => Left(ex) }
 
-  def incrementFailedAttempts(ninoKey: String, now: LocalDateTime, expiresAt: LocalDateTime, retryOnDuplicateKey: Boolean = true): Future[Either[Exception, NinoLock]] =
+  def incrementFailedAttempts(ninoKey: String, now: LocalDateTime, expiresAt: LocalDateTime, retryOnDuplicateKey: Boolean = true): Future[Either[Exception, Option[NinoLock]]] =
     collection.findOneAndUpdate(
-      filter = Filters.eq("ninoKey", ninoKey),
+      filter = Filters.and(
+        Filters.eq("ninoKey", ninoKey),
+        Filters.or(Filters.exists("lockedUntil", false), Filters.eq("lockedUntil", BsonNull.VALUE))
+      ),
       update = Updates.combine(
         Updates.inc("failedAttempts", 1),
         Updates.set("lastFailedAt", toDate(now)),
-        Updates.set("expiresAt", toDate(expiresAt)),
-        Updates.setOnInsert("firstFailedAt", toDate(now))
+        Updates.set("expiresAt", toDate(expiresAt))
       ),
       options = FindOneAndUpdateOptions().upsert(true).returnDocument(ReturnDocument.AFTER)
     ).toFutureOption().map {
-      case Some(lock) => Right(lock): Either[Exception, NinoLock]
-      case None       => Left(new RuntimeException("incrementFailedAttempts returned no document")): Either[Exception, NinoLock]
+      case Some(lock) => Right(Some(lock)): Either[Exception, Option[NinoLock]]
+      case None       => Left(new RuntimeException("incrementFailedAttempts returned no document")): Either[Exception, Option[NinoLock]]
     }.recoverWith {
-      case ex: Exception if isDuplicateKey(ex) && retryOnDuplicateKey => incrementFailedAttempts(ninoKey, now, expiresAt, retryOnDuplicateKey = false)
+      case first: Exception if isDuplicateKey(first) && retryOnDuplicateKey =>
+        incrementFailedAttempts(ninoKey, now, expiresAt, retryOnDuplicateKey = false)
+          .map {
+            case Right(result)                              => Right(result): Either[Exception, Option[NinoLock]]
+            case Left(second) if isDuplicateKey(second)     => Right(None): Either[Exception, Option[NinoLock]]
+            case Left(other)                                => Left(other): Either[Exception, Option[NinoLock]]
+          }
       case ex: Exception => Future.successful(Left(ex))
     }
 

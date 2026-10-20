@@ -29,6 +29,9 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory.*
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchNinoLocked, MatchPreconditionFailed, MatchSuccessful, NoLivingMatch}
 import uk.gov.hmrc.personaldetailsvalidation.model.*
+import com.mongodb.ServerAddress
+import com.mongodb.{MongoWriteException, WriteError}
+import org.bson.BsonDocument
 import uk.gov.hmrc.play.audit.model.DataEvent
 
 import java.time.{LocalDate, LocalDateTime}
@@ -180,11 +183,21 @@ class AuditDataEventFactorySpec extends UnitSpec {
     }
 
     "create a NinoLockStoreError event without any nino details" in new Setup {
-      val dataEvent: DataEvent = auditDataFactory.createNinoLockStoreErrorEvent("read", "mongo down")
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockStoreErrorEvent("read", "MongoWriteException")
 
       dataEvent.auditType shouldBe "NinoLockStoreError"
-      dataEvent.detail shouldBe auditDetails + ("operation" -> "read") + ("error" -> "mongo down")
+      dataEvent.detail shouldBe auditDetails + ("operation" -> "read") + ("errorType" -> "MongoWriteException")
       dataEvent.detail.keySet.map(_.toLowerCase) should not contain "nino"
+    }
+
+    "not leak the ninoKey when a real duplicate key error message is produced" in new Setup {
+      val realDupKeyMessage =
+        "E11000 duplicate key error collection: pdv.personal-details-validation-nino-lock-store index: ninoKeyUnique dup key: { ninoKey: \"AA000003\" }"
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockStoreErrorEvent("write", new MongoWriteException(new WriteError(11000, realDupKeyMessage, new BsonDocument()), new ServerAddress()).getClass.getSimpleName)
+
+      dataEvent.auditType shouldBe "NinoLockStoreError"
+      dataEvent.detail.values should not contain realDupKeyMessage
+      dataEvent.detail.values.forall(value => !value.contains("AA000003")) shouldBe true
     }
   }
 

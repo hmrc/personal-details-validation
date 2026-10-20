@@ -72,7 +72,6 @@ class PersonalDetailsValidationRetryRepository @Inject()(config: PersonalDetails
     case _                        => false
   }
 
-  /** Atomic $inc; upserts when no CredID retry document exists; returns the new attempt count (VER-7058). */
   def incrementAttempts(credId: String, retryOnDuplicateKey: Boolean = true): Future[Either[Exception, Int]] =
     collection.findOneAndUpdate(
       filter = Filters.eq(retryKey, credId),

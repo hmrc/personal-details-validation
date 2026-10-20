@@ -332,6 +332,9 @@ class PersonalDetailsValidationResourceControllerISpec
 
       verifyWiremock(3, postRequestedFor(urlEqualTo("/authenticator/match")))
 
+      val lockedAt: LocalDateTime = ninoLockRepository.findByNinoKey("AA000003").futureValue
+        .fold(_ => fail("could not read nino lock record"), _.fold(fail("expected a nino lock record"))(_.lockedUntil.get))
+
       stubAuthFor("cred-C")
       val blockedResponse: WSResponse = sendCreateValidationResourceRequest(personalDetails, headersFor("cred-C")).futureValue
       blockedResponse.status mustBe CREATED
@@ -345,6 +348,12 @@ class PersonalDetailsValidationResourceControllerISpec
       (secondBlockedResponse.json \ "attempts").as[Int] mustBe 2
 
       verifyWiremock(3, postRequestedFor(urlEqualTo("/authenticator/match")))
+
+      // blocked submissions must not extend the lock or touch the nino count
+      val lockAfterBlocked: NinoLock = ninoLockRepository.findByNinoKey("AA000003").futureValue
+        .fold(_ => fail("could not read nino lock record"), _.fold(fail("expected a nino lock record"))(identity))
+      lockAfterBlocked.lockedUntil.get mustEqual lockedAt
+      lockAfterBlocked.failedAttempts mustBe 3
     }
 
     "block a locked nino submitted without a credId and return an ordinary failure" in new NinoLockSetup {

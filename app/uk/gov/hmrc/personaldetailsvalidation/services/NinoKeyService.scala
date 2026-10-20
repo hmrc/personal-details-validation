@@ -22,7 +22,7 @@ import javax.inject.{Inject, Singleton}
 
 @Singleton
 class NinoKeyService @Inject()() {
-  // Normalisation equivalent to Authenticator: strip whitespace, uppercase, drop the suffix letter.
+  // Normalisation equivalent to Authenticator.
   // NEVER log the raw NINO or this key.
   def ninoKey(nino: Nino): String =
     nino.value.replaceAll("\\s", "").toUpperCase.take(8)

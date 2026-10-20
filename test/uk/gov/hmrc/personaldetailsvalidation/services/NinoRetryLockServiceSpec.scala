@@ -103,6 +103,22 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
 
       verify(mockAuditConnector).sendEvent(ninoLockStoreErrorEvent)
     }
+
+    "fail closed and send NinoLockStoreError when deleting a stale record fails" in new Setup {
+      val staleRecord: NinoLock = ninoRecord(
+        lockedUntil = Some(LocalDateTime.now(ZoneOffset.UTC).minusHours(1)),
+        lastFailedAt = LocalDateTime.now(ZoneOffset.UTC).minusHours(25)
+      )
+      when(mockNinoLockRepository.findByNinoKey(ninoKey)).thenReturn(Future.successful(Right(Some(staleRecord))))
+      when(mockNinoLockRepository.delete(ninoKey)).thenReturn(Future.successful(Left(exception)))
+
+      service.lockStatus(personalDetailsWithNino, testMaybeCredId).value.futureValue match {
+        case Right(_) => fail("Expected Left(Exception) but got Right(NotLocked)")
+        case Left(ex) => ex shouldBe exception
+      }
+
+      verify(mockAuditConnector).sendEvent(ninoLockStoreErrorEvent)
+    }
   }
 
   "recordOutcome" should {
@@ -110,7 +126,7 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
     "record a nino failure without creating a lock when below the threshold" in new Setup {
       val updatedRecord: NinoLock = ninoRecord(failedAttempts = 2)
       when(mockNinoLockRepository.incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime], any[Boolean]))
-        .thenReturn(Future.successful(Right(updatedRecord)))
+        .thenReturn(Future.successful(Right(Some(updatedRecord))))
 
       service.recordOutcome(personalDetailsWithNino, MatchFailed("no match"), testMaybeCredId).value.futureValue shouldBe Right(())
 
@@ -122,7 +138,7 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
     "create the nino lock on the third failed validation and send NinoLockCreated" in new Setup {
       val updatedRecord: NinoLock = ninoRecord(failedAttempts = 3)
       when(mockNinoLockRepository.incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime], any[Boolean]))
-        .thenReturn(Future.successful(Right(updatedRecord)))
+        .thenReturn(Future.successful(Right(Some(updatedRecord))))
       when(mockNinoLockRepository.createLock(any[String], any[LocalDateTime]))
         .thenReturn(Future.successful(Right(Some(updatedRecord.copy(lockedUntil = Some(LocalDateTime.now(ZoneOffset.UTC).plusHours(24)))))))
 
@@ -132,10 +148,10 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
       verify(mockAuditConnector).sendEvent(ninoLockCreatedEvent)
     }
 
-    "not send NinoLockCreated when a concurrent request already created the lock" in new Setup {
+    "audit the failure without NinoLockCreated when a concurrent request already created the lock" in new Setup {
       val updatedRecord: NinoLock = ninoRecord(failedAttempts = 3)
       when(mockNinoLockRepository.incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime], any[Boolean]))
-        .thenReturn(Future.successful(Right(updatedRecord)))
+        .thenReturn(Future.successful(Right(Some(updatedRecord))))
       when(mockNinoLockRepository.createLock(any[String], any[LocalDateTime]))
         .thenReturn(Future.successful(Right(None)))
 
@@ -143,12 +159,23 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
 
       verify(mockNinoLockRepository).createLock(any[String], any[LocalDateTime])
       verify(mockAuditConnector, never).sendEvent(ninoLockCreatedEvent)
+      verify(mockAuditConnector).sendEvent(ninoFailureRecordedEvent)
+    }
+
+    "not increment and not audit when the record is already locked (increment guard)" in new Setup {
+      when(mockNinoLockRepository.incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime], any[Boolean]))
+        .thenReturn(Future.successful(Right(None)))
+
+      service.recordOutcome(personalDetailsWithNino, MatchFailed("no match"), testMaybeCredId).value.futureValue shouldBe Right(())
+
+      verify(mockNinoLockRepository, never).createLock(any[String], any[LocalDateTime])
+      verifyNoInteractions(mockAuditConnector)
     }
 
     "not create the lock when the incremented record is already locked" in new Setup {
       val alreadyLocked: NinoLock = ninoRecord(failedAttempts = 4, lockedUntil = Some(LocalDateTime.now(ZoneOffset.UTC).plusHours(24)))
       when(mockNinoLockRepository.incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime], any[Boolean]))
-        .thenReturn(Future.successful(Right(alreadyLocked)))
+        .thenReturn(Future.successful(Right(Some(alreadyLocked))))
 
       service.recordOutcome(personalDetailsWithNino, MatchFailed("no match"), testMaybeCredId).value.futureValue shouldBe Right(())
 
@@ -181,6 +208,13 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
       service.recordOutcome(personalDetailsWithNino, MatchPreconditionFailed("underage"), testMaybeCredId).value.futureValue shouldBe Right(())
 
       verifyNoInteractions(mockNinoLockRepository)
+    }
+
+    "not touch the lock store for a blocked submission outcome" in new Setup {
+      service.recordOutcome(personalDetailsWithNino, MatchNinoLocked, testMaybeCredId).value.futureValue shouldBe Right(())
+
+      verifyNoInteractions(mockNinoLockRepository)
+      verifyNoInteractions(mockAuditConnector)
     }
 
     "fail closed and send NinoLockStoreError when incrementing the failure count fails" in new Setup {
@@ -232,10 +266,8 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
 
     def ninoRecord(failedAttempts: Int = 1,
                    lockedUntil: Option[LocalDateTime] = None,
-                   lastFailedAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)): NinoLock = {
-      val firstFailedAt = lastFailedAt
-      NinoLock(ninoKey, failedAttempts, firstFailedAt, lastFailedAt, lockedUntil, lockedUntil.getOrElse(lastFailedAt.plusHours(24)))
-    }
+                   lastFailedAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)): NinoLock =
+      NinoLock(ninoKey, failedAttempts, lastFailedAt, lockedUntil, lockedUntil.getOrElse(lastFailedAt.plusHours(24)))
   }
 }
 

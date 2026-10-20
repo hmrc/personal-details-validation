@@ -24,7 +24,6 @@ import java.time.LocalDateTime
 case class NinoLock(
   ninoKey: String,
   failedAttempts: Int,
-  firstFailedAt: LocalDateTime,
   lastFailedAt: LocalDateTime,
   lockedUntil: Option[LocalDateTime],
   expiresAt: LocalDateTime
