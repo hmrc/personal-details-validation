@@ -20,13 +20,13 @@ import com.mongodb.ServerAddress
 import com.mongodb.client.result.{DeleteResult, UpdateResult}
 import com.mongodb.{MongoWriteException, WriteError}
 import org.apache.pekko.Done
-import org.bson.BsonDocument
+import org.bson.{BsonDocument, BsonNull}
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{times, verify, when}
 import org.mongodb.scala.*
 import org.mongodb.scala.bson.conversions.Bson
-import org.mongodb.scala.model.{FindOneAndUpdateOptions, ReplaceOptions}
+import org.mongodb.scala.model.{Filters, FindOneAndUpdateOptions, ReplaceOptions, Updates}
 import org.mongodb.scala.model.ReturnDocument.AFTER
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.mockito.MockitoSugar
@@ -34,7 +34,8 @@ import support.{CommonTestData, UnitSpec}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.personaldetailsvalidation.model.NinoLock
 
-import java.time.LocalDateTime
+import java.time.{LocalDateTime, ZoneOffset}
+import java.util.Date
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
@@ -77,10 +78,19 @@ class NinoLockRepositorySpec extends UnitSpec with CommonTestData with MockitoSu
 
       val optionsCaptor: ArgumentCaptor[FindOneAndUpdateOptions] = ArgumentCaptor.forClass(classOf[FindOneAndUpdateOptions])
       val filterCaptor: ArgumentCaptor[Bson] = ArgumentCaptor.forClass(classOf[Bson])
-      verify(mockCollection, times(1)).findOneAndUpdate(filterCaptor.capture(), any[Bson], optionsCaptor.capture())
+      val updateCaptor: ArgumentCaptor[Bson] = ArgumentCaptor.forClass(classOf[Bson])
+      verify(mockCollection, times(1)).findOneAndUpdate(filterCaptor.capture(), updateCaptor.capture(), optionsCaptor.capture())
       optionsCaptor.getValue.isUpsert shouldBe true
       optionsCaptor.getValue.getReturnDocument shouldBe AFTER
-      filterCaptor.getValue.toBsonDocument.toJson.toString should include("lockedUntil")
+      filterCaptor.getValue.toBsonDocument shouldBe Filters.and(
+        Filters.eq("ninoKey", ninoKey),
+        Filters.or(Filters.exists("lockedUntil", false), Filters.eq("lockedUntil", BsonNull.VALUE))
+      ).toBsonDocument
+      updateCaptor.getValue.toBsonDocument shouldBe Updates.combine(
+        Updates.inc("failedAttempts", 1),
+        Updates.set("lastFailedAt", Date.from(now.toInstant(ZoneOffset.UTC))),
+        Updates.set("expiresAt", Date.from(expiresAt.toInstant(ZoneOffset.UTC)))
+      ).toBsonDocument
     }
 
     "raise an exception when mongo fails when incrementing the failed attempts" in new Setup {
@@ -90,26 +100,70 @@ class NinoLockRepositorySpec extends UnitSpec with CommonTestData with MockitoSu
         case Right(_) => fail("Expected Left(Exception) but got Right(lock)")
         case Left(ex) => ex shouldBe a[MongoException]
       }
+      verify(mockCollection, times(1)).findOneAndUpdate(any[Bson], any[Bson], any[FindOneAndUpdateOptions])
     }
 
     "retry the increment once when an upsert duplicate key race occurs" in new Setup {
       val updatedLock: NinoLock = ninoLock(failedAttempts = 1)
-      val mockObservable: SingleObservable[NinoLock] = mock[SingleObservable[NinoLock]]
-      when(mockObservable.toFutureOption())
-        .thenReturn(Future.failed(duplicateKeyException))
-        .thenReturn(Future.successful(Some(updatedLock)))
-      when(mockCollection.findOneAndUpdate(any[Bson], any[Bson], any[FindOneAndUpdateOptions])).thenReturn(mockObservable)
+      stubFindOneAndUpdate(Future.failed(duplicateKeyException), Future.successful(Some(updatedLock)))
 
       repository.incrementFailedAttempts(ninoKey, now, expiresAt).futureValue shouldBe Right(Some(updatedLock))
       verify(mockCollection, times(2)).findOneAndUpdate(any[Bson], any[Bson], any[FindOneAndUpdateOptions])
     }
 
     "not increment and return Right(None) when the record is already locked" in new Setup {
-      val mockObservable: SingleObservable[NinoLock] = mock[SingleObservable[NinoLock]]
-      when(mockObservable.toFutureOption())
-        .thenReturn(Future.failed(duplicateKeyException))
-        .thenReturn(Future.failed(duplicateKeyException))
-      when(mockCollection.findOneAndUpdate(any[Bson], any[Bson], any[FindOneAndUpdateOptions])).thenReturn(mockObservable)
+      stubFindOneAndUpdate(Future.failed(duplicateKeyException), Future.failed(duplicateKeyException))
+
+      repository.incrementFailedAttempts(ninoKey, now, expiresAt).futureValue shouldBe Right(None)
+      verify(mockCollection, times(2)).findOneAndUpdate(any[Bson], any[Bson], any[FindOneAndUpdateOptions])
+    }
+
+    "raise an exception when the increment returns no document" in new Setup {
+      stubFindOneAndUpdate(Future.successful(None))
+
+      repository.incrementFailedAttempts(ninoKey, now, expiresAt).futureValue match {
+        case Left(ex) => ex.getMessage shouldBe "incrementFailedAttempts returned no document"
+        case Right(_) => fail("Expected Left(Exception) but got Right")
+      }
+      verify(mockCollection, times(1)).findOneAndUpdate(any[Bson], any[Bson], any[FindOneAndUpdateOptions])
+    }
+
+    "raise an exception when the retry returns no document" in new Setup {
+      stubFindOneAndUpdate(Future.failed(duplicateKeyException), Future.successful(None))
+
+      repository.incrementFailedAttempts(ninoKey, now, expiresAt).futureValue match {
+        case Left(ex) => ex.getMessage shouldBe "incrementFailedAttempts returned no document"
+        case Right(_) => fail("Expected Left(Exception) but got Right")
+      }
+      verify(mockCollection, times(2)).findOneAndUpdate(any[Bson], any[Bson], any[FindOneAndUpdateOptions])
+    }
+
+    "return the error when the retry fails with a non-duplicate exception" in new Setup {
+      val exception = new MongoException(exceptionMessage)
+      stubFindOneAndUpdate(Future.failed(duplicateKeyException), Future.failed(exception))
+
+      repository.incrementFailedAttempts(ninoKey, now, expiresAt).futureValue shouldBe Left(exception)
+      verify(mockCollection, times(2)).findOneAndUpdate(any[Bson], any[Bson], any[FindOneAndUpdateOptions])
+    }
+
+    "retry duplicate key command exceptions" in new Setup {
+      val updatedLock: NinoLock = ninoLock(failedAttempts = 1)
+      val exception = new MongoCommandException(
+        BsonDocument.parse("""{"ok": 0, "code": 11000, "errmsg": "E11000 duplicate key"}"""),
+        new ServerAddress()
+      )
+      stubFindOneAndUpdate(Future.failed(exception), Future.successful(Some(updatedLock)))
+
+      repository.incrementFailedAttempts(ninoKey, now, expiresAt).futureValue shouldBe Right(Some(updatedLock))
+      verify(mockCollection, times(2)).findOneAndUpdate(any[Bson], any[Bson], any[FindOneAndUpdateOptions])
+    }
+
+    "return Right(None) after repeated duplicate key command exceptions" in new Setup {
+      val exception = new MongoCommandException(
+        BsonDocument.parse("""{"ok": 0, "code": 11000, "errmsg": "E11000 duplicate key"}"""),
+        new ServerAddress()
+      )
+      stubFindOneAndUpdate(Future.failed(exception), Future.failed(exception))
 
       repository.incrementFailedAttempts(ninoKey, now, expiresAt).futureValue shouldBe Right(None)
       verify(mockCollection, times(2)).findOneAndUpdate(any[Bson], any[Bson], any[FindOneAndUpdateOptions])
@@ -213,9 +267,9 @@ class NinoLockRepositorySpec extends UnitSpec with CommonTestData with MockitoSu
         override def ensureIndexes(): Future[Seq[String]] = Future.successful(Seq.empty)
       }
 
-    def stubFindOneAndUpdate(result: Future[Option[NinoLock]]): Unit = {
+    def stubFindOneAndUpdate(result: Future[Option[NinoLock]], subsequentResults: Future[Option[NinoLock]]*): Unit = {
       val mockObservable: SingleObservable[NinoLock] = mock[SingleObservable[NinoLock]]
-      when(mockObservable.toFutureOption()).thenReturn(result)
+      when(mockObservable.toFutureOption()).thenReturn(result, subsequentResults*)
       when(mockCollection.findOneAndUpdate(any[Bson], any[Bson], any[FindOneAndUpdateOptions])).thenReturn(mockObservable)
     }
   }

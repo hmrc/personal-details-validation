@@ -125,19 +125,19 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
 
     "record a nino failure without creating a lock when below the threshold" in new Setup {
       val updatedRecord: NinoLock = ninoRecord(failedAttempts = 2)
-      when(mockNinoLockRepository.incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime], any[Boolean]))
+      when(mockNinoLockRepository.incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime]))
         .thenReturn(Future.successful(Right(Some(updatedRecord))))
 
       service.recordOutcome(personalDetailsWithNino, MatchFailed("no match"), testMaybeCredId).value.futureValue shouldBe Right(())
 
-      verify(mockNinoLockRepository).incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime], any[Boolean])
+      verify(mockNinoLockRepository).incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime])
       verify(mockNinoLockRepository, never).createLock(any[String], any[LocalDateTime])
       verify(mockAuditConnector).sendEvent(ninoFailureRecordedEvent)
     }
 
     "create the nino lock on the third failed validation and send NinoLockCreated" in new Setup {
       val updatedRecord: NinoLock = ninoRecord(failedAttempts = 3)
-      when(mockNinoLockRepository.incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime], any[Boolean]))
+      when(mockNinoLockRepository.incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime]))
         .thenReturn(Future.successful(Right(Some(updatedRecord))))
       when(mockNinoLockRepository.createLock(any[String], any[LocalDateTime]))
         .thenReturn(Future.successful(Right(Some(updatedRecord.copy(lockedUntil = Some(LocalDateTime.now(ZoneOffset.UTC).plusHours(24)))))))
@@ -150,7 +150,7 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
 
     "audit the failure without NinoLockCreated when a concurrent request already created the lock" in new Setup {
       val updatedRecord: NinoLock = ninoRecord(failedAttempts = 3)
-      when(mockNinoLockRepository.incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime], any[Boolean]))
+      when(mockNinoLockRepository.incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime]))
         .thenReturn(Future.successful(Right(Some(updatedRecord))))
       when(mockNinoLockRepository.createLock(any[String], any[LocalDateTime]))
         .thenReturn(Future.successful(Right(None)))
@@ -163,7 +163,7 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
     }
 
     "not increment and not audit when the record is already locked (increment guard)" in new Setup {
-      when(mockNinoLockRepository.incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime], any[Boolean]))
+      when(mockNinoLockRepository.incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime]))
         .thenReturn(Future.successful(Right(None)))
 
       service.recordOutcome(personalDetailsWithNino, MatchFailed("no match"), testMaybeCredId).value.futureValue shouldBe Right(())
@@ -174,7 +174,7 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
 
     "not create the lock when the incremented record is already locked" in new Setup {
       val alreadyLocked: NinoLock = ninoRecord(failedAttempts = 4, lockedUntil = Some(LocalDateTime.now(ZoneOffset.UTC).plusHours(24)))
-      when(mockNinoLockRepository.incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime], any[Boolean]))
+      when(mockNinoLockRepository.incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime]))
         .thenReturn(Future.successful(Right(Some(alreadyLocked))))
 
       service.recordOutcome(personalDetailsWithNino, MatchFailed("no match"), testMaybeCredId).value.futureValue shouldBe Right(())
@@ -218,7 +218,7 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
     }
 
     "fail closed and send NinoLockStoreError when incrementing the failure count fails" in new Setup {
-      when(mockNinoLockRepository.incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime], any[Boolean]))
+      when(mockNinoLockRepository.incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime]))
         .thenReturn(Future.successful(Left(exception)))
 
       service.recordOutcome(personalDetailsWithNino, MatchFailed("no match"), testMaybeCredId).value.futureValue match {

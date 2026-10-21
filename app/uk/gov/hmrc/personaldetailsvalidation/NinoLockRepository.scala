@@ -63,7 +63,24 @@ class NinoLockRepository @Inject()(mongo: MongoComponent)(implicit ec: Execution
       .map(result => Right(result): Either[Exception, Option[NinoLock]])
       .recover { case ex: Exception => Left(ex) }
 
-  def incrementFailedAttempts(ninoKey: String, now: LocalDateTime, expiresAt: LocalDateTime, retryOnDuplicateKey: Boolean = true): Future[Either[Exception, Option[NinoLock]]] =
+  def incrementFailedAttempts(ninoKey: String, now: LocalDateTime, expiresAt: LocalDateTime): Future[Either[Exception, Option[NinoLock]]] = {
+    def incrementWithRetry(retryOnDuplicateKey: Boolean): Future[Either[Exception, Option[NinoLock]]] =
+      incrementOnce(ninoKey, now, expiresAt)
+        .map[Either[Exception, Option[NinoLock]]] {
+          case Some(lock) => Right(Some(lock))
+          case None       => Left(new RuntimeException("incrementFailedAttempts returned no document"))
+        }
+        .recoverWith {
+          // Upserts can collide on ninoKey during insertion races or when the existing record is locked.
+          case ex: Exception if isDuplicateKey(ex) && retryOnDuplicateKey => incrementWithRetry(retryOnDuplicateKey = false)
+          case ex: Exception if isDuplicateKey(ex) => Future.successful(Right(None))
+          case ex: Exception => Future.successful(Left(ex))
+        }
+
+    incrementWithRetry(retryOnDuplicateKey = true)
+  }
+
+  private def incrementOnce(ninoKey: String, now: LocalDateTime, expiresAt: LocalDateTime): Future[Option[NinoLock]] =
     collection.findOneAndUpdate(
       filter = Filters.and(
         Filters.eq("ninoKey", ninoKey),
@@ -75,19 +92,7 @@ class NinoLockRepository @Inject()(mongo: MongoComponent)(implicit ec: Execution
         Updates.set("expiresAt", toDate(expiresAt))
       ),
       options = FindOneAndUpdateOptions().upsert(true).returnDocument(ReturnDocument.AFTER)
-    ).toFutureOption().map {
-      case Some(lock) => Right(Some(lock)): Either[Exception, Option[NinoLock]]
-      case None       => Left(new RuntimeException("incrementFailedAttempts returned no document")): Either[Exception, Option[NinoLock]]
-    }.recoverWith {
-      case first: Exception if isDuplicateKey(first) && retryOnDuplicateKey =>
-        incrementFailedAttempts(ninoKey, now, expiresAt, retryOnDuplicateKey = false)
-          .map {
-            case Right(result)                              => Right(result): Either[Exception, Option[NinoLock]]
-            case Left(second) if isDuplicateKey(second)     => Right(None): Either[Exception, Option[NinoLock]]
-            case Left(other)                                => Left(other): Either[Exception, Option[NinoLock]]
-          }
-      case ex: Exception => Future.successful(Left(ex))
-    }
+    ).toFutureOption()
 
   def createLock(ninoKey: String, lockedUntil: LocalDateTime): Future[Either[Exception, Option[NinoLock]]] =
     collection.findOneAndUpdate(
