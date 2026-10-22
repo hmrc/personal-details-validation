@@ -140,64 +140,95 @@ class AuditDataEventFactorySpec extends UnitSpec {
         ("failureDetail" -> "Nino submission blocked: nino locked")
     }
 
-    "create a NinoFailureRecorded event without any nino details" in new Setup {
-      val dataEvent: DataEvent = auditDataFactory.createNinoFailureRecordedEvent(Some("cred-123"), failedAttempts = 2)
+    "create a NinoLockEvent recording a failure" in new Setup {
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockEvent(personalDetails, Some("cred-123"), NinoLockOutcome.FailureRecorded(failedAttempts = 2))
 
       dataEvent.auditSource shouldBe auditConfig.appName
-      dataEvent.auditType shouldBe "NinoFailureRecorded"
+      dataEvent.auditType shouldBe "NinoLockEvent"
       dataEvent.tags shouldBe auditTags
-      dataEvent.detail shouldBe auditDetails + ("credId" -> "cred-123") + ("failedAttempts" -> "2")
-      dataEvent.detail.keySet.map(_.toLowerCase) should not contain "nino"
+      dataEvent.detail shouldBe auditDetails +
+        ("outcome" -> "failureRecorded") +
+        ("failedAttempts" -> "2") +
+        ("nino" -> personalDetails.nino.value) +
+        ("credId" -> "cred-123")
     }
 
-    "create a NinoFailureRecorded event for a submission without a credId" in new Setup {
-      val dataEvent: DataEvent = auditDataFactory.createNinoFailureRecordedEvent(None, failedAttempts = 1)
+    "create a NinoLockEvent recording a failure for a submission without a credId" in new Setup {
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockEvent(personalDetails, None, NinoLockOutcome.FailureRecorded(failedAttempts = 1))
 
-      dataEvent.auditType shouldBe "NinoFailureRecorded"
-      dataEvent.detail shouldBe auditDetails + ("credId" -> "NOT SUPPLIED") + ("failedAttempts" -> "1")
-      dataEvent.detail.keySet.map(_.toLowerCase) should not contain "nino"
+      dataEvent.auditType shouldBe "NinoLockEvent"
+      dataEvent.detail shouldBe auditDetails +
+        ("outcome" -> "failureRecorded") +
+        ("failedAttempts" -> "1") +
+        ("nino" -> personalDetails.nino.value) +
+        ("credId" -> "NOT SUPPLIED")
     }
 
-    "create a NinoLockCreated event without any nino details" in new Setup {
+    "create a NinoLockEvent for a created lock" in new Setup {
       val lockedUntil: LocalDateTime = LocalDateTime.of(2026, 1, 2, 12, 0)
-      val dataEvent: DataEvent = auditDataFactory.createNinoLockCreatedEvent(Some("cred-123"), lockedUntil)
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockEvent(personalDetails, Some("cred-123"), NinoLockOutcome.LockCreated(lockedUntil))
 
-      dataEvent.auditType shouldBe "NinoLockCreated"
-      dataEvent.detail shouldBe auditDetails + ("credId" -> "cred-123") + ("lockedUntil" -> lockedUntil.toString)
-      dataEvent.detail.keySet.map(_.toLowerCase) should not contain "nino"
+      dataEvent.auditType shouldBe "NinoLockEvent"
+      dataEvent.detail shouldBe auditDetails +
+        ("outcome" -> "lockCreated") +
+        ("lockedUntil" -> lockedUntil.toString) +
+        ("nino" -> personalDetails.nino.value) +
+        ("credId" -> "cred-123")
     }
 
-    "create a NinoSubmissionBlocked event without any nino details" in new Setup {
-      val dataEvent: DataEvent = auditDataFactory.createNinoSubmissionBlockedEvent(Some("cred-123"))
+    "create a NinoLockEvent for a blocked submission" in new Setup {
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockEvent(personalDetails, Some("cred-123"), NinoLockOutcome.SubmissionBlocked)
 
-      dataEvent.auditType shouldBe "NinoSubmissionBlocked"
-      dataEvent.detail shouldBe auditDetails + ("credId" -> "cred-123")
-      dataEvent.detail.keySet.map(_.toLowerCase) should not contain "nino"
+      dataEvent.auditType shouldBe "NinoLockEvent"
+      dataEvent.detail shouldBe auditDetails +
+        ("outcome" -> "submissionBlocked") +
+        ("nino" -> personalDetails.nino.value) +
+        ("credId" -> "cred-123")
     }
 
-    "create a NinoSubmissionBlocked event for a submission without a credId" in new Setup {
-      val dataEvent: DataEvent = auditDataFactory.createNinoSubmissionBlockedEvent(None)
+    "create a NinoLockEvent for a blocked submission without a credId" in new Setup {
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockEvent(personalDetails, None, NinoLockOutcome.SubmissionBlocked)
 
-      dataEvent.auditType shouldBe "NinoSubmissionBlocked"
-      dataEvent.detail shouldBe auditDetails + ("credId" -> "NOT SUPPLIED")
+      dataEvent.auditType shouldBe "NinoLockEvent"
+      dataEvent.detail shouldBe auditDetails +
+        ("outcome" -> "submissionBlocked") +
+        ("nino" -> personalDetails.nino.value) +
+        ("credId" -> "NOT SUPPLIED")
     }
 
-    "create a NinoLockStoreError event without any nino details" in new Setup {
-      val dataEvent: DataEvent = auditDataFactory.createNinoLockStoreErrorEvent("read", "MongoWriteException")
+    "create a NinoLockEvent for a lock store error" in new Setup {
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockEvent(personalDetails, Some("cred-123"), NinoLockOutcome.LockStoreError("read", "MongoTimeoutException", "timed out after 30000 ms"))
 
-      dataEvent.auditType shouldBe "NinoLockStoreError"
-      dataEvent.detail shouldBe auditDetails + ("operation" -> "read") + ("errorType" -> "MongoWriteException")
-      dataEvent.detail.keySet.map(_.toLowerCase) should not contain "nino"
+      dataEvent.auditType shouldBe "NinoLockEvent"
+      dataEvent.detail shouldBe auditDetails +
+        ("outcome" -> "lockStoreError") +
+        ("operation" -> "read") +
+        ("errorType" -> "MongoTimeoutException") +
+        ("errorMessage" -> "timed out after 30000 ms") +
+        ("nino" -> personalDetails.nino.value) +
+        ("credId" -> "cred-123")
     }
 
-    "not leak the ninoKey when a real duplicate key error message is produced" in new Setup {
+    "include the full error message when a real duplicate key error is produced" in new Setup {
       val realDupKeyMessage =
         "E11000 duplicate key error collection: pdv.personal-details-validation-nino-lock-store index: ninoKeyUnique dup key: { ninoKey: \"AA000003\" }"
-      val dataEvent: DataEvent = auditDataFactory.createNinoLockStoreErrorEvent("write", new MongoWriteException(new WriteError(11000, realDupKeyMessage, new BsonDocument()), new ServerAddress()).getClass.getSimpleName)
+      val ex = new MongoWriteException(new WriteError(11000, realDupKeyMessage, new BsonDocument()), new ServerAddress())
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockEvent(personalDetails, Some("cred-123"), NinoLockOutcome.LockStoreError("write", ex.getClass.getSimpleName, ex.getMessage))
 
-      dataEvent.auditType shouldBe "NinoLockStoreError"
-      dataEvent.detail.values should not contain realDupKeyMessage
-      dataEvent.detail.values.forall(value => !value.contains("AA000003")) shouldBe true
+      dataEvent.auditType shouldBe "NinoLockEvent"
+      dataEvent.detail("errorType") shouldBe "MongoWriteException"
+      dataEvent.detail("errorMessage") should include(realDupKeyMessage)
+    }
+
+    "create a NinoLockEvent with a NOT SUPPLIED nino for personal details without a nino" in new Setup {
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockEvent(personalDetailsWithPostCode, Some("cred-123"), NinoLockOutcome.FailureRecorded(failedAttempts = 1))
+
+      dataEvent.auditType shouldBe "NinoLockEvent"
+      dataEvent.detail shouldBe auditDetails +
+        ("outcome" -> "failureRecorded") +
+        ("failedAttempts" -> "1") +
+        ("nino" -> "NOT SUPPLIED") +
+        ("credId" -> "cred-123")
     }
   }
 
@@ -216,10 +247,7 @@ class AuditDataEventFactorySpec extends UnitSpec {
 
     when(auditTagsProvider.apply(headerCarrier, matchingResultAuditType, request)).thenReturn(auditTags)
     when(auditTagsProvider.apply(headerCarrier, matchingPreconditionFailedUnderageAuditType, request)).thenReturn(auditTags)
-    when(auditTagsProvider.apply(headerCarrier, ninoFailureRecordedAuditType, request)).thenReturn(auditTags)
-    when(auditTagsProvider.apply(headerCarrier, ninoLockCreatedAuditType, request)).thenReturn(auditTags)
-    when(auditTagsProvider.apply(headerCarrier, ninoSubmissionBlockedAuditType, request)).thenReturn(auditTags)
-    when(auditTagsProvider.apply(headerCarrier, ninoLockStoreErrorAuditType, request)).thenReturn(auditTags)
+    when(auditTagsProvider.apply(headerCarrier, ninoLockEventAuditType, request)).thenReturn(auditTags)
     when(auditDetailsProvider.apply(headerCarrier)).thenReturn(auditDetails)
 
     val auditDataFactory = new AuditDataEventFactory(auditConfig, auditTagsProvider, auditDetailsProvider)

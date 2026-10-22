@@ -17,8 +17,9 @@
 package uk.gov.hmrc.personaldetailsvalidation.services
 
 import org.apache.pekko.Done
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{never, verify, verifyNoInteractions, when}
+import org.mockito.Mockito.{never, times, verify, verifyNoInteractions, when}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.mvc.{AnyContentAsEmpty, Request}
@@ -26,7 +27,7 @@ import play.api.test.FakeRequest
 import support.{CommonTestData, UnitSpec}
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory
+import uk.gov.hmrc.personaldetailsvalidation.audit.{AuditDataEventFactory, NinoLockOutcome}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.*
 import uk.gov.hmrc.personaldetailsvalidation.model.*
 import uk.gov.hmrc.personaldetailsvalidation.services.NinoRetryLockService.NinoLockStatus
@@ -68,7 +69,8 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
         case other                                          => fail(s"Expected Right(Locked) but got $other")
       }
 
-      verify(mockAuditConnector).sendEvent(ninoSubmissionBlockedEvent)
+      verify(mockAuditConnector).sendEvent(ninoLockEvent)
+      capturedOutcome() shouldBe NinoLockOutcome.SubmissionBlocked
     }
 
     "return NotLocked when the nino lock has expired" in new Setup {
@@ -101,7 +103,11 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
         case Left(ex) => ex shouldBe exception
       }
 
-      verify(mockAuditConnector).sendEvent(ninoLockStoreErrorEvent)
+      verify(mockAuditConnector).sendEvent(ninoLockEvent)
+      capturedOutcome() match {
+        case NinoLockOutcome.LockStoreError("read", _, _) =>
+        case other => fail(s"Expected LockStoreError(read) but got $other")
+      }
     }
 
     "fail closed and send NinoLockStoreError when deleting a stale record fails" in new Setup {
@@ -117,7 +123,11 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
         case Left(ex) => ex shouldBe exception
       }
 
-      verify(mockAuditConnector).sendEvent(ninoLockStoreErrorEvent)
+      verify(mockAuditConnector).sendEvent(ninoLockEvent)
+      capturedOutcome() match {
+        case NinoLockOutcome.LockStoreError("delete-stale", _, _) =>
+        case other => fail(s"Expected LockStoreError(delete-stale) but got $other")
+      }
     }
   }
 
@@ -132,7 +142,8 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
 
       verify(mockNinoLockRepository).incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime])
       verify(mockNinoLockRepository, never).createLock(any[String], any[LocalDateTime])
-      verify(mockAuditConnector).sendEvent(ninoFailureRecordedEvent)
+      verify(mockAuditConnector).sendEvent(ninoLockEvent)
+      capturedOutcome() shouldBe NinoLockOutcome.FailureRecorded(2)
     }
 
     "create the nino lock on the third failed validation and send NinoLockCreated" in new Setup {
@@ -145,10 +156,14 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
       service.recordOutcome(personalDetailsWithNino, MatchFailed("no match"), testMaybeCredId).value.futureValue shouldBe Right(())
 
       verify(mockNinoLockRepository).createLock(any[String], any[LocalDateTime])
-      verify(mockAuditConnector).sendEvent(ninoLockCreatedEvent)
+      verify(mockAuditConnector).sendEvent(ninoLockEvent)
+      capturedOutcome() match {
+        case NinoLockOutcome.LockCreated(_) =>
+        case other => fail(s"Expected LockCreated but got $other")
+      }
     }
 
-    "audit the failure without NinoLockCreated when a concurrent request already created the lock" in new Setup {
+    "audit the recorded failure without a lock when a concurrent request already created the lock" in new Setup {
       val updatedRecord: NinoLock = ninoRecord(failedAttempts = 3)
       when(mockNinoLockRepository.incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime]))
         .thenReturn(Future.successful(Right(Some(updatedRecord))))
@@ -158,8 +173,8 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
       service.recordOutcome(personalDetailsWithNino, MatchFailed("no match"), testMaybeCredId).value.futureValue shouldBe Right(())
 
       verify(mockNinoLockRepository).createLock(any[String], any[LocalDateTime])
-      verify(mockAuditConnector, never).sendEvent(ninoLockCreatedEvent)
-      verify(mockAuditConnector).sendEvent(ninoFailureRecordedEvent)
+      verify(mockAuditConnector, times(1)).sendEvent(ninoLockEvent)
+      capturedOutcome() shouldBe NinoLockOutcome.FailureRecorded(3)
     }
 
     "not increment and not audit when the record is already locked (increment guard)" in new Setup {
@@ -226,7 +241,11 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
         case Left(ex) => ex shouldBe exception
       }
 
-      verify(mockAuditConnector).sendEvent(ninoLockStoreErrorEvent)
+      verify(mockAuditConnector).sendEvent(ninoLockEvent)
+      capturedOutcome() match {
+        case NinoLockOutcome.LockStoreError("write", _, _) =>
+        case other => fail(s"Expected LockStoreError(write) but got $other")
+      }
     }
 
     "fail closed and send NinoLockStoreError when clearing the nino state after a success fails" in new Setup {
@@ -237,7 +256,11 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
         case Left(ex) => ex shouldBe exception
       }
 
-      verify(mockAuditConnector).sendEvent(ninoLockStoreErrorEvent)
+      verify(mockAuditConnector).sendEvent(ninoLockEvent)
+      capturedOutcome() match {
+        case NinoLockOutcome.LockStoreError("delete", _, _) =>
+        case other => fail(s"Expected LockStoreError(delete) but got $other")
+      }
     }
   }
 
@@ -255,14 +278,14 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
 
     when(mockAuditConnector.sendEvent(any[DataEvent])(any[HeaderCarrier], any[scala.concurrent.ExecutionContext])).thenReturn(Future.successful(AuditResult.Success))
 
-    when(mockAuditDataEventFactory.createNinoFailureRecordedEvent(any[Option[String]], any[Int])(using any[HeaderCarrier], any[Request[?]]))
-      .thenReturn(ninoFailureRecordedEvent)
-    when(mockAuditDataEventFactory.createNinoLockCreatedEvent(any[Option[String]], any[LocalDateTime])(using any[HeaderCarrier], any[Request[?]]))
-      .thenReturn(ninoLockCreatedEvent)
-    when(mockAuditDataEventFactory.createNinoSubmissionBlockedEvent(any[Option[String]])(using any[HeaderCarrier], any[Request[?]]))
-      .thenReturn(ninoSubmissionBlockedEvent)
-    when(mockAuditDataEventFactory.createNinoLockStoreErrorEvent(any[String], any[String])(using any[HeaderCarrier], any[Request[?]]))
-      .thenReturn(ninoLockStoreErrorEvent)
+    when(mockAuditDataEventFactory.createNinoLockEvent(any[PersonalDetails], any[Option[String]], any[NinoLockOutcome])(using any[HeaderCarrier], any[Request[?]]))
+      .thenReturn(ninoLockEvent)
+
+    def capturedOutcome(): NinoLockOutcome = {
+      val captor: ArgumentCaptor[NinoLockOutcome] = ArgumentCaptor.forClass(classOf[NinoLockOutcome])
+      verify(mockAuditDataEventFactory).createNinoLockEvent(any[PersonalDetails], any[Option[String]], captor.capture())(using any[HeaderCarrier], any[Request[?]])
+      captor.getValue
+    }
 
     def ninoRecord(failedAttempts: Int = 1,
                    lockedUntil: Option[LocalDateTime] = None,
@@ -285,8 +308,5 @@ object NinoRetryLockServiceSpec {
   def dataEvent(auditType: String): DataEvent =
     DataEvent(auditSource = "personal-details-validation", auditType = auditType, tags = Map.empty, detail = Map.empty)
 
-  val ninoFailureRecordedEvent: DataEvent = dataEvent("NinoFailureRecorded")
-  val ninoLockCreatedEvent: DataEvent = dataEvent("NinoLockCreated")
-  val ninoSubmissionBlockedEvent: DataEvent = dataEvent("NinoSubmissionBlocked")
-  val ninoLockStoreErrorEvent: DataEvent = dataEvent("NinoLockStoreError")
+  val ninoLockEvent: DataEvent = dataEvent("NinoLockEvent")
 }

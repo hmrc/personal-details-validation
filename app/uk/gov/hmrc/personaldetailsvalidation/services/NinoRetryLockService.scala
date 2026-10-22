@@ -22,7 +22,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.*
 import uk.gov.hmrc.personaldetailsvalidation.model.{NinoLock, PersonalDetails}
-import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory
+import uk.gov.hmrc.personaldetailsvalidation.audit.{AuditDataEventFactory, NinoLockOutcome}
 import uk.gov.hmrc.personaldetailsvalidation.{NinoLockConfig, NinoLockRepository}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
@@ -50,19 +50,19 @@ class NinoRetryLockService @Inject()(ninoKeyService: NinoKeyService,
         val key = ninoKeyService.ninoKey(nino)
         EitherT(ninoLockRepository.findByNinoKey(key))
           .leftMap { ex =>
-            auditConnector.sendEvent(auditDataEventFactory.createNinoLockStoreErrorEvent("read", ex.getClass.getSimpleName))
+            auditConnector.sendEvent(auditDataEventFactory.createNinoLockEvent(personalDetails, maybeCredId, NinoLockOutcome.LockStoreError("read", ex.getClass.getSimpleName, ex.getMessage)))
             ex
           }
           .flatMap {
             case Some(record) if record.lockedUntil.exists(_.isAfter(now)) =>
               EitherT.rightT[Future, Exception] {
-                auditConnector.sendEvent(auditDataEventFactory.createNinoSubmissionBlockedEvent(maybeCredId))
+                auditConnector.sendEvent(auditDataEventFactory.createNinoLockEvent(personalDetails, maybeCredId, NinoLockOutcome.SubmissionBlocked))
                 NinoLockStatus.Locked(record.lockedUntil.get)
               }
             case Some(record) if isStale(record) =>
               EitherT(ninoLockRepository.delete(key))
                 .leftMap { ex =>
-                  auditConnector.sendEvent(auditDataEventFactory.createNinoLockStoreErrorEvent("delete-stale", ex.getClass.getSimpleName))
+                  auditConnector.sendEvent(auditDataEventFactory.createNinoLockEvent(personalDetails, maybeCredId, NinoLockOutcome.LockStoreError("delete-stale", ex.getClass.getSimpleName, ex.getMessage)))
                   ex
                 }
                 .map(_ => NinoLockStatus.NotLocked)
@@ -84,7 +84,7 @@ class NinoRetryLockService @Inject()(ninoKeyService: NinoKeyService,
         val failedAt = now
         EitherT(ninoLockRepository.incrementFailedAttempts(key, failedAt, failedAt.plus(ninoLockConfig.lockDuration)))
           .leftMap { ex =>
-            auditConnector.sendEvent(auditDataEventFactory.createNinoLockStoreErrorEvent("write", ex.getClass.getSimpleName))
+            auditConnector.sendEvent(auditDataEventFactory.createNinoLockEvent(personalDetails, maybeCredId, NinoLockOutcome.LockStoreError("write", ex.getClass.getSimpleName, ex.getMessage)))
             ex
           }
           .flatMap {
@@ -92,21 +92,21 @@ class NinoRetryLockService @Inject()(ninoKeyService: NinoKeyService,
               val lockedUntil = failedAt.plus(ninoLockConfig.lockDuration)
               EitherT(ninoLockRepository.createLock(key, lockedUntil))
                 .leftMap { ex =>
-                  auditConnector.sendEvent(auditDataEventFactory.createNinoLockStoreErrorEvent("write", ex.getClass.getSimpleName))
+                  auditConnector.sendEvent(auditDataEventFactory.createNinoLockEvent(personalDetails, maybeCredId, NinoLockOutcome.LockStoreError("write", ex.getClass.getSimpleName, ex.getMessage)))
                   ex
                 }
                 .map {
                   case Some(_) =>
-                    auditConnector.sendEvent(auditDataEventFactory.createNinoLockCreatedEvent(maybeCredId, lockedUntil))
+                    auditConnector.sendEvent(auditDataEventFactory.createNinoLockEvent(personalDetails, maybeCredId, NinoLockOutcome.LockCreated(lockedUntil)))
                     ()
                   case None =>
                     // lost the createLock race: the lock now exists, but this failure was still counted
-                    auditConnector.sendEvent(auditDataEventFactory.createNinoFailureRecordedEvent(maybeCredId, updated.failedAttempts))
+                    auditConnector.sendEvent(auditDataEventFactory.createNinoLockEvent(personalDetails, maybeCredId, NinoLockOutcome.FailureRecorded(updated.failedAttempts)))
                     ()
                 }
             case Some(updated) =>
               EitherT.rightT[Future, Exception] {
-                auditConnector.sendEvent(auditDataEventFactory.createNinoFailureRecordedEvent(maybeCredId, updated.failedAttempts))
+                auditConnector.sendEvent(auditDataEventFactory.createNinoLockEvent(personalDetails, maybeCredId, NinoLockOutcome.FailureRecorded(updated.failedAttempts)))
                 ()
               }
             case None => EitherT.rightT[Future, Exception](())
@@ -115,7 +115,7 @@ class NinoRetryLockService @Inject()(ninoKeyService: NinoKeyService,
         val key = ninoKeyService.ninoKey(nino)
         EitherT(ninoLockRepository.delete(key))
           .leftMap { ex =>
-            auditConnector.sendEvent(auditDataEventFactory.createNinoLockStoreErrorEvent("delete", ex.getClass.getSimpleName))
+            auditConnector.sendEvent(auditDataEventFactory.createNinoLockEvent(personalDetails, maybeCredId, NinoLockOutcome.LockStoreError("delete", ex.getClass.getSimpleName, ex.getMessage)))
             ex
           }
           .map(_ => ())

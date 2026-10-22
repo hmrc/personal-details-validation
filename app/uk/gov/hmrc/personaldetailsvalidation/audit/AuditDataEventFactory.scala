@@ -67,7 +67,6 @@ class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTag
     )
   }
 
-  // NINO lock events (VER-7058) must never contain the raw NINO or any stable NINO digest.
   private def ninoLockEvent(auditType: AuditType, details: Map[String, String])
                            (implicit hc: HeaderCarrier, request: Request[?]): DataEvent =
     DataEvent(
@@ -77,31 +76,30 @@ class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTag
       detail = auditDetailsProvider(hc) ++ details
     )
 
-  def createNinoFailureRecordedEvent(maybeCredId: Option[String], failedAttempts: Int)
-                                    (implicit hc: HeaderCarrier, request: Request[?]): DataEvent =
-    ninoLockEvent(ninoFailureRecordedAuditType,
-      Map("credId" -> maybeCredId.getOrElse("NOT SUPPLIED"), "failedAttempts" -> failedAttempts.toString))
+  def createNinoLockEvent(personalDetails: PersonalDetails, maybeCredId: Option[String], outcome: NinoLockOutcome)
+                         (implicit hc: HeaderCarrier, request: Request[?]): DataEvent = {
+    val outcomeDetails: Map[String, String] = outcome match {
+      case NinoLockOutcome.FailureRecorded(failedAttempts) =>
+        Map("outcome" -> "failureRecorded", "failedAttempts" -> failedAttempts.toString)
+      case NinoLockOutcome.LockCreated(lockedUntil) =>
+        Map("outcome" -> "lockCreated", "lockedUntil" -> lockedUntil.toString)
+      case NinoLockOutcome.SubmissionBlocked =>
+        Map("outcome" -> "submissionBlocked")
+      case NinoLockOutcome.LockStoreError(operation, errorType, errorMessage) =>
+        Map("outcome" -> "lockStoreError", "operation" -> operation, "errorType" -> errorType, "errorMessage" -> errorMessage)
+    }
+    ninoLockEvent(ninoLockEventAuditType,
+      outcomeDetails ++ Map("nino" -> ninoValue(personalDetails), "credId" -> maybeCredId.getOrElse("NOT SUPPLIED")))
+  }
 
-  def createNinoLockCreatedEvent(maybeCredId: Option[String], lockedUntil: LocalDateTime)
-                                (implicit hc: HeaderCarrier, request: Request[?]): DataEvent =
-    ninoLockEvent(ninoLockCreatedAuditType,
-      Map("credId" -> maybeCredId.getOrElse("NOT SUPPLIED"), "lockedUntil" -> lockedUntil.toString))
-
-  def createNinoSubmissionBlockedEvent(maybeCredId: Option[String])
-                                      (implicit hc: HeaderCarrier, request: Request[?]): DataEvent =
-    ninoLockEvent(ninoSubmissionBlockedAuditType,
-      Map("credId" -> maybeCredId.getOrElse("NOT SUPPLIED")))
-
-  def createNinoLockStoreErrorEvent(operation: String, errorType: String)
-                                   (implicit hc: HeaderCarrier, request: Request[?]): DataEvent =
-    ninoLockEvent(ninoLockStoreErrorAuditType,
-      Map("operation" -> operation, "errorType" -> errorType))
-
-  private def matchResultDetails(personalDetails: PersonalDetails, matchingStatus: String, auditType: AuditType) = {
-    val nino = personalDetails match {
+  private def ninoValue(personalDetails: PersonalDetails): String =
+    personalDetails match {
       case details: PersonalDetailsNino => details.nino.value
       case _ => "NOT SUPPLIED"
     }
+
+  private def matchResultDetails(personalDetails: PersonalDetails, matchingStatus: String, auditType: AuditType) = {
+    val nino = ninoValue(personalDetails)
 
     val postCode = personalDetails match {
       case details: PersonalDetailsWithPostCode => details.postCode.value
@@ -160,8 +158,13 @@ private[personaldetailsvalidation] object AuditDataEventFactory {
   val matchingResultAuditType: AuditType = "MatchingResult"
   val matchingPreconditionFailedUnderageAuditType: AuditType = "MatchingPreconditionFailedUnderage"
 
-  val ninoFailureRecordedAuditType: AuditType = "NinoFailureRecorded"
-  val ninoLockCreatedAuditType: AuditType = "NinoLockCreated"
-  val ninoSubmissionBlockedAuditType: AuditType = "NinoSubmissionBlocked"
-  val ninoLockStoreErrorAuditType: AuditType = "NinoLockStoreError"
+  val ninoLockEventAuditType: AuditType = "NinoLockEvent"
+}
+
+sealed trait NinoLockOutcome
+object NinoLockOutcome {
+  case class FailureRecorded(failedAttempts: Int) extends NinoLockOutcome
+  case class LockCreated(lockedUntil: LocalDateTime) extends NinoLockOutcome
+  case object SubmissionBlocked extends NinoLockOutcome
+  case class LockStoreError(operation: String, errorType: String, errorMessage: String) extends NinoLockOutcome
 }
