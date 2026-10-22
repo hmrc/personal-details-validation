@@ -60,7 +60,7 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
       service.lockStatus(personalDetailsWithNino, testMaybeCredId).value.futureValue shouldBe Right(NinoLockStatus.NotLocked)
     }
 
-    "return Locked and send NinoSubmissionBlocked when the nino is actively locked" in new Setup {
+    "return Locked and send a NinoLockEvent with outcome submissionBlocked when the nino is actively locked" in new Setup {
       val lockedRecord: NinoLock = ninoRecord(lockedUntil = Some(LocalDateTime.now(ZoneOffset.UTC).plusHours(1)))
       when(mockNinoLockRepository.findByNinoKey(ninoKey)).thenReturn(Future.successful(Right(Some(lockedRecord))))
 
@@ -95,7 +95,7 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
       verify(mockNinoLockRepository, never).delete(ninoKey)
     }
 
-    "fail closed and send NinoLockStoreError when the lock store cannot be read" in new Setup {
+    "fail closed and send a NinoLockEvent with outcome lockStoreError when the lock store cannot be read" in new Setup {
       when(mockNinoLockRepository.findByNinoKey(ninoKey)).thenReturn(Future.successful(Left(exception)))
 
       service.lockStatus(personalDetailsWithNino, testMaybeCredId).value.futureValue match {
@@ -110,7 +110,7 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
       }
     }
 
-    "fail closed and send NinoLockStoreError when deleting a stale record fails" in new Setup {
+    "fail closed and send a NinoLockEvent with outcome lockStoreError when deleting a stale record fails" in new Setup {
       val staleRecord: NinoLock = ninoRecord(
         lockedUntil = Some(LocalDateTime.now(ZoneOffset.UTC).minusHours(1)),
         lastFailedAt = LocalDateTime.now(ZoneOffset.UTC).minusHours(25)
@@ -146,7 +146,7 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
       capturedOutcome() shouldBe NinoLockOutcome.FailureRecorded(2)
     }
 
-    "create the nino lock on the third failed validation and send NinoLockCreated" in new Setup {
+    "create the nino lock on the third failed validation and send a NinoLockEvent with outcome lockCreated" in new Setup {
       val updatedRecord: NinoLock = ninoRecord(failedAttempts = 3)
       when(mockNinoLockRepository.incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime]))
         .thenReturn(Future.successful(Right(Some(updatedRecord))))
@@ -232,7 +232,7 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
       verifyNoInteractions(mockAuditConnector)
     }
 
-    "fail closed and send NinoLockStoreError when incrementing the failure count fails" in new Setup {
+    "fail closed and send a NinoLockEvent with outcome lockStoreError when incrementing the failure count fails" in new Setup {
       when(mockNinoLockRepository.incrementFailedAttempts(any[String], any[LocalDateTime], any[LocalDateTime]))
         .thenReturn(Future.successful(Left(exception)))
 
@@ -248,7 +248,7 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
       }
     }
 
-    "fail closed and send NinoLockStoreError when clearing the nino state after a success fails" in new Setup {
+    "fail closed and send a NinoLockEvent with outcome lockStoreError when clearing the nino state after a success fails" in new Setup {
       when(mockNinoLockRepository.delete(ninoKey)).thenReturn(Future.successful(Left(exception)))
 
       service.recordOutcome(personalDetailsWithNino, MatchSuccessful(personalDetailsWithNino), testMaybeCredId).value.futureValue match {

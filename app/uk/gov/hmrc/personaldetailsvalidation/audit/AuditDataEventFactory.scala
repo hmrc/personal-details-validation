@@ -67,12 +67,12 @@ class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTag
     )
   }
 
-  private def ninoLockEvent(auditType: AuditType, details: Map[String, String])
+  private def ninoLockEvent(details: Map[String, String])
                            (implicit hc: HeaderCarrier, request: Request[?]): DataEvent =
     DataEvent(
       auditSource = auditConfig.appName,
-      auditType = auditType,
-      tags = auditTagProvider(hc, auditType, request),
+      auditType = ninoLockEventAuditType,
+      tags = auditTagProvider(hc, ninoLockEventAuditType, request),
       detail = auditDetailsProvider(hc) ++ details
     )
 
@@ -88,7 +88,7 @@ class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTag
       case NinoLockOutcome.LockStoreError(operation, errorType, errorMessage) =>
         Map("outcome" -> "lockStoreError", "operation" -> operation, "errorType" -> errorType, "errorMessage" -> errorMessage)
     }
-    ninoLockEvent(ninoLockEventAuditType,
+    ninoLockEvent(
       outcomeDetails ++ Map("nino" -> ninoValue(personalDetails), "credId" -> maybeCredId.getOrElse("NOT SUPPLIED")))
   }
 
