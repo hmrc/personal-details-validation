@@ -19,13 +19,14 @@ package uk.gov.hmrc.personaldetailsvalidation
 import cats.data.EitherT
 import com.mongodb.MongoException
 import com.mongodb.client.result.DeleteResult
+import com.mongodb.client.result.UpdateResult
 import org.apache.pekko.Done
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.*
 import org.mongodb.scala.*
 import org.mongodb.scala.bson.conversions.Bson
-import org.mongodb.scala.model.{FindOneAndUpdateOptions, ReturnDocument}
+import org.mongodb.scala.model.{FindOneAndUpdateOptions, ReplaceOptions, ReturnDocument}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
@@ -101,6 +102,41 @@ class PersonalDetailsValidationRetryRepositorySpec extends UnitSpec with CommonT
       when(mockCollection.deleteOne(any[Bson])).thenReturn(failedObservable)
 
       val result: Either[Exception, Done] = repository.deleteAttempts(testCredId).futureValue
+
+      result match {
+        case Right(_) => fail("Expected Left(Exception) but got Right(Done)")
+        case Left(exception) => exception shouldBe a[MongoException]
+          exception.getMessage shouldBe exceptionMessage
+      }
+
+    }
+
+    "successfully upsert validation attempts" in new Setup {
+
+      val mockUpdateResult: UpdateResult = mock[UpdateResult]
+      when(mockCollection.replaceOne(any[Bson], any[Retry], any[ReplaceOptions])).thenReturn(SingleObservable(mockUpdateResult))
+
+      val result: Either[Exception, Done] = repository.upsertAttempts(testCredId, 2).futureValue
+
+      result match {
+        case Right(done) => done shouldBe Done
+        case Left(exception) => fail(s"Expected Right(Done) but got Left($exception)")
+      }
+
+      val optionsCaptor: ArgumentCaptor[ReplaceOptions] = ArgumentCaptor.forClass(classOf[ReplaceOptions])
+      verify(mockCollection, times(1)).replaceOne(any[Bson], any[Retry], optionsCaptor.capture())
+      optionsCaptor.getValue.isUpsert shouldBe true
+
+    }
+
+    "raise an exception when mongo fails when upserting validation attempts" in new Setup {
+
+      val failedObservable: SingleObservable[UpdateResult] = mock[SingleObservable[UpdateResult]]
+      when(failedObservable.toFuture()).thenReturn(Future.failed(new MongoException(exceptionMessage)))
+
+      when(mockCollection.replaceOne(any[Bson], any[Retry], any[ReplaceOptions])).thenReturn(failedObservable)
+
+      val result: Either[Exception, Done] = repository.upsertAttempts(testCredId, 2).futureValue
 
       result match {
         case Right(_) => fail("Expected Left(Exception) but got Right(Done)")

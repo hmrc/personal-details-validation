@@ -38,7 +38,7 @@ class TestCredIdRetryController @Inject()(retryRepository: PersonalDetailsValida
   implicit val credIdAttemptsRequestFormat: Format[CredIdAttemptsRequest] = Json.format[CredIdAttemptsRequest]
   implicit val credIdDeleteRequestFormat: Format[CredIdDeleteRequest] = Json.format[CredIdDeleteRequest]
 
-  def setCredIdAttempts(): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def setCredIdAttempts: Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[CredIdAttemptsRequest] { body =>
       retryRepository.upsertAttempts(body.credId, body.attempts).map {
         case Right(_) => Created
@@ -47,7 +47,7 @@ class TestCredIdRetryController @Inject()(retryRepository: PersonalDetailsValida
     }
   }
 
-  def deleteCredIdAttempts(): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def deleteCredIdAttempts: Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[CredIdDeleteRequest] { body =>
       retryRepository.deleteAttempts(body.credId).map {
         case Right(_) => NoContent
