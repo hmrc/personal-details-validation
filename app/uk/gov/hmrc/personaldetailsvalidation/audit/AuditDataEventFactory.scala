@@ -80,13 +80,13 @@ class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTag
                          (implicit hc: HeaderCarrier, request: Request[?]): DataEvent = {
     val outcomeDetails: Map[String, String] = outcome match {
       case NinoLockOutcome.FailureRecorded(failedAttempts) =>
-        Map("outcome" -> "failureRecorded", "failedAttempts" -> failedAttempts.toString)
+        Map("failureReason" -> "failureRecorded", "failedAttempts" -> failedAttempts.toString)
       case NinoLockOutcome.LockCreated(lockedUntil) =>
-        Map("outcome" -> "lockCreated", "lockedUntil" -> lockedUntil.toString)
+        Map("failureReason" -> "lockCreated", "lockedUntil" -> lockedUntil.toString)
       case NinoLockOutcome.SubmissionBlocked =>
-        Map("outcome" -> "submissionBlocked")
-      case NinoLockOutcome.LockStoreError(operation, errorType, errorMessage) =>
-        Map("outcome" -> "lockStoreError", "operation" -> operation, "errorType" -> errorType, "errorMessage" -> errorMessage)
+        Map("failureReason" -> "submissionBlocked")
+      case NinoLockOutcome.LockStoreError(mongoDatabaseOperation, errorType, errorMessage) =>
+        Map("failureReason" -> "lockStoreError", "mongoDatabaseOperation" -> mongoDatabaseOperation, "errorType" -> errorType, "errorMessage" -> errorMessage)
     }
     ninoLockEvent(
       outcomeDetails ++ Map("nino" -> ninoValue(personalDetails), "credId" -> maybeCredId.getOrElse("NOT SUPPLIED")))
@@ -166,5 +166,5 @@ object NinoLockOutcome {
   case class FailureRecorded(failedAttempts: Int) extends NinoLockOutcome
   case class LockCreated(lockedUntil: LocalDateTime) extends NinoLockOutcome
   case object SubmissionBlocked extends NinoLockOutcome
-  case class LockStoreError(operation: String, errorType: String, errorMessage: String) extends NinoLockOutcome
+  case class LockStoreError(mongoDatabaseOperation: String, errorType: String, errorMessage: String) extends NinoLockOutcome
 }

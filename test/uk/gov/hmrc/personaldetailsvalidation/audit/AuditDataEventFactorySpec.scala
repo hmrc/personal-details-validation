@@ -147,7 +147,7 @@ class AuditDataEventFactorySpec extends UnitSpec {
       dataEvent.auditType shouldBe "NinoLockEvent"
       dataEvent.tags shouldBe auditTags
       dataEvent.detail shouldBe auditDetails +
-        ("outcome" -> "failureRecorded") +
+        ("failureReason" -> "failureRecorded") +
         ("failedAttempts" -> "2") +
         ("nino" -> personalDetails.nino.value) +
         ("credId" -> "cred-123")
@@ -158,7 +158,7 @@ class AuditDataEventFactorySpec extends UnitSpec {
 
       dataEvent.auditType shouldBe "NinoLockEvent"
       dataEvent.detail shouldBe auditDetails +
-        ("outcome" -> "failureRecorded") +
+        ("failureReason" -> "failureRecorded") +
         ("failedAttempts" -> "1") +
         ("nino" -> personalDetails.nino.value) +
         ("credId" -> "NOT SUPPLIED")
@@ -170,7 +170,7 @@ class AuditDataEventFactorySpec extends UnitSpec {
 
       dataEvent.auditType shouldBe "NinoLockEvent"
       dataEvent.detail shouldBe auditDetails +
-        ("outcome" -> "lockCreated") +
+        ("failureReason" -> "lockCreated") +
         ("lockedUntil" -> lockedUntil.toString) +
         ("nino" -> personalDetails.nino.value) +
         ("credId" -> "cred-123")
@@ -181,7 +181,7 @@ class AuditDataEventFactorySpec extends UnitSpec {
 
       dataEvent.auditType shouldBe "NinoLockEvent"
       dataEvent.detail shouldBe auditDetails +
-        ("outcome" -> "submissionBlocked") +
+        ("failureReason" -> "submissionBlocked") +
         ("nino" -> personalDetails.nino.value) +
         ("credId" -> "cred-123")
     }
@@ -191,7 +191,7 @@ class AuditDataEventFactorySpec extends UnitSpec {
 
       dataEvent.auditType shouldBe "NinoLockEvent"
       dataEvent.detail shouldBe auditDetails +
-        ("outcome" -> "submissionBlocked") +
+        ("failureReason" -> "submissionBlocked") +
         ("nino" -> personalDetails.nino.value) +
         ("credId" -> "NOT SUPPLIED")
     }
@@ -201,8 +201,8 @@ class AuditDataEventFactorySpec extends UnitSpec {
 
       dataEvent.auditType shouldBe "NinoLockEvent"
       dataEvent.detail shouldBe auditDetails +
-        ("outcome" -> "lockStoreError") +
-        ("operation" -> "read") +
+        ("failureReason" -> "lockStoreError") +
+        ("mongoDatabaseOperation" -> "read") +
         ("errorType" -> "MongoTimeoutException") +
         ("errorMessage" -> "timed out after 30000 ms") +
         ("nino" -> personalDetails.nino.value) +
@@ -225,7 +225,7 @@ class AuditDataEventFactorySpec extends UnitSpec {
 
       dataEvent.auditType shouldBe "NinoLockEvent"
       dataEvent.detail shouldBe auditDetails +
-        ("outcome" -> "failureRecorded") +
+        ("failureReason" -> "failureRecorded") +
         ("failedAttempts" -> "1") +
         ("nino" -> "NOT SUPPLIED") +
         ("credId" -> "cred-123")
