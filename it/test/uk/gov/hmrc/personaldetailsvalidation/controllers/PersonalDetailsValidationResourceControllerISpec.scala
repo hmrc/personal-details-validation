@@ -19,6 +19,7 @@ package uk.gov.hmrc.personaldetailsvalidation.controllers
 import scala.language.reflectiveCalls
 
 import ch.qos.logback.classic.Level
+import com.github.tomakehurst.wiremock.client.WireMock.{postRequestedFor, urlEqualTo, verify as verifyWiremock}
 import org.scalatest.LoneElement
 import play.api.Logger
 import play.api.http.ContentTypes.JSON
@@ -33,7 +34,7 @@ import uk.gov.hmrc.crypto.PlainText
 import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.personaldetailsvalidation.model.*
 import uk.gov.hmrc.personaldetailsvalidation.services.Encryption
-import uk.gov.hmrc.personaldetailsvalidation.{AssociationMongoRepository, PersonalDetailsValidationRepository}
+import uk.gov.hmrc.personaldetailsvalidation.{AssociationMongoRepository, NinoLockRepository, PersonalDetailsValidationRepository, PersonalDetailsValidationRetryRepository}
 import uk.gov.hmrc.play.bootstrap.tools.LogCapturing
 import uk.gov.hmrc.support.stubs.AuditEventStubs.{verifyFailureDetailInAuditEvent, verifyMatchingStatusInAuditEvent}
 import uk.gov.hmrc.support.stubs.{AuthStub, AuthenticatorStub, CitizenDetailsStub}
@@ -319,6 +320,137 @@ class PersonalDetailsValidationResourceControllerISpec
     }
   }
 
+  "POST /personal-details-validation NINO retry lock" should {
+
+    "lock the nino after 3 failed validations across different credIds and block the 4th submission without calling the authenticator" in new NinoLockSetup {
+      stubAuthFor("cred-A")
+      expectMatchFailure()
+      recordFailure("cred-A")
+      recordFailure("cred-A")
+      stubAuthFor("cred-B")
+      recordFailure("cred-B")
+
+      verifyWiremock(3, postRequestedFor(urlEqualTo("/authenticator/match")))
+
+      val lockedUntilBeforeBlocked: LocalDateTime = ninoLockRepository.findByNinoKey("AA000003").futureValue
+        .fold(_ => fail("could not read nino lock record"), _.fold(fail("expected a nino lock record"))(_.lockedUntil.get))
+
+      stubAuthFor("cred-C")
+      val blockedResponse: WSResponse = sendCreateValidationResourceRequest(personalDetails, headersFor("cred-C")).futureValue
+      blockedResponse.status mustBe CREATED
+      (blockedResponse.json \ "validationStatus").as[String] mustBe "failure"
+      (blockedResponse.json \ "attempts").as[Int] mustBe 1
+
+      verifyWiremock(3, postRequestedFor(urlEqualTo("/authenticator/match")))
+
+      val secondBlockedResponse: WSResponse = sendCreateValidationResourceRequest(personalDetails, headersFor("cred-C")).futureValue
+      secondBlockedResponse.status mustBe CREATED
+      (secondBlockedResponse.json \ "attempts").as[Int] mustBe 2
+
+      verifyWiremock(3, postRequestedFor(urlEqualTo("/authenticator/match")))
+
+      // blocked submissions must not extend the lock or touch the nino count
+      val lockAfterBlocked: NinoLock = ninoLockRepository.findByNinoKey("AA000003").futureValue
+        .fold(_ => fail("could not read nino lock record"), _.fold(fail("expected a nino lock record"))(identity))
+      lockAfterBlocked.lockedUntil.get mustEqual lockedUntilBeforeBlocked
+      lockAfterBlocked.failedAttempts mustBe 3
+    }
+
+    "block a locked nino submitted without a credId and return an ordinary failure" in new NinoLockSetup {
+      stubAuthFor("cred-A")
+      expectMatchFailure()
+      recordFailure("cred-A")
+      recordFailure("cred-A")
+      recordFailure("cred-A")
+
+      verifyWiremock(3, postRequestedFor(urlEqualTo("/authenticator/match")))
+
+      val blockedResponse: WSResponse = sendCreateValidationResourceRequest(personalDetails, headersNoAuth).futureValue
+      blockedResponse.status mustBe CREATED
+      (blockedResponse.json \ "validationStatus").as[String] mustBe "failure"
+      (blockedResponse.json \ "credentialId").asOpt[String] mustBe None
+
+      verifyWiremock(3, postRequestedFor(urlEqualTo("/authenticator/match")))
+    }
+
+    "clear the below-threshold nino and credId state when a validation succeeds" in new NinoLockSetup {
+      stubAuthFor("cred-A")
+      expectMatchFailure()
+      recordFailure("cred-A")
+      recordFailure("cred-A")
+
+      AuthenticatorStub.expecting(personalDetails).respondWithOK()
+      val successResponse: WSResponse = sendCreateValidationResourceRequest(personalDetails, headersFor("cred-A")).futureValue
+      successResponse.status mustBe CREATED
+      (successResponse.json \ "validationStatus").as[String] mustBe "success"
+
+      expectMatchFailure()
+      val postSuccessFailure: WSResponse = sendCreateValidationResourceRequest(personalDetails, headersFor("cred-A")).futureValue
+      postSuccessFailure.status mustBe CREATED
+      (postSuccessFailure.json \ "validationStatus").as[String] mustBe "failure"
+      (postSuccessFailure.json \ "attempts").as[Int] mustBe 1
+
+      // the nino count was cleared, so the nino is not yet locked: a 3rd failure must still reach the authenticator
+      val thirdFailure: WSResponse = sendCreateValidationResourceRequest(personalDetails, headersFor("cred-A")).futureValue
+      thirdFailure.status mustBe CREATED
+      (thirdFailure.json \ "attempts").as[Int] mustBe 2
+
+      verifyWiremock(5, postRequestedFor(urlEqualTo("/authenticator/match")))
+    }
+
+    "treat ninos with different spacing and suffix as the same nino" in new NinoLockSetup {
+      stubAuthFor("cred-A")
+      expectMatchFailure()
+      recordFailure("cred-A")
+      recordFailure("cred-A")
+      recordFailure("cred-A")
+
+      verifyWiremock(3, postRequestedFor(urlEqualTo("/authenticator/match")))
+
+      val spacedJson: String =
+        """
+          |{
+          |   "firstName": "Jim",
+          |   "lastName": "Ferguson",
+          |   "nino": "aa 00 00 03 a",
+          |   "dateOfBirth": "1948-04-23"
+          |}
+        """.stripMargin
+
+      stubAuthFor("cred-B")
+      val blockedResponse: WSResponse = sendCreateValidationResourceRequest(spacedJson, headersFor("cred-B")).futureValue
+      blockedResponse.status mustBe CREATED
+      (blockedResponse.json \ "validationStatus").as[String] mustBe "failure"
+      (blockedResponse.json \ "attempts").as[Int] mustBe 1
+
+      verifyWiremock(3, postRequestedFor(urlEqualTo("/authenticator/match")))
+    }
+
+    "fail closed when auth returns an unexpected error" in new NinoLockSetup {
+      AuthStub.stubForAuth(500)
+
+      val createResponse: WSResponse = sendCreateValidationResourceRequest(personalDetails, headersFor("cred-A")).futureValue
+      createResponse.status mustBe BAD_GATEWAY
+
+      verifyWiremock(0, postRequestedFor(urlEqualTo("/authenticator/match")))
+    }
+
+    "continue the ordinary credId failure progression against an unlocked nino" in new NinoLockSetup {
+      stubAuthFor("cred-A")
+      expectMatchFailure()
+      val attemptOne: WSResponse = sendCreateValidationResourceRequest(personalDetails, headersFor("cred-A")).futureValue
+      (attemptOne.json \ "attempts").as[Int] mustBe 1
+
+      val attemptTwo: WSResponse = sendCreateValidationResourceRequest(personalDetails, headersFor("cred-A")).futureValue
+      (attemptTwo.json \ "attempts").as[Int] mustBe 2
+
+      val attemptThree: WSResponse = sendCreateValidationResourceRequest(personalDetails, headersFor("cred-A")).futureValue
+      (attemptThree.json \ "attempts").as[Int] mustBe 3
+
+      verifyWiremock(3, postRequestedFor(urlEqualTo("/authenticator/match")))
+    }
+  }
+
   "GET /personal-details-validation/id" should {
     s"return $OK and body if success is stored" in new Setup {
       val dateTimeNow: LocalDateTime = LocalDateTime.of(2020,1,1,1,1)
@@ -451,6 +583,54 @@ class PersonalDetailsValidationResourceControllerISpec
         .addHttpHeaders(CONTENT_TYPE -> JSON)
         .addHttpHeaders(headers: _*)
         .post(body)
+  }
+
+  private trait NinoLockSetup {
+    import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, stubFor, urlMatching}
+
+    val ninoLockRepository: NinoLockRepository = app.injector.instanceOf[NinoLockRepository]
+    val retryRepository: PersonalDetailsValidationRetryRepository = app.injector.instanceOf[PersonalDetailsValidationRetryRepository]
+
+    val headersNoAuth: List[(String, String)] = List(("X-Session-ID", s"session-${UUID.randomUUID().toString}"))
+
+    def headersFor(credId: String): List[(String, String)] =
+      List(("X-Session-ID", s"session-${UUID.randomUUID().toString}"), ("Authorization", s"Bearer $credId"))
+
+    def stubAuthFor(credId: String): Unit =
+      stubFor(
+        post(urlMatching("/auth/authorise"))
+          .willReturn(
+            aResponse()
+              .withStatus(200)
+              .withBody(Json.stringify(AuthStub.authBody(credId)))
+              .withHeader("Content-type", "Application/json")
+          )
+      )
+
+    def expectMatchFailure(): Unit =
+      AuthenticatorStub.expecting(personalDetails).respondWith(UNAUTHORIZED, Some(Json.obj("errors" -> "no match")))
+
+    def recordFailure(credId: String): Unit = {
+      val response: WSResponse = sendCreateValidationResourceRequest(personalDetails, headersFor(credId)).futureValue
+      response.status mustBe CREATED
+      (response.json \ "validationStatus").as[String] mustBe "failure"
+    }
+
+    def sendCreateValidationResourceRequest(body: String, headers: List[(String,String)]= List.empty): Future[WSResponse] =
+      wsUrl(s"/personal-details-validation")
+        .addHttpHeaders(CONTENT_TYPE -> JSON)
+        .addHttpHeaders(headers: _*)
+        .post(body)
+
+    val personalDetails: String =
+      """
+        |{
+        |   "firstName": "Jim",
+        |   "lastName": "Ferguson",
+        |   "nino": "AA000003D",
+        |   "dateOfBirth": "1948-04-23"
+        |}
+      """.stripMargin
   }
 
 }

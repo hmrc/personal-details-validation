@@ -20,12 +20,12 @@ import play.api.mvc.Request
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory.*
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchPreconditionFailed, MatchPreconditionSuccessful, MatchSuccessful, NoLivingMatch}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.*
 import uk.gov.hmrc.personaldetailsvalidation.model.*
 import uk.gov.hmrc.play.audit.AuditExtensions
 import uk.gov.hmrc.play.audit.model.DataEvent
 
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime}
 import javax.inject.{Inject, Singleton}
 
 @Singleton
@@ -67,11 +67,39 @@ class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTag
     )
   }
 
-  private def matchResultDetails(personalDetails: PersonalDetails, matchingStatus: String, auditType: AuditType) = {
-    val nino = personalDetails match {
+  private def ninoLockEvent(details: Map[String, String])
+                           (implicit hc: HeaderCarrier, request: Request[?]): DataEvent =
+    DataEvent(
+      auditSource = auditConfig.appName,
+      auditType = ninoLockEventAuditType,
+      tags = auditTagProvider(hc, ninoLockEventAuditType, request),
+      detail = auditDetailsProvider(hc) ++ details
+    )
+
+  def createNinoLockEvent(personalDetails: PersonalDetails, maybeCredId: Option[String], outcome: NinoLockOutcome)
+                         (implicit hc: HeaderCarrier, request: Request[?]): DataEvent = {
+    val outcomeDetails: Map[String, String] = outcome match {
+      case NinoLockOutcome.FailureRecorded(failedAttempts) =>
+        Map("failureReason" -> "failureRecorded", "failedAttempts" -> failedAttempts.toString)
+      case NinoLockOutcome.LockCreated(lockedUntil) =>
+        Map("failureReason" -> "lockCreated", "lockedUntil" -> lockedUntil.toString)
+      case NinoLockOutcome.SubmissionBlocked =>
+        Map("failureReason" -> "submissionBlocked")
+      case NinoLockOutcome.LockStoreError(mongoDatabaseOperation, errorType, errorMessage) =>
+        Map("failureReason" -> "lockStoreError", "mongoDatabaseOperation" -> mongoDatabaseOperation, "errorType" -> errorType, "errorMessage" -> errorMessage)
+    }
+    ninoLockEvent(
+      outcomeDetails ++ Map("nino" -> ninoValue(personalDetails), "credId" -> maybeCredId.getOrElse("NOT SUPPLIED")))
+  }
+
+  private def ninoValue(personalDetails: PersonalDetails): String =
+    personalDetails match {
       case details: PersonalDetailsNino => details.nino.value
       case _ => "NOT SUPPLIED"
     }
+
+  private def matchResultDetails(personalDetails: PersonalDetails, matchingStatus: String, auditType: AuditType) = {
+    val nino = ninoValue(personalDetails)
 
     val postCode = personalDetails match {
       case details: PersonalDetailsWithPostCode => details.postCode.value
@@ -102,7 +130,7 @@ class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTag
     }
 
     def auditType: AuditType = target match {
-      case MatchSuccessful(_) | NoLivingMatch | MatchFailed(_) => matchingResultAuditType
+      case MatchSuccessful(_) | NoLivingMatch | MatchFailed(_) | MatchNinoLocked => matchingResultAuditType
       case MatchPreconditionFailed(_) | MatchPreconditionSuccessful => matchingPreconditionFailedUnderageAuditType
     }
 
@@ -110,6 +138,7 @@ class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTag
       case MatchSuccessful(_) | NoLivingMatch | MatchPreconditionSuccessful => Map.empty[String, String]
       case MatchFailed(errors)  => Map("failureDetail" -> errors)
       case MatchPreconditionFailed(errors) => Map("failureDetail" -> errors)
+      case MatchNinoLocked => Map("failureDetail" -> "Nino submission blocked: nino locked")
     }
   }
 
@@ -128,4 +157,14 @@ private[personaldetailsvalidation] object AuditDataEventFactory {
 
   val matchingResultAuditType: AuditType = "MatchingResult"
   val matchingPreconditionFailedUnderageAuditType: AuditType = "MatchingPreconditionFailedUnderage"
+
+  val ninoLockEventAuditType: AuditType = "NinoLockEvent"
+}
+
+sealed trait NinoLockOutcome
+object NinoLockOutcome {
+  case class FailureRecorded(failedAttempts: Int) extends NinoLockOutcome
+  case class LockCreated(lockedUntil: LocalDateTime) extends NinoLockOutcome
+  case object SubmissionBlocked extends NinoLockOutcome
+  case class LockStoreError(mongoDatabaseOperation: String, errorType: String, errorMessage: String) extends NinoLockOutcome
 }

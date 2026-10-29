@@ -27,11 +27,14 @@ import play.api.test.FakeRequest
 import support.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory.*
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchPreconditionFailed, MatchSuccessful, NoLivingMatch}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchNinoLocked, MatchPreconditionFailed, MatchSuccessful, NoLivingMatch}
 import uk.gov.hmrc.personaldetailsvalidation.model.*
+import com.mongodb.ServerAddress
+import com.mongodb.{MongoWriteException, WriteError}
+import org.bson.BsonDocument
 import uk.gov.hmrc.play.audit.model.DataEvent
 
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime}
 
 class AuditDataEventFactorySpec extends UnitSpec {
 
@@ -122,6 +125,111 @@ class AuditDataEventFactorySpec extends UnitSpec {
         ("age" -> currentAgeFromDateOfBirth(adjustedPerson.dateOfBirth)) +
         ("matchingStatus" -> "technicalError")
     }
+
+    "create data event for a blocked nino submission" in new Setup {
+      val dataEvent: DataEvent = auditDataFactory.createEvent(MatchNinoLocked, personalDetails)
+
+      dataEvent.auditSource shouldBe auditConfig.appName
+      dataEvent.auditType shouldBe "MatchingResult"
+      dataEvent.tags shouldBe auditTags
+      dataEvent.detail shouldBe auditDetails +
+        ("nino" -> personalDetails.nino.value) +
+        ("postCode" -> "NOT SUPPLIED") +
+        ("age" -> currentAgeFromDateOfBirth(personalDetails.dateOfBirth)) +
+        ("matchingStatus" -> "failed") +
+        ("failureDetail" -> "Nino submission blocked: nino locked")
+    }
+
+    "create a NinoLockEvent recording a failure" in new Setup {
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockEvent(personalDetails, Some("cred-123"), NinoLockOutcome.FailureRecorded(failedAttempts = 2))
+
+      dataEvent.auditSource shouldBe auditConfig.appName
+      dataEvent.auditType shouldBe "NinoLockEvent"
+      dataEvent.tags shouldBe auditTags
+      dataEvent.detail shouldBe auditDetails +
+        ("failureReason" -> "failureRecorded") +
+        ("failedAttempts" -> "2") +
+        ("nino" -> personalDetails.nino.value) +
+        ("credId" -> "cred-123")
+    }
+
+    "create a NinoLockEvent recording a failure for a submission without a credId" in new Setup {
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockEvent(personalDetails, None, NinoLockOutcome.FailureRecorded(failedAttempts = 1))
+
+      dataEvent.auditType shouldBe "NinoLockEvent"
+      dataEvent.detail shouldBe auditDetails +
+        ("failureReason" -> "failureRecorded") +
+        ("failedAttempts" -> "1") +
+        ("nino" -> personalDetails.nino.value) +
+        ("credId" -> "NOT SUPPLIED")
+    }
+
+    "create a NinoLockEvent for a created lock" in new Setup {
+      val lockedUntil: LocalDateTime = LocalDateTime.of(2026, 1, 2, 12, 0)
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockEvent(personalDetails, Some("cred-123"), NinoLockOutcome.LockCreated(lockedUntil))
+
+      dataEvent.auditType shouldBe "NinoLockEvent"
+      dataEvent.detail shouldBe auditDetails +
+        ("failureReason" -> "lockCreated") +
+        ("lockedUntil" -> lockedUntil.toString) +
+        ("nino" -> personalDetails.nino.value) +
+        ("credId" -> "cred-123")
+    }
+
+    "create a NinoLockEvent for a blocked submission" in new Setup {
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockEvent(personalDetails, Some("cred-123"), NinoLockOutcome.SubmissionBlocked)
+
+      dataEvent.auditType shouldBe "NinoLockEvent"
+      dataEvent.detail shouldBe auditDetails +
+        ("failureReason" -> "submissionBlocked") +
+        ("nino" -> personalDetails.nino.value) +
+        ("credId" -> "cred-123")
+    }
+
+    "create a NinoLockEvent for a blocked submission without a credId" in new Setup {
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockEvent(personalDetails, None, NinoLockOutcome.SubmissionBlocked)
+
+      dataEvent.auditType shouldBe "NinoLockEvent"
+      dataEvent.detail shouldBe auditDetails +
+        ("failureReason" -> "submissionBlocked") +
+        ("nino" -> personalDetails.nino.value) +
+        ("credId" -> "NOT SUPPLIED")
+    }
+
+    "create a NinoLockEvent for a lock store error" in new Setup {
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockEvent(personalDetails, Some("cred-123"), NinoLockOutcome.LockStoreError("read", "MongoTimeoutException", "timed out after 30000 ms"))
+
+      dataEvent.auditType shouldBe "NinoLockEvent"
+      dataEvent.detail shouldBe auditDetails +
+        ("failureReason" -> "lockStoreError") +
+        ("mongoDatabaseOperation" -> "read") +
+        ("errorType" -> "MongoTimeoutException") +
+        ("errorMessage" -> "timed out after 30000 ms") +
+        ("nino" -> personalDetails.nino.value) +
+        ("credId" -> "cred-123")
+    }
+
+    "include the full error message when a real duplicate key error is produced" in new Setup {
+      val realDupKeyMessage =
+        "E11000 duplicate key error collection: pdv.personal-details-validation-nino-lock-store index: ninoKeyUnique dup key: { ninoKey: \"AA000003\" }"
+      val ex = new MongoWriteException(new WriteError(11000, realDupKeyMessage, new BsonDocument()), new ServerAddress())
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockEvent(personalDetails, Some("cred-123"), NinoLockOutcome.LockStoreError("write", ex.getClass.getSimpleName, ex.getMessage))
+
+      dataEvent.auditType shouldBe "NinoLockEvent"
+      dataEvent.detail("errorType") shouldBe "MongoWriteException"
+      dataEvent.detail("errorMessage") should include(realDupKeyMessage)
+    }
+
+    "create a NinoLockEvent with a NOT SUPPLIED nino for personal details without a nino" in new Setup {
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockEvent(personalDetailsWithPostCode, Some("cred-123"), NinoLockOutcome.FailureRecorded(failedAttempts = 1))
+
+      dataEvent.auditType shouldBe "NinoLockEvent"
+      dataEvent.detail shouldBe auditDetails +
+        ("failureReason" -> "failureRecorded") +
+        ("failedAttempts" -> "1") +
+        ("nino" -> "NOT SUPPLIED") +
+        ("credId" -> "cred-123")
+    }
   }
 
   trait Setup {
@@ -139,6 +247,7 @@ class AuditDataEventFactorySpec extends UnitSpec {
 
     when(auditTagsProvider.apply(headerCarrier, matchingResultAuditType, request)).thenReturn(auditTags)
     when(auditTagsProvider.apply(headerCarrier, matchingPreconditionFailedUnderageAuditType, request)).thenReturn(auditTags)
+    when(auditTagsProvider.apply(headerCarrier, ninoLockEventAuditType, request)).thenReturn(auditTags)
     when(auditDetailsProvider.apply(headerCarrier)).thenReturn(auditDetails)
 
     val auditDataFactory = new AuditDataEventFactory(auditConfig, auditTagsProvider, auditDetailsProvider)

@@ -22,6 +22,7 @@ import uk.gov.hmrc.personaldetailsvalidation.model.*
 import uk.gov.hmrc.play.audit.model.DataEvent
 
 import java.time.{LocalDateTime, ZoneOffset}
+import java.time.temporal.ChronoUnit
 
 object ObjectGenerators extends ValueGenerators {
 
@@ -52,11 +53,11 @@ object ObjectGenerators extends ValueGenerators {
   implicit val successfulPersonalDetailsValidationObjects: Gen[SuccessfulPersonalDetailsValidation] = for {
     id <- validationIds
     personalDetails <- personalDetailsWithNinoObjects
-  } yield SuccessfulPersonalDetailsValidation(id, "success", personalDetails, LocalDateTime.parse(LocalDateTime.now(ZoneOffset.UTC).toString.dropRight(6)))
+  } yield SuccessfulPersonalDetailsValidation(id, "success", personalDetails, LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MILLIS))
 
   implicit val failedPersonalDetailsValidationObjects: Gen[FailedPersonalDetailsValidation] =
     validationIds.map{id =>
-      FailedPersonalDetailsValidation(id, "failure", maybeCredId, attempt, LocalDateTime.parse(LocalDateTime.now(ZoneOffset.UTC).toString.dropRight(6)))
+      FailedPersonalDetailsValidation(id, "failure", maybeCredId, attempt, LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MILLIS))
     }
 
   implicit val personalDetailsValidationObjects: Gen[PersonalDetailsValidation] = booleans flatMap {

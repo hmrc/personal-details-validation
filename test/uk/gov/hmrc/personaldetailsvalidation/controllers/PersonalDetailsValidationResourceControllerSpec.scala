@@ -16,11 +16,14 @@
 
 package uk.gov.hmrc.personaldetailsvalidation.controllers
 
+import cats.data.EitherT
 import factory.ObjectFactory.*
 import generators.Generators.Implicits.*
 import generators.ObjectGenerators.*
 import org.apache.pekko.stream.Materializer
-import org.mockito.Mockito.{reset, when}
+import org.bson.BsonDocument
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
+import org.mockito.Mockito.{reset, verifyNoInteractions, when}
 import org.scalacheck.Arbitrary
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
@@ -30,6 +33,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar.mock
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
+import org.mongodb.scala.SingleObservableFuture
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.*
@@ -39,7 +43,11 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers.*
 import support.{CommonTestData, UnitSpec}
 import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.auth.core.MissingBearerToken
+import uk.gov.hmrc.auth.core.authorise.Predicate
+import uk.gov.hmrc.auth.core.retrieve.{Credentials, Retrieval}
 import uk.gov.hmrc.domain.Nino
+import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.personaldetailsvalidation.*
 import uk.gov.hmrc.personaldetailsvalidation.formats.PersonalDetailsValidationFormat.personalDetailsValidationFormats
@@ -50,6 +58,7 @@ import uk.gov.hmrc.personaldetailsvalidation.model.*
 import uk.gov.hmrc.uuid.UUIDProvider
 
 import java.util.UUID.randomUUID
+import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -89,8 +98,24 @@ class PersonalDetailsValidationResourceControllerSpec
     stubControllerComponents()
   )
 
+  val mockRetryRepository: PersonalDetailsValidationRetryRepository = mock[PersonalDetailsValidationRetryRepository]
+
+  val controllerWithMockRetryRepository = new PersonalDetailsValidationResourceController(
+    mockPersonalDetailsValidatorService,
+    mockRetryRepository,
+    mockValidator,
+    stubControllerComponents()
+  )
+
+  def stubAuthFailure(exception: Exception): Unit =
+    when(mockAuthConnector.authorise[Option[Credentials]](
+      any[Predicate],
+      any[Retrieval[Option[Credentials]]]
+    )(using any[HeaderCarrier], any[ExecutionContext]))
+      .thenReturn(Future.failed(exception))
+
   override def beforeEach(): Unit = {
-    reset(mockPersonalDetailsValidatorService)
+    reset(mockPersonalDetailsValidatorService, mockValidator)
     super.beforeEach()
   }
 
@@ -175,6 +200,26 @@ class PersonalDetailsValidationResourceControllerSpec
       await(controller.create(testOrigin)(requestWithBody).failed) shouldBe badGatewayException
     }
 
+    "treat a missing bearer token as a no-credId journey and continue validation" in {
+      val personalDetails: PersonalDetails = randomPersonalDetails
+      val requestWithBody                  = request.withBody(toJson(personalDetails))
+
+      stubAuthFailure(new MissingBearerToken())
+      MockValidator.validate(mockValidator, personalDetails, testOrigin, None)(personalDetailsValidation)
+
+      status(controller.create(testOrigin)(requestWithBody)) shouldBe CREATED
+    }
+
+    "fail closed without validating when auth returns an unexpected error" in {
+      val personalDetails: PersonalDetails = randomPersonalDetails
+      val requestWithBody                  = request.withBody(toJson(personalDetails))
+
+      stubAuthFailure(UpstreamErrorResponse("auth outage", 500))
+
+      await(controller.create(testOrigin)(requestWithBody).failed) shouldBe a[UpstreamErrorResponse]
+      verifyNoInteractions(mockValidator)
+    }
+
     "return BAD_REQUEST if postcode is supplied in an incorrect format" in {
       val personalDetailsWithNino: PersonalDetailsWithNino = randomPersonalDetails.asInstanceOf[PersonalDetailsWithNino]
       val personalDetails: PersonalDetailsWithPostCode = PersonalDetailsWithPostCode(
@@ -225,6 +270,41 @@ class PersonalDetailsValidationResourceControllerSpec
         status(response) shouldBe BAD_REQUEST
 
       }
+    }
+  }
+
+  "getUserAttempts" should {
+
+    "return the attempts recorded for the authenticated credId" in {
+      await(personalDetailsValidationRetryRepository.collection.deleteMany(new BsonDocument()).toFuture())
+      MockAuthConnector.authoriseSuccess(mockAuthConnector)
+      await(personalDetailsValidationRetryRepository.incrementAttempts("test"))
+
+      val response: Result = controller.getUserAttempts(request).futureValue
+
+      status(response) shouldBe OK
+      (jsonBodyOf(response) \ "attempts").as[Int] shouldBe 1
+      (jsonBodyOf(response) \ "maybeCredId").as[String] shouldBe "test"
+    }
+
+    "return zero attempts and no credId when there is no session" in {
+      stubAuthFailure(new MissingBearerToken())
+
+      val response: Result = controller.getUserAttempts(request).futureValue
+
+      status(response) shouldBe OK
+      (jsonBodyOf(response) \ "attempts").as[Int] shouldBe 0
+      (jsonBodyOf(response) \ "maybeCredId") shouldBe a[JsUndefined]
+    }
+
+    "fail when the retry store cannot be read" in {
+      MockAuthConnector.authoriseSuccess(mockAuthConnector)
+      when(mockRetryRepository.getAttemptsT(any[Option[String]])(any[ExecutionContext]))
+        .thenReturn(EitherT.leftT[Future, Int](exception))
+
+      val response = controllerWithMockRetryRepository.getUserAttempts(request)
+
+      await(response.failed) shouldBe a[RuntimeException]
     }
   }
 

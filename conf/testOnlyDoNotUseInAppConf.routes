@@ -10,5 +10,9 @@
 # Failing to follow this rule may result in test routes deployed in production.
 
 # Add all the application routes to the prod.routes file
-->         /                          prod.Routes
-POST       /test-only/validNino       uk.gov.hmrc.personaldetailsvalidation.controllers.test.TestController.upsertTestValidation
+->         /                                    prod.Routes
+POST       /test-only/validNino                 uk.gov.hmrc.personaldetailsvalidation.controllers.test.TestController.upsertTestValidation
+POST       /test-only/nino-lock                 uk.gov.hmrc.personaldetailsvalidation.controllers.test.TestNinoLockController.upsertNinoLock
+POST       /test-only/nino-lock/delete          uk.gov.hmrc.personaldetailsvalidation.controllers.test.TestNinoLockController.deleteNinoLock
+POST       /test-only/cred-id-attempts          uk.gov.hmrc.personaldetailsvalidation.controllers.test.TestCredIdRetryController.setCredIdAttempts
+POST       /test-only/cred-id-attempts/delete   uk.gov.hmrc.personaldetailsvalidation.controllers.test.TestCredIdRetryController.deleteCredIdAttempts

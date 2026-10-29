@@ -31,7 +31,7 @@ import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, SessionId}
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnectorConfig
-import uk.gov.hmrc.personaldetailsvalidation.{AssociationMongoRepository, CitizenDetailsConnectorConfig, PersonalDetailsValidationRepository}
+import uk.gov.hmrc.personaldetailsvalidation.{AssociationMongoRepository, CitizenDetailsConnectorConfig, NinoLockRepository, PersonalDetailsValidationRepository, PersonalDetailsValidationRetryRepository}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.support.wiremock.WiremockSpecSupport
 
@@ -63,6 +63,8 @@ trait BaseIntegrationSpec
   override def beforeEach(): Unit = {
     app.injector.instanceOf[PersonalDetailsValidationRepository].collection.deleteMany(new BsonDocument()).toFuture().futureValue
     app.injector.instanceOf[AssociationMongoRepository].collection.deleteMany(new BsonDocument()).toFuture().futureValue
+    app.injector.instanceOf[PersonalDetailsValidationRetryRepository].collection.deleteMany(new BsonDocument()).toFuture().futureValue
+    app.injector.instanceOf[NinoLockRepository].collection.deleteMany(new BsonDocument()).toFuture().futureValue
     super.beforeEach()
   }
 

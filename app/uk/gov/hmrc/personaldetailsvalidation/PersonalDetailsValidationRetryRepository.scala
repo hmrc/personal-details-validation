@@ -20,6 +20,7 @@ import cats.data.EitherT
 import org.apache.pekko.Done
 import org.mongodb.scala.model.*
 import org.mongodb.scala.model.Indexes.ascending
+import org.mongodb.scala.{MongoCommandException, MongoWriteException}
 import play.api.libs.json.*
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
@@ -27,6 +28,7 @@ import uk.gov.hmrc.personaldetailsvalidation.formats.JavaDateTimeFormatter
 import uk.gov.hmrc.personaldetailsvalidation.model.{PersonalDetailsValidation, SuccessfulPersonalDetailsValidation}
 
 import java.time.{LocalDateTime, ZoneOffset}
+import java.util.Date
 import java.util.concurrent.TimeUnit
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -62,13 +64,29 @@ class PersonalDetailsValidationRetryRepository @Inject()(config: PersonalDetails
   //user's CredId is the retry key
   lazy val retryKey = "credentialId"
 
-  def recordAttempt(maybeCredId: String, attempts: Int = 0): Future[Either[Exception, Done]] = {
-    val update = Retry(maybeCredId, Some(attempts + 1))
-    collection.replaceOne(Filters.eq(retryKey, maybeCredId), update, ReplaceOptions().upsert(true)).toFuture().map(_ => Right(Done))
-      .recover {
-        case ex: Exception => Left(ex)
-      }
+  private def toDate(t: LocalDateTime): Date = Date.from(t.atZone(ZoneOffset.UTC).toInstant)
+
+  private def isDuplicateKey(ex: Throwable): Boolean = ex match {
+    case e: MongoWriteException   => e.getError.getCode == 11000
+    case e: MongoCommandException => e.getErrorCode == 11000
+    case _                        => false
   }
+
+  def incrementAttempts(credId: String, retryOnDuplicateKey: Boolean = true): Future[Either[Exception, Int]] =
+    collection.findOneAndUpdate(
+      filter = Filters.eq(retryKey, credId),
+      update = Updates.combine(
+        Updates.inc("attempts", 1),
+        Updates.set("createdAt", toDate(LocalDateTime.now(ZoneOffset.UTC)))
+      ),
+      options = FindOneAndUpdateOptions().upsert(true).returnDocument(ReturnDocument.AFTER)
+    ).toFutureOption().map {
+      case Some(retry) => Right(retry.attempts.getOrElse(1)): Either[Exception, Int]
+      case None        => Right(1): Either[Exception, Int]
+    }.recoverWith {
+      case ex: Exception if isDuplicateKey(ex) && retryOnDuplicateKey => incrementAttempts(credId, retryOnDuplicateKey = false)
+      case ex: Exception => Future.successful(Left(ex))
+    }
 
   def deleteAttempts(credId: String): Future[Either[Exception, Done]] = {
     collection.deleteOne(Filters.eq(retryKey, credId)).toFuture().map(_ => Right(Done))
@@ -76,6 +94,12 @@ class PersonalDetailsValidationRetryRepository @Inject()(config: PersonalDetails
         case ex: Exception => Left(ex)
       }
   }
+
+  //test-support only, used by the test-only routes to set CredID retry state
+  def upsertAttempts(credId: String, attempts: Int): Future[Either[Exception, Done]] =
+    collection.replaceOne(Filters.eq(retryKey, credId), Retry(credId, Some(attempts)), ReplaceOptions().upsert(true)).toFuture()
+      .map(_ => Right(Done): Either[Exception, Done])
+      .recover { case ex: Exception => Left(ex) }
 
   def getAttempts(maybeCredId:Option[String])(implicit ec: ExecutionContext): Future[Either[Exception, Int]] = {
     maybeCredId.fold(Future.successful(Right(0))){ credId =>
@@ -93,10 +117,7 @@ class PersonalDetailsValidationRetryRepository @Inject()(config: PersonalDetails
       case Some(credId) =>
         personalDetailsValidation match {
           case _: SuccessfulPersonalDetailsValidation => deleteAttempts(credId)
-          case _ => getAttempts(Some(credId)).flatMap {
-            case Right(attempts) => recordAttempt(credId, attempts)
-            case Left(exception) => Future.successful(Left(exception))
-          }
+          case _ => incrementAttempts(credId).map(_.map(_ => Done))
         }
       case None => Future.successful(Right(Done))
     }
