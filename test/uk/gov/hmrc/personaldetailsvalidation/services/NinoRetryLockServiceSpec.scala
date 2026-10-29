@@ -19,9 +19,10 @@ package uk.gov.hmrc.personaldetailsvalidation.services
 import org.apache.pekko.Done
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{never, times, verify, verifyNoInteractions, when}
+import org.mockito.Mockito.*
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.mockito.MockitoSugar
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.mvc.{AnyContentAsEmpty, Request}
 import play.api.test.FakeRequest
 import support.{CommonTestData, UnitSpec}
@@ -39,12 +40,45 @@ import java.time.{LocalDate, LocalDateTime, ZoneOffset}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with MockitoSugar with ScalaFutures {
+class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with MockitoSugar with ScalaFutures with ScalaCheckPropertyChecks {
 
-  import NinoRetryLockServiceSpec.*
+  private val nino: Nino = Nino("AA000003D")
+  private val ninoKey: String = "AA000003"
+
+  private val personalDetailsWithNino: PersonalDetailsWithNino =
+    PersonalDetailsWithNino("Jim", "Ferguson", LocalDate.of(1980, 1, 1), nino)
+
+  private val personalDetailsWithPostCode: PersonalDetailsWithPostCode =
+    PersonalDetailsWithPostCode("Jim", "Ferguson", LocalDate.of(1980, 1, 1), "SE1 9NT")
+
+  private val ninoLockEvent: DataEvent =
+    DataEvent(auditSource = "personal-details-validation", auditType = "NinoLockEvent", tags = Map.empty, detail = Map.empty)
 
   implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
   override implicit val request: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
+
+  "ninoKey" should {
+    import NinoRetryLockService.ninoKey
+
+    val normalisationScenarios = Table(
+      ("scenario", "ninoValue", "expectedKey"),
+      ("remove intermediate spaces and the suffix", "AA 00 00 03 D", "AA000003"),
+      ("strip the suffix", "AA000003A", "AA000003"),
+      ("produce the same key for a different suffix", "AA000003B", "AA000003"),
+      ("produce the same key for the suffix D", "AA000003D", "AA000003"),
+      ("remove a single intermediate space", "AA000003 C", "AA000003")
+    )
+
+    forAll(normalisationScenarios) { (scenario, ninoValue, expectedKey) =>
+      s"normalise the nino: $scenario" in {
+        Nino(ninoValue).ninoKey shouldBe expectedKey
+      }
+    }
+
+    "produce an identical key for ninos that differ only in spacing or suffix" in {
+      Nino("AA000003D").ninoKey shouldBe Nino("AA 00 00 03 A").ninoKey
+    }
+  }
 
   "lockStatus" should {
 
@@ -274,7 +308,7 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
     when(mockNinoLockConfig.maxFailedAttempts).thenReturn(3)
     when(mockNinoLockConfig.lockDuration).thenReturn(java.time.Duration.ofHours(24))
 
-    val service = new NinoRetryLockService(new NinoKeyService, mockNinoLockRepository, mockNinoLockConfig, mockAuditConnector, mockAuditDataEventFactory)
+    val service = new NinoRetryLockService(mockNinoLockRepository, mockNinoLockConfig, mockAuditConnector, mockAuditDataEventFactory)
 
     when(mockAuditConnector.sendEvent(any[DataEvent])(any[HeaderCarrier], any[scala.concurrent.ExecutionContext])).thenReturn(Future.successful(AuditResult.Success))
 
@@ -292,21 +326,4 @@ class NinoRetryLockServiceSpec extends UnitSpec with CommonTestData with Mockito
                    lastFailedAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)): NinoLock =
       NinoLock(ninoKey, failedAttempts, lastFailedAt, lockedUntil, lockedUntil.getOrElse(lastFailedAt.plusHours(24)))
   }
-}
-
-object NinoRetryLockServiceSpec {
-
-  val nino: Nino = Nino("AA000003D")
-  val ninoKey: String = "AA000003"
-
-  val personalDetailsWithNino: PersonalDetailsWithNino =
-    PersonalDetailsWithNino("Jim", "Ferguson", LocalDate.of(1980, 1, 1), nino)
-
-  val personalDetailsWithPostCode: PersonalDetailsWithPostCode =
-    PersonalDetailsWithPostCode("Jim", "Ferguson", LocalDate.of(1980, 1, 1), "SE1 9NT")
-
-  def dataEvent(auditType: String): DataEvent =
-    DataEvent(auditSource = "personal-details-validation", auditType = auditType, tags = Map.empty, detail = Map.empty)
-
-  val ninoLockEvent: DataEvent = dataEvent("NinoLockEvent")
 }

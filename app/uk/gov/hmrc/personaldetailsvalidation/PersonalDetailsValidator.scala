@@ -25,8 +25,9 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.personaldetailsvalidation.audit.AuditDataEventFactory
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
-import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.{MatchFailed, MatchNinoLocked, MatchPreconditionFailed, MatchPreconditionSuccessful, MatchSuccessful, NoLivingMatch}
+import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.*
 import uk.gov.hmrc.personaldetailsvalidation.model.*
+import uk.gov.hmrc.personaldetailsvalidation.services.NinoRetryLockService.NinoLockStatus.*
 import uk.gov.hmrc.personaldetailsvalidation.services.{Encryption, NinoRetryLockService, RepoControlService}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 import uk.gov.hmrc.uuid.UUIDProvider
@@ -69,7 +70,7 @@ class PersonalDetailsValidatorImpl @Inject() (
     for {
       ninoLockStatus <- ninoRetryLockService.lockStatus(personalDetails, maybeCredId)
       matchResult <- ninoLockStatus match {
-        case NinoRetryLockService.NinoLockStatus.Locked(_) =>
+        case Locked(_) =>
           EitherT.rightT[Future, Exception](MatchNinoLocked: MatchResult)
         case _ =>
           for {

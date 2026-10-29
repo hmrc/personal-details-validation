@@ -18,11 +18,12 @@ package uk.gov.hmrc.personaldetailsvalidation.services
 
 import cats.data.EitherT
 import play.api.mvc.Request
+import uk.gov.hmrc.domain.Nino
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.personaldetailsvalidation.audit.{AuditDataEventFactory, NinoLockOutcome}
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult
 import uk.gov.hmrc.personaldetailsvalidation.matching.MatchingConnector.MatchResult.*
 import uk.gov.hmrc.personaldetailsvalidation.model.{NinoLock, PersonalDetails}
-import uk.gov.hmrc.personaldetailsvalidation.audit.{AuditDataEventFactory, NinoLockOutcome}
 import uk.gov.hmrc.personaldetailsvalidation.{NinoLockConfig, NinoLockRepository}
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
 
@@ -31,13 +32,12 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class NinoRetryLockService @Inject()(ninoKeyService: NinoKeyService,
-                                     ninoLockRepository: NinoLockRepository,
+class NinoRetryLockService @Inject()(ninoLockRepository: NinoLockRepository,
                                      ninoLockConfig: NinoLockConfig,
                                      auditConnector: AuditConnector,
                                      auditDataEventFactory: AuditDataEventFactory)(implicit ec: ExecutionContext) {
 
-  import NinoRetryLockService.NinoLockStatus
+  import NinoRetryLockService.{NinoLockStatus, ninoKey}
 
   private def now: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)
   
@@ -46,14 +46,14 @@ class NinoRetryLockService @Inject()(ninoKeyService: NinoKeyService,
     personalDetails.maybeNino match {
       case None => EitherT.rightT[Future, Exception](NinoLockStatus.NoNinoJourney)
       case Some(nino) =>
-        val key = ninoKeyService.ninoKey(nino)
+        val key = nino.ninoKey
         EitherT(ninoLockRepository.findByNinoKey(key))
           .leftMap { ex =>
             auditConnector.sendEvent(auditDataEventFactory.createNinoLockEvent(personalDetails, maybeCredId, NinoLockOutcome.LockStoreError("read", ex.getClass.getSimpleName, ex.getMessage)))
             ex
           }
           .flatMap {
-            case Some(record) if record.lockedUntil.exists(_.isAfter(now)) =>
+            case Some(record) if record.isLocked(now) =>
               EitherT.rightT[Future, Exception] {
                 auditConnector.sendEvent(auditDataEventFactory.createNinoLockEvent(personalDetails, maybeCredId, NinoLockOutcome.SubmissionBlocked))
                 NinoLockStatus.Locked(record.lockedUntil.get)
@@ -70,7 +70,7 @@ class NinoRetryLockService @Inject()(ninoKeyService: NinoKeyService,
     }
 
   private def isStale(record: NinoLock): Boolean =
-    record.lockedUntil.forall(!_.isAfter(now)) &&
+    !record.isLocked(now) &&
       record.lastFailedAt.isBefore(now.minus(ninoLockConfig.lockDuration))
   
   def recordOutcome(personalDetails: PersonalDetails, matchResult: MatchResult, maybeCredId: Option[String])
@@ -78,7 +78,7 @@ class NinoRetryLockService @Inject()(ninoKeyService: NinoKeyService,
     (personalDetails.maybeNino, matchResult) match {
       case (None, _) => EitherT.rightT[Future, Exception](())
       case (Some(nino), MatchFailed(_)) =>
-        val key = ninoKeyService.ninoKey(nino)
+        val key = nino.ninoKey
         val failedAt = now
         EitherT(ninoLockRepository.incrementFailedAttempts(key, failedAt, failedAt.plus(ninoLockConfig.lockDuration)))
           .leftMap { ex =>
@@ -109,7 +109,7 @@ class NinoRetryLockService @Inject()(ninoKeyService: NinoKeyService,
             case None => EitherT.rightT[Future, Exception](())
           }
       case (Some(nino), MatchSuccessful(_) | NoLivingMatch) =>
-        val key = ninoKeyService.ninoKey(nino)
+        val key = nino.ninoKey
         EitherT(ninoLockRepository.delete(key))
           .leftMap { ex =>
             auditConnector.sendEvent(auditDataEventFactory.createNinoLockEvent(personalDetails, maybeCredId, NinoLockOutcome.LockStoreError("delete", ex.getClass.getSimpleName, ex.getMessage)))
@@ -122,6 +122,10 @@ class NinoRetryLockService @Inject()(ninoKeyService: NinoKeyService,
 }
 
 object NinoRetryLockService {
+  extension (nino: Nino)
+    def ninoKey: String =
+      nino.value.replaceAll("\\s", "").toUpperCase.take(8)
+
   sealed trait NinoLockStatus
   object NinoLockStatus {
     case object NoNinoJourney extends NinoLockStatus

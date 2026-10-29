@@ -20,9 +20,9 @@ import play.api.Logging
 import play.api.libs.json.{Format, JsValue, Json}
 import play.api.mvc.{Action, ControllerComponents, Result}
 import uk.gov.hmrc.domain.Nino
-import uk.gov.hmrc.personaldetailsvalidation.{NinoLockConfig, NinoLockRepository}
 import uk.gov.hmrc.personaldetailsvalidation.model.NinoLock
-import uk.gov.hmrc.personaldetailsvalidation.services.NinoKeyService
+import uk.gov.hmrc.personaldetailsvalidation.services.NinoRetryLockService.ninoKey
+import uk.gov.hmrc.personaldetailsvalidation.{NinoLockConfig, NinoLockRepository}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.time.{LocalDateTime, ZoneOffset}
@@ -34,8 +34,7 @@ case class NinoLockTestRequest(nino: String, failedAttempts: Int = 0, locked: Bo
 case class NinoDeleteRequest(nino: String)
 
 @Singleton
-class TestNinoLockController @Inject()(ninoKeyService: NinoKeyService,
-                                       ninoLockRepository: NinoLockRepository,
+class TestNinoLockController @Inject()(ninoLockRepository: NinoLockRepository,
                                        ninoLockConfig: NinoLockConfig,
                                        cc: ControllerComponents)
                                       (implicit ec: ExecutionContext)
@@ -77,7 +76,7 @@ class TestNinoLockController @Inject()(ninoKeyService: NinoKeyService,
 
   private def withNinoKey(rawNino: String)(f: String => Future[Result]): Future[Result] = {
     val normalised = rawNino.replaceAll("\\s", "").toUpperCase
-    if (Nino.isValid(normalised)) f(ninoKeyService.ninoKey(Nino(normalised)))
+    if (Nino.isValid(normalised)) f(Nino(normalised).ninoKey)
     else Future.successful(BadRequest("invalid nino"))
   }
 }

@@ -24,13 +24,12 @@ import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
+import play.api.http.Status.{BAD_REQUEST, CREATED, INTERNAL_SERVER_ERROR, NO_CONTENT}
 import play.api.libs.json.Json
 import play.api.test.Helpers.stubControllerComponents
-import play.api.http.Status.{BAD_REQUEST, CREATED, INTERNAL_SERVER_ERROR, NO_CONTENT}
 import support.UnitSpec
-import uk.gov.hmrc.personaldetailsvalidation.{NinoLockConfig, NinoLockRepository}
 import uk.gov.hmrc.personaldetailsvalidation.model.NinoLock
-import uk.gov.hmrc.personaldetailsvalidation.services.NinoKeyService
+import uk.gov.hmrc.personaldetailsvalidation.{NinoLockConfig, NinoLockRepository}
 
 import java.time.Duration
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -45,7 +44,7 @@ class TestNinoLockControllerSpec extends UnitSpec with MockitoSugar with ScalaFu
     override lazy val lockDuration: Duration = Duration.ofHours(24)
   }
 
-  val controller = new TestNinoLockController(new NinoKeyService, mockNinoLockRepository, ninoLockConfig, stubControllerComponents())
+  val controller = new TestNinoLockController(mockNinoLockRepository, ninoLockConfig, stubControllerComponents())
 
   override def beforeEach(): Unit = {
     reset(mockNinoLockRepository)

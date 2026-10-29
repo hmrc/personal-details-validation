@@ -27,7 +27,10 @@ case class NinoLock(
   lastFailedAt: LocalDateTime,
   lockedUntil: Option[LocalDateTime],
   expiresAt: LocalDateTime
-)
+) {
+  def isLocked(at: LocalDateTime): Boolean =
+    lockedUntil.exists(_.isAfter(at))
+}
 
 object NinoLock extends JavaDateTimeFormatter {
   implicit val dateTimeFormats: Format[LocalDateTime] = localDateTimeFormat

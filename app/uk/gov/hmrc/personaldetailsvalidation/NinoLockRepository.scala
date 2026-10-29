@@ -60,7 +60,7 @@ class NinoLockRepository @Inject()(mongo: MongoComponent)(implicit ec: Execution
 
   def findByNinoKey(ninoKey: String): Future[Either[Exception, Option[NinoLock]]] =
     collection.find(Filters.eq("ninoKey", ninoKey)).headOption()
-      .map(result => Right(result): Either[Exception, Option[NinoLock]])
+      .map[Either[Exception, Option[NinoLock]]](result => Right(result))
       .recover { case ex: Exception => Left(ex) }
 
   def incrementFailedAttempts(ninoKey: String, now: LocalDateTime, expiresAt: LocalDateTime): Future[Either[Exception, Option[NinoLock]]] = {
@@ -102,16 +102,16 @@ class NinoLockRepository @Inject()(mongo: MongoComponent)(implicit ec: Execution
       ),
       options = FindOneAndUpdateOptions().returnDocument(ReturnDocument.AFTER)
     ).toFutureOption()
-      .map(result => Right(result): Either[Exception, Option[NinoLock]])
+      .map[Either[Exception, Option[NinoLock]]](result => Right(result))
       .recover { case ex: Exception => Left(ex) }
 
   def delete(ninoKey: String): Future[Either[Exception, Done]] =
     collection.deleteOne(Filters.eq("ninoKey", ninoKey)).toFuture()
-      .map(_ => Right(Done): Either[Exception, Done])
+      .map[Either[Exception, Done]](_ => Right(Done))
       .recover { case ex: Exception => Left(ex) }
 
   def upsert(ninoLock: NinoLock): Future[Either[Exception, Done]] =
     collection.replaceOne(Filters.eq("ninoKey", ninoLock.ninoKey), ninoLock, ReplaceOptions().upsert(true)).toFuture()
-      .map(_ => Right(Done): Either[Exception, Done])
+      .map[Either[Exception, Done]](_ => Right(Done))
       .recover { case ex: Exception => Left(ex) }
 }
