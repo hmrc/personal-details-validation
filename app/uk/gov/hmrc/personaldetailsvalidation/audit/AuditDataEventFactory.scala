@@ -25,7 +25,8 @@ import uk.gov.hmrc.personaldetailsvalidation.model.*
 import uk.gov.hmrc.play.audit.AuditExtensions
 import uk.gov.hmrc.play.audit.model.DataEvent
 
-import java.time.{LocalDate, LocalDateTime}
+import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
+import java.time.{LocalDate, LocalDateTime, ZoneOffset}
 import javax.inject.{Inject, Singleton}
 
 @Singleton
@@ -82,7 +83,7 @@ class AuditDataEventFactory(auditConfig: AuditConfig, auditTagProvider: AuditTag
       case NinoLockOutcome.FailureRecorded(failedAttempts) =>
         Map("failureReason" -> "failureRecorded", "failedAttempts" -> failedAttempts.toString)
       case NinoLockOutcome.LockCreated(lockedUntil) =>
-        Map("failureReason" -> "lockCreated", "lockedUntil" -> lockedUntil.toString)
+        Map("failureReason" -> "lockCreated", "lockedUntil" -> auditTimestampFormat.format(lockedUntil.toInstant(ZoneOffset.UTC)))
       case NinoLockOutcome.SubmissionBlocked =>
         Map("failureReason" -> "submissionBlocked")
       case NinoLockOutcome.LockStoreError(mongoDatabaseOperation, errorType, errorMessage) =>
@@ -159,6 +160,9 @@ private[personaldetailsvalidation] object AuditDataEventFactory {
   val matchingPreconditionFailedUnderageAuditType: AuditType = "MatchingPreconditionFailedUnderage"
 
   val ninoLockEventAuditType: AuditType = "NinoLockEvent"
+
+  private val auditTimestampFormat: DateTimeFormatter =
+    new DateTimeFormatterBuilder().appendInstant(3).toFormatter
 }
 
 sealed trait NinoLockOutcome

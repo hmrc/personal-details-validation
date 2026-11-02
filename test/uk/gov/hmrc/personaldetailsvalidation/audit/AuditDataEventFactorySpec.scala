@@ -164,16 +164,23 @@ class AuditDataEventFactorySpec extends UnitSpec {
         ("credId" -> "NOT SUPPLIED")
     }
 
-    "create a NinoLockEvent for a created lock" in new Setup {
-      val lockedUntil: LocalDateTime = LocalDateTime.of(2026, 1, 2, 12, 0)
+    "create a NinoLockEvent for a created lock with lockedUntil as a UTC timestamp in milliseconds" in new Setup {
+      val lockedUntil: LocalDateTime = LocalDateTime.of(2026, 10, 31, 9, 11, 21, 520723661)
       val dataEvent: DataEvent = auditDataFactory.createNinoLockEvent(personalDetails, Some("cred-123"), NinoLockOutcome.LockCreated(lockedUntil))
 
       dataEvent.auditType shouldBe "NinoLockEvent"
       dataEvent.detail shouldBe auditDetails +
         ("failureReason" -> "lockCreated") +
-        ("lockedUntil" -> lockedUntil.toString) +
+        ("lockedUntil" -> "2026-10-31T09:11:21.520Z") +
         ("nino" -> personalDetails.nino.value) +
         ("credId" -> "cred-123")
+    }
+
+    "always include milliseconds in lockedUntil for a lock on an exact second" in new Setup {
+      val lockedUntil: LocalDateTime = LocalDateTime.of(2026, 1, 2, 12, 0)
+      val dataEvent: DataEvent = auditDataFactory.createNinoLockEvent(personalDetails, Some("cred-123"), NinoLockOutcome.LockCreated(lockedUntil))
+
+      dataEvent.detail("lockedUntil") shouldBe "2026-01-02T12:00:00.000Z"
     }
 
     "create a NinoLockEvent for a blocked submission" in new Setup {
